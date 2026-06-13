@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { RhythmProtocols } from './rhythm-protocols';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type RhythmMode = 'sync' | 'timer';
 

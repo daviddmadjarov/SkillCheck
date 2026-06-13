@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { MouseProtocols } from './mouse-protocols';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type MouseMode = 'symbol' | 'cps';
 

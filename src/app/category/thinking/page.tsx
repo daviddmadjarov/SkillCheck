@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { CognitiveProtocols } from './cognitive-protocols';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type ThinkingMode = 'rotation' | 'estimation' | 'sequence';
 

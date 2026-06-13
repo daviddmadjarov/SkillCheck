@@ -6,7 +6,7 @@ import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type ReactionMode = 'time' | 'audio' | 'multi';
 
