@@ -1,0 +1,197 @@
+import Link from 'next/link';
+
+import { AudioReactionProtocol } from '@/app/category/reaction/audio-reaction-protocol';
+import { MultiReactionProtocol } from '@/app/category/reaction/multi-reaction-protocol';
+import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
+import { hasSupabaseEnv } from '@/lib/supabase/config';
+import { createClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
+
+type ReactionMode = 'time' | 'audio' | 'multi';
+
+function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
+  if (!user) {
+    return 'Guest Researcher';
+  }
+
+  const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
+
+  return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
+}
+
+async function loadReactionPageData() {
+  if (!hasSupabaseEnv()) {
+    return {
+      attempts: 0,
+      audioAttempts: 0,
+      multiAttempts: 0,
+      bestScore: null as number | null,
+      audioBestScore: null as number | null,
+      multiBestScore: null as number | null,
+      displayName: 'Guest Researcher',
+      isSignedIn: false,
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: userResult } = await supabase.auth.getUser();
+  const user = userResult.user;
+
+  if (!user) {
+    return {
+      attempts: 0,
+      audioAttempts: 0,
+      multiAttempts: 0,
+      bestScore: null as number | null,
+      audioBestScore: null as number | null,
+      multiBestScore: null as number | null,
+      displayName: 'Guest Researcher',
+      isSignedIn: false,
+    };
+  }
+
+  const [
+    { data: bestRows },
+    { data: audioBestRows },
+    { data: multiBestRows },
+    attemptsResult,
+    audioAttemptsResult,
+    multiAttemptsResult,
+  ] = await Promise.all([
+    supabase
+      .from('score_submissions')
+      .select('score')
+      .eq('user_id', user.id)
+      .eq('test_slug', 'reaction-time')
+      .order('score', { ascending: false })
+      .limit(1),
+    supabase
+      .from('score_submissions')
+      .select('score')
+      .eq('user_id', user.id)
+      .eq('test_slug', 'audio-reaction')
+      .order('score', { ascending: false })
+      .limit(1),
+    supabase
+      .from('score_submissions')
+      .select('score')
+      .eq('user_id', user.id)
+      .eq('test_slug', 'multi-reaction')
+      .order('score', { ascending: false })
+      .limit(1),
+    supabase
+      .from('score_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('test_slug', 'reaction-time'),
+    supabase
+      .from('score_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('test_slug', 'audio-reaction'),
+    supabase
+      .from('score_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('test_slug', 'multi-reaction'),
+  ]);
+
+  return {
+    attempts: attemptsResult.count ?? 0,
+    audioAttempts: audioAttemptsResult.count ?? 0,
+    multiAttempts: multiAttemptsResult.count ?? 0,
+    bestScore: bestRows?.[0]?.score ?? null,
+    audioBestScore: audioBestRows?.[0]?.score ?? null,
+    multiBestScore: multiBestRows?.[0]?.score ?? null,
+    displayName: getDisplayName(user),
+    isSignedIn: true,
+  };
+}
+
+function getReactionMode(value: string | undefined): ReactionMode {
+  if (value === 'audio') {
+    return 'audio';
+  }
+
+  if (value === 'multi') {
+    return 'multi';
+  }
+
+  return 'time';
+}
+
+function tabClass(isActive: boolean) {
+  if (isActive) {
+    return 'rounded-full border-2 border-cyan-300 bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-800 html[data-theme="dark"]:border-cyan-700 html[data-theme="dark"]:bg-cyan-900 html[data-theme="dark"]:text-cyan-300';
+  }
+
+  return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 html[data-theme="dark"]:border-slate-700 html[data-theme="dark"]:bg-slate-900 html[data-theme="dark"]:text-slate-300 html[data-theme="dark"]:hover:bg-slate-800';
+}
+
+export default async function ReactionPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ mode?: string }>;
+}) {
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const mode = getReactionMode(resolvedSearchParams.mode);
+  const { attempts, audioAttempts, multiAttempts, bestScore, audioBestScore, multiBestScore, displayName, isSignedIn } = await loadReactionPageData();
+
+  return (
+    <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
+      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 sm:gap-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:items-center sm:px-6">
+          <div>
+            <p className="status-pill">Reaction Category</p>
+            <h1 className="mt-2 text-xl font-black tracking-tight text-slate-800 sm:text-2xl">
+              Reaction Protocol
+            </h1>
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+              Choose a mode: visual reaction, audio reaction, or multi-reaction protocol.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 sm:block">
+              {displayName}
+            </div>
+              <Link className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
+              Return to Lab
+            </Link>
+          </div>
+        </div>
+
+        <section className="lab-card p-4 sm:p-5">
+          <div className="flex flex-wrap gap-2">
+            <Link className={tabClass(mode === 'time')} href="/category/reaction?mode=time">
+              Reaction Time
+            </Link>
+            <Link className={tabClass(mode === 'audio')} href="/category/reaction?mode=audio">
+              Audio Reaction
+            </Link>
+            <Link className={tabClass(mode === 'multi')} href="/category/reaction?mode=multi">
+              Multi-Reaction
+            </Link>
+          </div>
+        </section>
+
+        {mode === 'audio' ? (
+          <AudioReactionProtocol initialAttempts={audioAttempts} initialBestScore={audioBestScore} isSignedIn={isSignedIn} />
+        ) : mode === 'multi' ? (
+          <MultiReactionProtocol
+            initialAttempts={multiAttempts}
+            initialBestScore={multiBestScore}
+            isSignedIn={isSignedIn}
+          />
+        ) : (
+          <ReactionProtocol
+            initialAttempts={attempts}
+            initialBestScore={bestScore}
+            isSignedIn={isSignedIn}
+          />
+        )}
+      </div>
+    </main>
+  );
+}
