@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, ArrowLeft, CircleUserRound, Copy, Play } from 'lucide-react';
@@ -6,7 +7,7 @@ import { buildMultiplayerSessionHref, parseMultiplayerSelectionToken } from '@/l
 import { resolveSynchronizedRoundIndex } from '@/lib/multiplayer/session';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type PartyPageProps = {
   params: Promise<{ code: string }>;

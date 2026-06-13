@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { IntermissionCountdown } from './intermission-countdown';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type IntermissionPageProps = {
   params: Promise<{ code: string }>;
