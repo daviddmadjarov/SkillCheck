@@ -1352,7 +1352,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
                 <p className="mt-3 text-4xl font-black tracking-tight text-slate-800">{labScore}</p>
                 <p className="mt-1 text-sm font-semibold text-slate-500">Time inside target: {(timeInsideMs / 1000).toFixed(2)}s</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start New Run</button>
+                <button className="lab-button mt-4" onClick={() => startRun()} type="button">Start New ...</button>
               </div>
             </div>
           )}
