@@ -601,7 +601,7 @@ function estRoundScore(t: EstTask, guess: number): number {
   if (t.type === 'fireflies' || t.type === 'dots') {
     return clamp(Math.round(100 - (Math.abs(guess - t.actual) / t.actual) * 100 * 1.8), 0, 100);
   }
-  return clamp(Math.round(100 - (Math.abs(guess - t.actual) / t.actual) * 100 * 1.5), 0, 100);
+  return clamp(Math.round(100 - (Math.abs(guess - (t as any).actual) / (t as any).actual) * 100 * 1.5), 0, 100);
 }
 
 function estLabel(t: EstTask) {
