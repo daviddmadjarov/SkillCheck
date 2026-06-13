@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { AimProtocols } from './aim-protocols';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-static';
 
 type AimMode = 'trainer' | 'moving' | 'tracking' | 'split';
 
