@@ -203,3 +203,6 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
     </main>
   );
 }
+export function generateStaticParams() {
+  return [];
+}
