@@ -24,100 +24,100 @@
 
   html[data-theme='dark'] {
     color-scheme: dark;
+
+    body {
+      @apply bg-slate-950 text-slate-100;
+    }
+
+    .bg-dots {
+      background-image: radial-gradient(circle, rgba(148, 163, 184, 0.24) 2px, transparent 2px);
+      background-size: 32px 32px;
+    }
+
+    .bg-white {
+      background-color: #0f172a !important;
+    }
+
+    .bg-slate-50 {
+      background-color: #111827 !important;
+    }
+
+    .bg-slate-100 {
+      background-color: #1e293b !important;
+    }
+
+    .border-white,
+    .border-slate-200 {
+      border-color: #334155 !important;
+    }
+
+    .text-slate-800 {
+      color: #f8fafc !important;
+    }
+
+    .force-dark-black {
+      color: #000 !important;
+    }
+
+    .text-slate-700 {
+      color: #e2e8f0 !important;
+    }
+
+    .text-slate-600 {
+      color: #cbd5e1 !important;
+    }
+
+    .text-slate-500 {
+      color: #b0bfc9 !important;
+    }
+
+    .text-slate-400 {
+      color: #64748b !important;
+    }
+
+    .bg-cyan-50 {
+      background-color: rgba(8, 47, 73, 0.66) !important;
+    }
+
+    .border-cyan-200 {
+      border-color: #155e75 !important;
+    }
+
+    .bg-rose-50 {
+      background-color: rgba(69, 10, 24, 0.7) !important;
+    }
+
+    .border-rose-200 {
+      border-color: #9f1239 !important;
+    }
+
+    .bg-emerald-50 {
+      background-color: rgba(6, 78, 59, 0.72) !important;
+    }
+
+    .border-emerald-200 {
+      border-color: #047857 !important;
+    }
+
+    .bg-amber-50 {
+      background-color: rgba(120, 53, 15, 0.62) !important;
+    }
+
+    .border-amber-200 {
+      border-color: #b45309 !important;
+    }
+
+    .site-footer-shell {
+      @apply border-slate-800 bg-slate-900/80 text-slate-100 shadow-[0_4px_0_rgba(15,23,42,1)];
+    }
+
+    .site-footer-link {
+      @apply border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100;
+    }
   }
 
   body {
     @apply bg-slate-50 text-slate-800 font-sans antialiased;
-  }
-
-  html[data-theme='dark'] body {
-    @apply bg-slate-950 text-slate-100;
-  }
-
-  html[data-theme='dark'] .bg-dots {
-    background-image: radial-gradient(circle, rgba(148, 163, 184, 0.24) 2px, transparent 2px);
-    background-size: 32px 32px;
-  }
-
-  html[data-theme='dark'] .bg-white {
-    background-color: #0f172a !important;
-  }
-
-  html[data-theme='dark'] .bg-slate-50 {
-    background-color: #111827 !important;
-  }
-
-  html[data-theme='dark'] .bg-slate-100 {
-    background-color: #1e293b !important;
-  }
-
-  html[data-theme='dark'] .border-white,
-  html[data-theme='dark'] .border-slate-200 {
-    border-color: #334155 !important;
-  }
-
-  html[data-theme='dark'] .text-slate-800 {
-    color: #f8fafc !important;
-  }
-
-  html[data-theme='dark'] .force-dark-black {
-    color: #000 !important;
-  }
-
-  html[data-theme='dark'] .text-slate-700 {
-    color: #e2e8f0 !important;
-  }
-
-  html[data-theme='dark'] .text-slate-600 {
-    color: #cbd5e1 !important;
-  }
-
-  html[data-theme='dark'] .text-slate-500 {
-    color: #b0bfc9 !important;
-  }
-
-  html[data-theme='dark'] .text-slate-400 {
-    color: #64748b !important;
-  }
-
-  html[data-theme='dark'] .bg-cyan-50 {
-    background-color: rgba(8, 47, 73, 0.66) !important;
-  }
-
-  html[data-theme='dark'] .border-cyan-200 {
-    border-color: #155e75 !important;
-  }
-
-  html[data-theme='dark'] .bg-rose-50 {
-    background-color: rgba(69, 10, 24, 0.7) !important;
-  }
-
-  html[data-theme='dark'] .border-rose-200 {
-    border-color: #9f1239 !important;
-  }
-
-  html[data-theme='dark'] .bg-emerald-50 {
-    background-color: rgba(6, 78, 59, 0.72) !important;
-  }
-
-  html[data-theme='dark'] .border-emerald-200 {
-    border-color: #047857 !important;
-  }
-
-  html[data-theme='dark'] .bg-amber-50 {
-    background-color: rgba(120, 53, 15, 0.62) !important;
-  }
-
-  html[data-theme='dark'] .border-amber-200 {
-    border-color: #b45309 !important;
-  }
-
-  html[data-theme='dark'] .site-footer-shell {
-    @apply border-slate-800 bg-slate-900/80 text-slate-100 shadow-[0_4px_0_rgba(15,23,42,1)];
-  }
-
-  html[data-theme='dark'] .site-footer-link {
-    @apply border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100;
   }
 
   img,
@@ -186,287 +186,137 @@
 }
 
 @layer components {
-  html[data-theme='dark'] .lab-card,
-  html[data-theme='dark'] .lab-card-interactive {
-    background-color: #0f172a !important;
-    border-color: #334155 !important;
-    box-shadow: 0 4px 0 rgba(15, 23, 42, 1) !important;
-  }
+  html[data-theme='dark'] {
+    .lab-card,
+    .lab-card-interactive {
+      background-color: #0f172a !important;
+      border-color: #334155 !important;
+      box-shadow: 0 4px 0 rgba(15, 23, 42, 1) !important;
+    }
 
-  html[data-theme='dark'] .lab-button-secondary,
-  html[data-theme='dark'] .lab-input {
-    background-color: #0f172a;
-    border-color: #334155;
-    color: #e2e8f0;
-  }
+    .lab-button-secondary,
+    .lab-input {
+      background-color: #0f172a;
+      border-color: #334155;
+      color: #e2e8f0;
+    }
 
-  html[data-theme='dark'] .lab-input::placeholder {
-    color: #64748b;
-  }
+    .lab-input::placeholder {
+      color: #64748b;
+    }
 
-  html[data-theme='dark'] .status-pill {
-    border-color: #0e7490;
-    background-color: rgba(8, 145, 178, 0.14);
-    color: #a5f3fc;
-  }
+    .status-pill {
+      border-color: #0e7490;
+      background-color: rgba(8, 145, 178, 0.14);
+      color: #a5f3fc;
+    }
 
-  /* Dark mode for protocol titles and headings */
-  html[data-theme='dark'] .protocol-title {
-    color: #ffffff !important;
-  }
+    .protocol-title {
+      color: #ffffff !important;
+    }
 
-  /* Dark mode for gradient backgrounds */
-  html[data-theme='dark'] .bg-gradient-to-br {
-    @apply bg-gradient-to-br;
-  }
+    .bg-gradient-to-br {
+      @apply bg-gradient-to-br;
+    }
 
-  html[data-theme='dark'] .from-rose-50 {
-    --tw-gradient-from: #2d1419;
-    --tw-gradient-to: rgba(45, 20, 25, 0);
-  }
+    .from-rose-50 {
+      --tw-gradient-from: #2d1419;
+      --tw-gradient-to: rgba(45, 20, 25, 0);
+    }
 
-  html[data-theme='dark'] .via-white {
-    --tw-gradient-stops: var(--tw-gradient-from), #1e293b, var(--tw-gradient-to);
-  }
+    .via-white {
+      --tw-gradient-stops: var(--tw-gradient-from), #1e293b, var(--tw-gradient-to);
+    }
 
-  html[data-theme='dark'] .to-orange-50 {
-    --tw-gradient-to: #2d1a0f;
-  }
+    .to-orange-50 {
+      --tw-gradient-to: #2d1a0f;
+    }
 
-  html[data-theme='dark'] .from-cyan-50 {
-    --tw-gradient-from: #0d2e3d;
-    --tw-gradient-to: rgba(13, 46, 61, 0);
-  }
+    .from-cyan-50 {
+      --tw-gradient-from: #0d2e3d;
+      --tw-gradient-to: rgba(13, 46, 61, 0);
+    }
 
-  html[data-theme='dark'] .to-sky-50 {
-    --tw-gradient-to: #0d1f2d;
-  }
+    .to-sky-50 {
+      --tw-gradient-to: #0d1f2d;
+    }
 
-  /* Dark mode for all light background cards */
-  html[data-theme='dark'] .bg-rose-100 {
-    background-color: #7c3248;
-  }
+    .bg-rose-100 { background-color: #7c3248; }
+    .bg-cyan-100 { background-color: #1d6070; }
+    .bg-blue-100 { background-color: #1e4a75; }
+    .bg-amber-100 { background-color: #72471f; }
+    .bg-emerald-100 { background-color: #1f6349; }
+    .bg-purple-100 { background-color: #52306a; }
+    .bg-purple-500 { background-color: #7c3aed; }
 
-  html[data-theme='dark'] .bg-cyan-100 {
-    background-color: #1d6070;
-  }
+    .border-slate-100 { border-color: #1e293b; }
+    .border-slate-300 { border-color: #475569; }
+    .border-blue-200 { border-color: #1e3a8a; }
+    .border-purple-500 { border-color: #7c3aed; }
 
-  html[data-theme='dark'] .bg-blue-100 {
-    background-color: #1e4a75;
-  }
+    .text-rose-500 { color: #fb7185 !important; }
+    .text-blue-500 { color: #3b82f6; }
+    .text-amber-500 { color: #fbbf24 !important; }
+    .text-emerald-500 { color: #10b981; }
+    .text-purple-500 { color: #a78bfa; }
+    .text-cyan-500 { color: #06b6d4 !important; }
 
-  html[data-theme='dark'] .bg-amber-100 {
-    background-color: #72471f;
-  }
+    .bg-slate-900 { background-color: #0f172a; }
+    .bg-slate-800 { background-color: #1e293b; }
+    .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4); }
 
-  html[data-theme='dark'] .bg-emerald-100 {
-    background-color: #1f6349;
-  }
+    .text-gray-600,
+    .text-gray-700 {
+      @apply text-slate-300;
+    }
 
-  html[data-theme='dark'] .bg-purple-100 {
-    background-color: #52306a;
-  }
+    /* Fixed hover/focus escape variants using standard CSS nesting */
+    .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
+    .hover\:bg-white:hover { background-color: #1e293b !important; }
+    .focus\:border-cyan-400:focus { border-color: #22d3ee !important; }
+    .focus\:ring-2 { --tw-ring-color: #0e7490; }
 
-  html[data-theme='dark'] .bg-purple-500 {
-    background-color: #7c3aed;
-  }
+    details { @apply bg-slate-900; }
+    summary { @apply text-slate-100; }
+    li { @apply border-slate-700 bg-slate-800 text-slate-100; }
+    ol li { @apply border-slate-700 bg-slate-800; }
+    
+    .font-medium.leading-6 { @apply text-slate-300; }
+    .rounded-full.border-2.border-slate-200 { border-color: #334155 !important; }
+    .text-slate-900 { color: #f1f5f9; }
 
-  /* Dark mode for border colors */
-  html[data-theme='dark'] .border-slate-100,
-  html[data-theme='dark'] .border-slate-100 {
-    border-color: #1e293b;
-  }
+    a.rounded-\[1\.8rem\] {
+      background-image: linear-gradient(to right bottom, rgba(45, 20, 25, 0.8), rgba(30, 41, 59, 0.8), rgba(45, 26, 15, 0.8)) !important;
+      border-color: #7c2d12 !important;
+    }
 
-  html[data-theme='dark'] .border-slate-300 {
-    border-color: #475569;
-  }
+    .text-3xl.font-black { color: #f1f5f9 !important; }
+    .text-sm.font-medium.leading-6.text-slate-500 { color: #cbd5e1 !important; }
 
-  html[data-theme='dark'] .border-blue-200 {
-    border-color: #1e3a8a;
-  }
+    .bg-cyan-50 {
+      background-color: #0d2e3d !important;
+      color: #cbd5e1 !important;
+    }
 
-  html[data-theme='dark'] .border-purple-500 {
-    border-color: #7c3aed;
-  }
+    [class*="bg-cyan-50"] { background-color: #0d2e3d !important; }
+    .text-cyan-900 { color: #06b6d4 !important; }
+    main .bg-white { background-color: #0d2e3d !important; }
 
-  /* Dark mode for text colors in various backgrounds */
-  html[data-theme='dark'] .text-rose-500 {
-    color: #f87171;
-  }
+    .site-footer {
+      background-color: #0f172a !important;
+      border-color: #334155 !important;
+    }
 
-  html[data-theme='dark'] .text-blue-500 {
-    color: #3b82f6;
+    .site-footer-link {
+      border-color: #334155 !important;
+      background-color: #1e293b !important;
+      color: #cbd5e1 !important;
+      
+      &:hover {
+        border-color: #475569 !important;
+        background-color: #334155 !important;
+        color: #f1f5f9 !important;
+      }
+    }
   }
-
-  html[data-theme='dark'] .text-amber-500 {
-    color: #fbbf24;
-  }
-
-  html[data-theme='dark'] .text-emerald-500 {
-    color: #10b981;
-  }
-
-  html[data-theme='dark'] .text-purple-500 {
-    color: #a78bfa;
-  }
-
-  html[data-theme='dark'] .text-cyan-500 {
-    color: #06b6d4;
-  }
-
-
-  html[data-theme='dark'] .bg-slate-900 {
-    background-color: #0f172a;
-  }
-
-  html[data-theme='dark'] .bg-slate-800 {
-    background-color: #1e293b;
-  }
-
-  html[data-theme='dark'] .shadow-md {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Dark mode for leaderboard and list items */
-  html[data-theme='dark'] .text-gray-600,
-  html[data-theme='dark'] .text-gray-700 {
-    @apply text-slate-300;
-  }
-
-  /* Dark mode for hover states */
-  html[data-theme='dark'] .hover\\:bg-slate-50:hover {
-    background-color: #1e293b !important;
-  }
-
-  /* Dark mode for details sections */
-  html[data-theme='dark'] details {
-    @apply bg-slate-900;
-  }
-
-  html[data-theme='dark'] summary {
-    @apply text-slate-100;
-  }
-
-  /* Dark mode for rounded borders with gradients - party/duel cards */
-  html[data-theme='dark'] .border-rose-200 {
-    border-color: #9f1239 !important;
-  }
-
-  html[data-theme='dark'] .border-cyan-200 {
-    border-color: #155e75 !important;
-  }
-
-  /* Dark mode for list items */
-  html[data-theme='dark'] li {
-    @apply border-slate-700 bg-slate-800 text-slate-100;
-  }
-
-  /* Dark mode for ol/ul lists */
-  html[data-theme='dark'] ol li {
-    @apply border-slate-700 bg-slate-800;
-  }
-
-  /* Dark mode for medal/trophy icons */
-  html[data-theme='dark'] .text-amber-500 {
-    color: #fbbf24;
-  }
-
-  /* Dark mode for all text in list descriptions */
-  html[data-theme='dark'] .font-medium.leading-6 {
-    @apply text-slate-300;
-  }
-
-  /* Dark mode button states */
-  html[data-theme='dark'] .rounded-full.border-2.border-slate-200 {
-    border-color: #334155 !important;
-  }
-
-  /* Dark mode for all text-slate variants used in descriptions */
-  html[data-theme='dark'] .text-slate-900 {
-    color: #f1f5f9;
-  }
-
-  /* Dark mode for various card hover states */
-  html[data-theme='dark'] .hover\\:bg-white:hover {
-    background-color: #1e293b !important;
-  }
-
-  /* Dark mode for focus states */
-  html[data-theme='dark'] .focus\\:border-cyan-400:focus {
-    border-color: #22d3ee !important;
-  }
-
-  /* Dark mode for ring colors on buttons */
-  html[data-theme='dark'] .focus\\:ring-2 {
-    --tw-ring-color: #0e7490;
-  }
-
-  /* Dark mode for party/duel cards (rounded-[1.8rem]) */
-  html[data-theme='dark'] a.rounded-\[1\.8rem\] {
-    background-image: linear-gradient(to right bottom, rgba(45, 20, 25, 0.8), rgba(30, 41, 59, 0.8), rgba(45, 26, 15, 0.8)) !important;
-    border-color: #7c2d12 !important;
-  }
-
-  html[data-theme='dark'] .border-rose-200 {
-    border-color: #9f1239 !important;
-  }
-
-  html[data-theme='dark'] .border-cyan-200 {
-    border-color: #155e75 !important;
-  }
-
-  html[data-theme='dark'] .text-rose-500 {
-    color: #fb7185 !important;
-  }
-
-  html[data-theme='dark'] .text-cyan-500 {
-    color: #06b6d4 !important;
-  }
-
-  html[data-theme='dark'] .text-3xl.font-black {
-    color: #f1f5f9 !important;
-  }
-
-  html[data-theme='dark'] .text-sm.font-medium.leading-6.text-slate-500 {
-    color: #cbd5e1 !important;
-  }
-
-  /* Dark mode for game arenas */
-  html[data-theme='dark'] .bg-cyan-50 {
-    background-color: #0d2e3d !important;
-    color: #cbd5e1 !important;
-  }
-
-  html[data-theme='dark'] [class*="bg-cyan-50"] {
-    background-color: #0d2e3d !important;
-  }
-
-  html[data-theme='dark'] .text-cyan-900 {
-    color: #06b6d4 !important;
-  }
-  /* Target light backgrounds in game containers specifically */
-  html[data-theme='dark'] .bg-cyan-50, 
-  html[data-theme='dark'] main .bg-white {
-    background-color: #0d2e3d !important;
-  }
-  /* Dark mode for footer */
-  html[data-theme='dark'] .site-footer {
-    background-color: #0f172a !important;
-    border-color: #334155 !important;
-  }
-
-  html[data-theme='dark'] .site-footer-link {
-    border-color: #334155 !important;
-    background-color: #1e293b !important;
-    color: #cbd5e1 !important;
-  }
-
-  html[data-theme='dark'] .site-footer-link:hover {
-    border-color: #475569 !important;
-    background-color: #334155 !important;
-    color: #f1f5f9 !important;
-  }
-
 }
-
-
