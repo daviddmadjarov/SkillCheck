@@ -7,7 +7,6 @@ import { buildMultiplayerSessionHref, parseMultiplayerSelectionToken } from '@/l
 import { resolveSynchronizedRoundIndex } from '@/lib/multiplayer/session';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-static';
 
 type PartyPageProps = {
   params: Promise<{ code: string }>;
@@ -203,6 +202,10 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
     </main>
   );
 }
+// ... your main IntermissionPage component code ends here
+
 export function generateStaticParams() {
-  return [];
+  return [{ code: 'placeholder' }];
 }
+
+export const dynamic = 'force-static';

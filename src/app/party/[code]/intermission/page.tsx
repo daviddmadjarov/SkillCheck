@@ -1,4 +1,4 @@
-export const dynamic = 'force-static';
+
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Crown, Trophy } from 'lucide-react';
@@ -170,6 +170,10 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     </main>
   );
 }
+// ... your main IntermissionPage component code ends here
+
 export function generateStaticParams() {
-  return [];
+  return [{ code: 'placeholder' }];
 }
+
+export const dynamic = 'force-static';
