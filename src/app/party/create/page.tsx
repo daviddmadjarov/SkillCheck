@@ -260,7 +260,11 @@ export default function CreatePartyPage() {
                 {active && (GAME_OPTIONS[game.slug]?.length ?? 0) > 0 ? (
                   <div className="mt-4 grid gap-2">
                     {GAME_OPTIONS[game.slug].map((option) => (
-                      <label key={`${game.slug}-${option.key}`} className="flex items-center justify-between gap-3 rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700">
+                      <label
+                        key={`${game.slug}-${option.key}`}
+                        className="flex items-center justify-between gap-3 rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <span>{option.label}</span>
                         <select
                           className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-700"

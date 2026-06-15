@@ -147,7 +147,7 @@ create table if not exists public.multiplayer_lobbies (
   code text not null unique,
   host_id uuid not null references public.profiles (id) on delete cascade,
   mode text not null check (mode in ('duel', 'party')),
-  status text not null default 'lobby' check (status in ('lobby', 'live', 'finished')),
+  status text not null default 'lobby' check (status in ('waiting', 'lobby', 'live', 'finished')),
   max_players integer not null default 10 check (max_players between 2 and 10),
   selected_games text[] not null default '{}'::text[],
   game_order text[] not null default '{}'::text[],
@@ -179,6 +179,14 @@ create table if not exists public.multiplayer_queue (
   requested_at timestamptz not null default now()
 );
 
+create table if not exists public.multiplayer_duel_queue (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  display_name text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id)
+);
+
 create table if not exists public.multiplayer_game_results (
   id uuid primary key default gen_random_uuid(),
   lobby_code text not null references public.multiplayer_lobbies (code) on delete cascade,
@@ -193,6 +201,7 @@ create table if not exists public.multiplayer_game_results (
 alter table public.multiplayer_lobbies enable row level security;
 alter table public.multiplayer_lobby_players enable row level security;
 alter table public.multiplayer_queue enable row level security;
+alter table public.multiplayer_duel_queue enable row level security;
 alter table public.multiplayer_game_results enable row level security;
 
 drop policy if exists "multiplayer lobbies are readable by everyone" on public.multiplayer_lobbies;
@@ -233,6 +242,18 @@ create policy "users can update their multiplayer lobby row"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "hosts can seat players" on public.multiplayer_lobby_players;
+create policy "hosts can seat players"
+  on public.multiplayer_lobby_players
+  for insert
+  with check (
+    exists (
+      select 1
+      from public.multiplayer_lobbies l
+      where l.id = lobby_id and l.host_id = auth.uid()
+    )
+  );
+
 drop policy if exists "duel queue is readable by authenticated users" on public.multiplayer_queue;
 create policy "duel queue is readable by authenticated users"
   on public.multiplayer_queue
@@ -251,6 +272,31 @@ create policy "users can update their queue row"
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+drop policy if exists "duel queue is readable by authenticated users" on public.multiplayer_duel_queue;
+create policy "duel queue is readable by authenticated users"
+  on public.multiplayer_duel_queue
+  for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "users can queue themselves for duels" on public.multiplayer_duel_queue;
+create policy "users can queue themselves for duels"
+  on public.multiplayer_duel_queue
+  for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "users can update their duel queue row" on public.multiplayer_duel_queue;
+create policy "users can update their duel queue row"
+  on public.multiplayer_duel_queue
+  for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "authenticated users can clear duel queue rows" on public.multiplayer_duel_queue;
+create policy "authenticated users can clear duel queue rows"
+  on public.multiplayer_duel_queue
+  for delete
+  using (auth.role() = 'authenticated');
 
 drop policy if exists "multiplayer results are readable by everyone" on public.multiplayer_game_results;
 create policy "multiplayer results are readable by everyone"

@@ -72,7 +72,7 @@ export function SiteFooter() {
           ) : (
             <Link
               className={`${footerLinkClassName} text-rose-600`}
-              href="/dark-room"
+              href="/beneath"
               onClick={handleDarkRoomClick}
             >
               Don&apos;t Click
