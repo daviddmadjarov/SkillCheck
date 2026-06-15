@@ -11,6 +11,7 @@ export default function DuelPage() {
   const [error, setError] = useState<string | null>(null);
   const [isQueued, setIsQueued] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [queueCount, setQueueCount] = useState<number>(0);
 
   async function handleStartDuel() {
     setIsSubmitting(true);
@@ -18,7 +19,7 @@ export default function DuelPage() {
 
     try {
       const response = await fetch('/api/multiplayer/duel', { method: 'POST' });
-      const payload = (await response.json().catch(() => null)) as { error?: string; status?: string; url?: string } | null;
+      const payload = (await response.json().catch(() => null)) as { error?: string; status?: string; url?: string; queueCount?: number } | null;
 
       if (!response.ok) {
         setError(payload?.error ?? 'Could not start a duel right now.');
@@ -32,6 +33,9 @@ export default function DuelPage() {
 
       if (payload?.status === 'waiting') {
         setIsQueued(true);
+        if (typeof payload.queueCount === 'number') {
+          setQueueCount(payload.queueCount);
+        }
       }
     } catch {
       setError('Could not start a duel right now.');
@@ -69,7 +73,7 @@ export default function DuelPage() {
     const intervalId = window.setInterval(async () => {
       try {
         const response = await fetch('/api/multiplayer/duel', { method: 'GET' });
-        const payload = (await response.json().catch(() => null)) as { status?: string; url?: string } | null;
+        const payload = (await response.json().catch(() => null)) as { status?: string; url?: string; queueCount?: number } | null;
 
         if (!response.ok) {
           return;
@@ -77,6 +81,9 @@ export default function DuelPage() {
 
         if (payload?.status === 'matched' && payload.url) {
           router.push(payload.url);
+        }
+        if (typeof payload?.queueCount === 'number') {
+          setQueueCount(payload.queueCount);
         }
       } catch {
         // keep polling
@@ -151,7 +158,11 @@ export default function DuelPage() {
 
           {isQueued ? (
             <p className="mt-4 rounded-2xl border-2 border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-medium text-cyan-700">
-              Looking for a random opponent in queue...
+              {queueCount > 1
+                ? `Looking for a random opponent — ${queueCount - 1} other player${queueCount - 1 === 1 ? '' : 's'} currently in queue...`
+                : queueCount === 1
+                  ? 'Looking for a random opponent in queue...'
+                  : 'Waiting for other players to join the queue...'}
             </p>
           ) : null}
 
