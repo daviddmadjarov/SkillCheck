@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 import { RhythmProtocols } from './rhythm-protocols';
 
-export const dynamic = 'force-static';
-
 type RhythmMode = 'sync' | 'timer';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {

@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 import { TypingProtocol } from './typing-protocol';
 
-export const dynamic = 'force-static';
-
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) {
     return 'Guest Researcher';

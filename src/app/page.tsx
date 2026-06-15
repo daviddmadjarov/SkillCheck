@@ -18,8 +18,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 
-export const dynamic = 'force-static';
-
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
   { id: 'aim', title: 'Aim Assessment', icon: Crosshair, desc: 'Targeting and precision drills', color: 'text-blue-500', bg: 'bg-blue-100' },

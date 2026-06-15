@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 import { CognitiveProtocols } from './cognitive-protocols';
 
-export const dynamic = 'force-static';
-
 type ThinkingMode = 'rotation' | 'estimation' | 'sequence';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {

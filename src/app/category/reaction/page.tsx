@@ -6,8 +6,6 @@ import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
-export const dynamic = 'force-static';
-
 type ReactionMode = 'time' | 'audio' | 'multi';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
