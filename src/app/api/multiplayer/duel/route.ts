@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 
 import {
+  buildMultiplayerSessionHref,
   createLobbyCode,
   getRandomMultiplayerGames,
+  parseMultiplayerSelectionToken,
   serializeMultiplayerSelection,
 } from '@/lib/multiplayer/catalog';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
@@ -52,6 +54,17 @@ function getDisplayName(user: { email?: string | null; user_metadata?: Record<st
 async function lookupDisplayName(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<string> {
   const { data } = await supabase.from('profiles').select('username').eq('id', userId).maybeSingle();
   return data?.username ?? `Player_${userId.slice(0, 6)}`;
+}
+
+/** Build the first-game session URL for a player in a duel lobby. */
+function buildFirstGameUrl(playerId: string, lobbyCode: string, gameOrder: string[]): string | null {
+  const firstToken = gameOrder[0];
+  if (!firstToken) return null;
+  return buildMultiplayerSessionHref(parseMultiplayerSelectionToken(firstToken), {
+    lobbyCode,
+    playerId,
+    round: 0,
+  });
 }
 
 // ─── POST: Enter the duel queue or match with an opponent ─────────────────
@@ -115,7 +128,7 @@ export async function POST() {
     const opponent = opponents?.[0] ?? null;
 
     if (!opponent) {
-      // No opponent — query queue count and return waiting
+      // No opponent — return waiting with queue count
       const { count: queueCount } = await supabase
         .from('multiplayer_queue')
         .select('*', { count: 'exact', head: true })
@@ -125,27 +138,26 @@ export async function POST() {
       return NextResponse.json({ status: 'waiting', queueCount: queueCount ?? 0 }, { status: 200 });
     }
 
-    // ── Found an opponent! Create a lobby and seat ourselves ──
-    // RLS prevents us from inserting a row for the opponent, so instead:
-    // 1. We create the lobby and seat ourselves (as host)
-    // 2. We mark opponent's queue entry as matched with the lobby code
-    // 3. The opponent's next GET poll will auto-join them to the lobby
+    // ── Found an opponent! Create a lobby, seat ourselves, and start the session ──
+    // Then redirect both players to the first game directly — no lobby screen.
 
     const code = createLobbyCode();
     const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
     const selectedGames = games.map((g) => g.slug);
     const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
 
-    // Create lobby (we are the host)
+    // Create lobby (we are the host) — start as 'live' so both go straight to the game
     const { data: lobby, error: lobbyError } = await supabase
       .from('multiplayer_lobbies')
       .insert({
         code,
+        current_game_index: 0,
         game_order: gameOrder,
         host_id: user.id,
         max_players: 2,
         mode: 'duel',
         selected_games: selectedGames,
+        status: 'live',
       })
       .select('id')
       .single();
@@ -155,22 +167,25 @@ export async function POST() {
       return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
     }
 
-    // Seat ourselves in the lobby (our own session can insert our own row via RLS)
-    const { error: seatSelfError } = await supabase.from('multiplayer_lobby_players').insert({
-      display_name: displayName,
-      lobby_id: lobby.id,
-      seat_index: 0,
-      user_id: user.id,
-    });
+    // Seat ourselves in the lobby
+    const { data: mySeat, error: seatSelfError } = await supabase
+      .from('multiplayer_lobby_players')
+      .insert({
+        display_name: displayName,
+        lobby_id: lobby.id,
+        seat_index: 0,
+        user_id: user.id,
+      })
+      .select('id')
+      .single();
 
-    if (seatSelfError) {
-      console.error('[duel] seat self failed', seatSelfError.message, { lobbyId: lobby.id });
+    if (seatSelfError || !mySeat) {
+      console.error('[duel] seat self failed', seatSelfError?.message ?? 'no data', { lobbyId: lobby.id });
       await supabase.from('multiplayer_lobbies').delete().eq('id', lobby.id);
       return NextResponse.json({ error: 'Could not seat you in the duel lobby.' }, { status: 500 });
     }
 
     // Mark opponent's queue entry as matched with the lobby code
-    // The opponent's GET endpoint will detect this and auto-join them
     const { error: markError } = await supabase
       .from('multiplayer_queue')
       .update({ status: 'matched', matched_code: code })
@@ -178,7 +193,6 @@ export async function POST() {
       .eq('queue_type', 'duel');
 
     if (markError) {
-      // Opponent might have been matched by another caller — retry
       console.warn('[duel] marking opponent as matched failed, retrying', markError.message, {
         opponentId: opponent.user_id,
       });
@@ -194,7 +208,14 @@ export async function POST() {
       .eq('user_id', user.id)
       .eq('queue_type', 'duel');
 
-    return NextResponse.json({ url: `/party/${code}?mode=duel` }, { status: 200 });
+    // Build the first game URL and redirect the matcher directly to the game
+    const gameUrl = buildFirstGameUrl(mySeat.id, code, gameOrder);
+    if (!gameUrl) {
+      console.error('[duel] could not build game URL');
+      return NextResponse.json({ error: 'Could not start the duel game.' }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: gameUrl }, { status: 200 });
   }
 
   // All retries exhausted — stay in queue
@@ -207,7 +228,7 @@ export async function POST() {
   return NextResponse.json({ status: 'waiting', queueCount: queueCount ?? 0 }, { status: 200 });
 }
 
-// ─── GET: Poll queue status, auto-join if matched ────────────────────────
+// ─── GET: Poll queue status — auto-join and redirect to first game ───────
 
 export async function GET() {
   if (!hasSupabaseEnv()) {
@@ -227,11 +248,11 @@ export async function GET() {
     .eq('queue_type', 'duel')
     .maybeSingle();
 
-  // Check if we're already seated in a recent duel lobby
+  // Check if we're already seated in a duel lobby
   const matchWindowStart = new Date(Date.now() - MATCH_WINDOW_MS).toISOString();
   const { data: seat } = await supabase
     .from('multiplayer_lobby_players')
-    .select('joined_at, multiplayer_lobbies!inner(code, mode)')
+    .select('id, joined_at, multiplayer_lobbies!inner(code, mode, game_order, status)')
     .eq('user_id', user.id)
     .eq('multiplayer_lobbies.mode', 'duel')
     .gte('joined_at', matchWindowStart)
@@ -240,21 +261,31 @@ export async function GET() {
     .maybeSingle();
 
   if (seat?.multiplayer_lobbies?.code) {
+    const lobbyData = seat.multiplayer_lobbies as { code: string; mode: string; game_order: string[]; status: string };
+
+    // If already seated and the lobby is live, go straight to the first game
+    if (lobbyData.status === 'live') {
+      const gameUrl = buildFirstGameUrl(seat.id, lobbyData.code, lobbyData.game_order);
+      if (gameUrl) {
+        return NextResponse.json({ status: 'matched', url: gameUrl }, { status: 200 });
+      }
+    }
+
+    // Otherwise send to lobby page
     return NextResponse.json({
       status: 'matched',
-      url: `/party/${seat.multiplayer_lobbies.code}?mode=duel`,
+      url: `/party/${lobbyData.code}?mode=duel`,
     }, { status: 200 });
   }
 
-  // If we have a matched_code but aren't seated yet, the matcher found us.
-  // Auto-join the lobby by inserting ourselves.
+  // If we have a matched_code but aren't seated yet, auto-join the lobby
   if (queueEntry?.status === 'matched' && queueEntry.matched_code) {
     const lobbyCode = queueEntry.matched_code;
 
     // Look up the lobby
     const { data: lobby } = await supabase
       .from('multiplayer_lobbies')
-      .select('id')
+      .select('id, code, game_order, status')
       .eq('code', lobbyCode)
       .eq('mode', 'duel')
       .maybeSingle();
@@ -263,38 +294,46 @@ export async function GET() {
       // Look up our display name
       const opponentDisplayName = await lookupDisplayName(supabase, user.id);
 
-      // Insert ourselves into the lobby (our own session can do this via RLS)
-      const { error: joinError } = await supabase.from('multiplayer_lobby_players').insert({
-        display_name: opponentDisplayName,
-        lobby_id: lobby.id,
-        seat_index: 1,
-        user_id: user.id,
-      });
+      // Insert ourselves into the lobby
+      const { data: mySeat, error: joinError } = await supabase
+        .from('multiplayer_lobby_players')
+        .insert({
+          display_name: opponentDisplayName,
+          lobby_id: lobby.id,
+          seat_index: 1,
+          user_id: user.id,
+        })
+        .select('id')
+        .single();
 
-      if (!joinError) {
-        // Clear our queue entry — we're now in the lobby
+      if (!joinError && mySeat) {
+        // Clear our queue entry
         await supabase
           .from('multiplayer_queue')
           .delete()
           .eq('id', queueEntry.id);
 
+        // If lobby is already live, redirect straight to the first game
+        if (lobby.status === 'live') {
+          const gameUrl = buildFirstGameUrl(mySeat.id, lobby.code, lobby.game_order);
+          if (gameUrl) {
+            return NextResponse.json({ status: 'matched', url: gameUrl }, { status: 200 });
+          }
+        }
+
+        // Otherwise send to lobby page
         return NextResponse.json({
           status: 'matched',
-          url: `/party/${lobbyCode}?mode=duel`,
+          url: `/party/${lobby.code}?mode=duel`,
         }, { status: 200 });
       }
 
-      // If joining failed (lobby full, RLS, etc.), fall through to waiting
-      console.warn('[duel] auto-join failed, falling back to waiting', joinError.message, {
-        lobbyCode,
-        userId: user.id,
-      });
+      console.warn('[duel] auto-join failed', joinError?.message, { lobbyCode, userId: user.id });
     }
   }
 
   // No queue entry at all — cancelled
   if (!queueEntry) {
-    // Still return queue count so the UI has it
     const { count: queueCount } = await supabase
       .from('multiplayer_queue')
       .select('*', { count: 'exact', head: true })
