@@ -1,5 +1,5 @@
 export type MultiplayerGame = {
-  category: 'reaction' | 'aim' | 'typing' | 'mouse';
+  category: 'reaction' | 'aim' | 'typing' | 'mouse' | 'rhythm' | 'thinking';
   description: string;
   href: string;
   label: string;
@@ -83,6 +83,43 @@ export const MULTIPLAYER_GAME_POOL: MultiplayerGame[] = [
     href: '/category/mouse?mode=cps',
     label: 'Click Speed',
     slug: 'mouse-cps',
+  },
+  // ── Rhythm ──
+  {
+    category: 'rhythm',
+    description: 'Listen and guess the BPM of a short groove.',
+    href: '/category/rhythm?mode=sync',
+    label: 'Sync Test',
+    slug: 'perfect-sync',
+  },
+  {
+    category: 'rhythm',
+    description: 'Stop the timer exactly on a hidden target.',
+    href: '/category/rhythm?mode=timer',
+    label: 'Stop the Timer',
+    slug: 'stop-timer',
+  },
+  // ── Thinking / Cognitive ──
+  {
+    category: 'thinking',
+    description: 'Identify the correctly rotated shape.',
+    href: '/category/thinking?mode=rotation',
+    label: 'Mental Rotation',
+    slug: 'mental-rotation',
+  },
+  {
+    category: 'thinking',
+    description: 'Estimate length, angle, percentage, or count.',
+    href: '/category/thinking?mode=estimation',
+    label: 'Estimation Challenge',
+    slug: 'estimation-challenge',
+  },
+  {
+    category: 'thinking',
+    description: 'Remember the 3×3 grid sequence.',
+    href: '/category/thinking?mode=sequence',
+    label: 'Sequence Memory',
+    slug: 'sequence-memory',
   },
 ];
 

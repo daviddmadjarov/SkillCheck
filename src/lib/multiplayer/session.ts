@@ -6,10 +6,15 @@ const ROUND_TIME_LIMIT_SECONDS_BY_SLUG: Record<string, number> = {
   'aim-trainer': 75,
   'aim-tracking-test': 35,
   'audio-reaction': 45,
+  'estimation-challenge': 75,
+  'mental-rotation': 75,
   'mouse-cps': 30,
   'mouse-symbol-tracing': 120,
   'multi-reaction': 45,
+  'perfect-sync': 90,
   'reaction-time': 45,
+  'sequence-memory': 90,
+  'stop-timer': 90,
   'typing-speed': 70,
 };
 
