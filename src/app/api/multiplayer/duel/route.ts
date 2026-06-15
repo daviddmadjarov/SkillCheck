@@ -11,22 +11,12 @@ import { createClient } from '@/lib/supabase/server';
 const DUEL_GAME_COUNT = 4;
 const MATCH_WINDOW_MS = 5 * 60 * 1000;
 
-function resolveDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
-  const metadata = user.user_metadata ?? {};
-  const userName = typeof metadata.user_name === 'string' ? metadata.user_name : null;
-  const fullName = typeof metadata.full_name === 'string' ? metadata.full_name : null;
-
-  return userName ?? fullName ?? user.email?.split('@')[0] ?? 'Researcher';
-}
-
-function safeDisplayName(raw: string): string {
-  const trimmed = raw.trim();
-  if (trimmed.length < 3) return `User_${trimmed}`;
-  if (trimmed.length > 24) return trimmed.slice(0, 24);
-  return trimmed;
-}
-
-async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, displayName: string) {
+/** Ensure the auth user has a matching row in `public.profiles`. Throws on error. */
+async function ensureProfile(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  username: string,
+) {
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
@@ -37,28 +27,26 @@ async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>,
     return;
   }
 
-  const safeName = safeDisplayName(displayName);
-
-  const { error: upsertError } = await supabase.from('profiles').upsert({
+  const { error } = await supabase.from('profiles').insert({
     id: userId,
     skill_level: 'Candidate',
-    username: safeName,
-  }).maybeSingle();
+    username,
+  });
 
-  if (upsertError) {
-    if (upsertError.code === '23505') {
+  if (error) {
+    if (error.code === '23505') {
+      // unique violation — retry with suffix
       const { error: retryError } = await supabase.from('profiles').insert({
         id: userId,
         skill_level: 'Candidate',
-        username: `${safeName}_${userId.slice(0, 4)}`,
-      }).maybeSingle();
-
+        username: `${username}_${userId.slice(0, 4)}`,
+      });
       if (retryError) {
-        console.error('Duel profile create retry failed for', userId, retryError);
+        throw new Error(retryError.message);
       }
-    } else {
-      console.error('Duel profile upsert failed for', userId, upsertError);
+      return;
     }
+    throw new Error(error.message);
   }
 }
 
@@ -68,21 +56,40 @@ export async function POST() {
   }
 
   const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-  const user = userResult.user;
+  const { data: userResult, error: authError } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (authError || !userResult?.user) {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
-  const displayName = safeDisplayName(resolveDisplayName(user));
+  const user = userResult.user;
 
-  // Ensure the user has a profile row before any FK-dependent operations
-  await ensureProfile(supabase, user.id, displayName);
+  // Resolve display name
+  const metadata = user.user_metadata ?? {};
+  const rawName =
+    (typeof metadata.user_name === 'string' ? metadata.user_name : null) ??
+    (typeof metadata.full_name === 'string' ? metadata.full_name : null) ??
+    user.email?.split('@')[0] ??
+    'Researcher';
 
-  // Try up to 3 times to find an opponent (handles race conditions)
-  const MAX_RETRIES = 3;
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+  const displayName = (() => {
+    const trimmed = rawName.trim();
+    if (trimmed.length < 3) return `User_${trimmed}`;
+    if (trimmed.length > 24) return trimmed.slice(0, 24);
+    return trimmed;
+  })();
+
+  // Ensure profile exists
+  try {
+    await ensureProfile(supabase, user.id, displayName);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown profile error';
+    console.error('[duel] ensureProfile failed', message);
+    return NextResponse.json({ error: 'Could not start a duel.' }, { status: 500 });
+  }
+
+  // Try up to 3 times to find an opponent
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     const { data: waitingEntries } = await supabase
       .from('multiplayer_duel_queue')
       .select('id, user_id, display_name')
@@ -93,19 +100,17 @@ export async function POST() {
     const opponent = waitingEntries?.[0] ?? null;
 
     if (opponent) {
-      // Try to delete both from queue atomically — if another process already deleted
-      // the opponent, this is a no-op and we'll retry.
+      // Atomically claim both users from the queue
       const { data: deleted } = await supabase
         .from('multiplayer_duel_queue')
         .delete()
         .in('user_id', [user.id, opponent.user_id])
         .select('user_id');
 
-      const deletedUserIds = new Set((deleted ?? []).map((row) => row.user_id));
-      // Only proceed if we actually deleted both users from the queue
-      if (!deletedUserIds.has(opponent.user_id) || !deletedUserIds.has(user.id)) {
-        // Opponent was already claimed by another match — re-insert ourselves and retry
-        if (!deletedUserIds.has(user.id)) {
+      const deletedIds = new Set((deleted ?? []).map((r) => r.user_id));
+      if (!deletedIds.has(opponent.user_id) || !deletedIds.has(user.id)) {
+        // Opponent was already claimed — re-insert ourselves if needed and retry
+        if (!deletedIds.has(user.id)) {
           await supabase
             .from('multiplayer_duel_queue')
             .upsert(
@@ -116,9 +121,10 @@ export async function POST() {
         continue;
       }
 
+      // Create lobby
       const code = createLobbyCode();
       const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
-      const selectedGames = games.map((game) => game.slug);
+      const selectedGames = games.map((g) => g.slug);
       const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
 
       const { data: lobby, error: lobbyError } = await supabase
@@ -136,35 +142,26 @@ export async function POST() {
         .single();
 
       if (lobbyError || !lobby) {
-        console.error('Duel lobby insert failed:', lobbyError?.message ?? 'no data returned', { code, mode: 'duel' });
+        console.error('[duel] lobby insert failed', lobbyError?.message ?? 'no data', { code });
         return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
       }
 
+      // Seat both players
       const { error: playersError } = await supabase.from('multiplayer_lobby_players').insert([
-        {
-          display_name: opponent.display_name,
-          lobby_id: lobby.id,
-          seat_index: 0,
-          user_id: opponent.user_id,
-        },
-        {
-          display_name: displayName,
-          lobby_id: lobby.id,
-          seat_index: 1,
-          user_id: user.id,
-        },
+        { display_name: opponent.display_name, lobby_id: lobby.id, seat_index: 0, user_id: opponent.user_id },
+        { display_name: displayName, lobby_id: lobby.id, seat_index: 1, user_id: user.id },
       ]);
 
       if (playersError) {
-        console.error('Duel players insert failed:', playersError.message, { lobbyId: lobby.id });
+        console.error('[duel] players insert failed', playersError.message, { lobbyId: lobby.id });
         return NextResponse.json({ error: 'Could not seat duel players.' }, { status: 500 });
       }
 
       return NextResponse.json({ url: `/party/${code}?mode=duel` }, { status: 200 });
     }
 
-    // No opponent found on this attempt — if it's our last try, insert into queue
-    if (attempt === MAX_RETRIES - 1) {
+    // No opponent this attempt — insert into queue on final attempt
+    if (attempt === 2) {
       const { error: queueError } = await supabase
         .from('multiplayer_duel_queue')
         .upsert(
@@ -177,7 +174,7 @@ export async function POST() {
         );
 
       if (queueError) {
-        console.error('Duel queue insert failed:', queueError.message, { userId: user.id });
+        console.error('[duel] queue insert failed', queueError.message);
         return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
       }
     }
@@ -199,7 +196,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
-  // First check if user is still in the queue
+  // Check if user is still in the queue
   const { data: queueEntry } = await supabase
     .from('multiplayer_duel_queue')
     .select('user_id')
@@ -208,7 +205,7 @@ export async function GET() {
 
   const matchWindowStart = new Date(Date.now() - MATCH_WINDOW_MS).toISOString();
 
-  // Check if the user has been seated in a duel lobby (by the opponent's POST)
+  // Check if the user has been seated in a duel lobby
   const { data: seat } = await supabase
     .from('multiplayer_lobby_players')
     .select('joined_at, multiplayer_lobbies!inner(code, mode, status)')
@@ -226,7 +223,6 @@ export async function GET() {
     return NextResponse.json({ status: 'matched', url: `/party/${lobbyCode}?mode=duel` }, { status: 200 });
   }
 
-  // If the user is no longer in the queue but hasn't been matched, something is inconsistent
   if (!queueEntry) {
     return NextResponse.json({ status: 'cancelled' }, { status: 200 });
   }
