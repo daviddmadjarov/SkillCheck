@@ -85,7 +85,7 @@ export type Database = {
           max_players: number;
           mode: 'duel' | 'party';
           selected_games: string[];
-          status: 'lobby' | 'live' | 'finished';
+          status: 'waiting' | 'lobby' | 'live' | 'finished';
           updated_at: string;
           winner_user_id: string | null;
         };
@@ -99,7 +99,7 @@ export type Database = {
           max_players?: number;
           mode: 'duel' | 'party';
           selected_games?: string[];
-          status?: 'lobby' | 'live' | 'finished';
+          status?: 'waiting' | 'lobby' | 'live' | 'finished';
           updated_at?: string;
           winner_user_id?: string | null;
         };
@@ -113,7 +113,7 @@ export type Database = {
           max_players?: number;
           mode?: 'duel' | 'party';
           selected_games?: string[];
-          status?: 'lobby' | 'live' | 'finished';
+          status?: 'waiting' | 'lobby' | 'live' | 'finished';
           updated_at?: string;
           winner_user_id?: string | null;
         };
@@ -200,6 +200,35 @@ export type Database = {
             foreignKeyName: 'multiplayer_queue_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      multiplayer_duel_queue: {
+        Row: {
+          created_at: string;
+          display_name: string;
+          id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_name: string;
+          id?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          display_name?: string;
+          id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'multiplayer_duel_queue_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },

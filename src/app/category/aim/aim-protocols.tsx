@@ -1186,17 +1186,6 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       pointRef.current = nextPoint;
       setTrackPoint(nextPoint);
 
-      const pointerClient = pointerClientRef.current;
-      const targetNode = targetRef.current;
-
-      if (!pointerClient || !targetNode) {
-        updateInsideState(false);
-      } else {
-        const hovered = document.elementFromPoint(pointerClient.x, pointerClient.y);
-        const insideTarget = hovered instanceof Element && targetNode.contains(hovered);
-        updateInsideState(insideTarget);
-      }
-
       if (elapsedMsRef.current >= ROUND_MS) {
         updateInsideState(false);
         if (isSignedIn && !hasSavedRunRef.current) {

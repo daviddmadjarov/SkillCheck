@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const TOTAL_MS = 12800;
+const TOTAL_MS = 13000;
 
-export default function DarkRoomPage() {
+export default function BeneathPage() {
   const router = useRouter();
   const audioContextRef = useRef<AudioContext | null>(null);
   const teardownRef = useRef<(() => void) | null>(null);
   const [lightOn, setLightOn] = useState(false);
   const [flash, setFlash] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [showText, setShowText] = useState(false);
 
   useEffect(() => {
     const timers: number[] = [];
@@ -149,6 +150,7 @@ export default function DarkRoomPage() {
     timers.push(window.setTimeout(() => setLightOn(true), 2800));
     timers.push(window.setTimeout(() => setFlash(true), 10800));
     timers.push(window.setTimeout(() => setFadeOut(true), 11600));
+    timers.push(window.setTimeout(() => setShowText(true), 12200));
     timers.push(
       window.setTimeout(() => {
         cleanupAudio();
@@ -163,32 +165,136 @@ export default function DarkRoomPage() {
   }, [router]);
 
   return (
-    <main className="fixed inset-0 z-[9999] overflow-hidden bg-[#010101]">
+    <main className="fixed inset-0 z-[9999] overflow-hidden bg-[#080608]">
+      <style>{`
+        @keyframes beneath-dust-a {
+          0% { transform: translate3d(0, 0, 0); opacity: 0.18; }
+          50% { transform: translate3d(8px, -22px, 0); opacity: 0.42; }
+          100% { transform: translate3d(-6px, -48px, 0); opacity: 0; }
+        }
+        @keyframes beneath-dust-b {
+          0% { transform: translate3d(0, 0, 0); opacity: 0.12; }
+          50% { transform: translate3d(-10px, -28px, 0); opacity: 0.34; }
+          100% { transform: translate3d(7px, -60px, 0); opacity: 0; }
+        }
+      `}</style>
+
+      {/* Stone wall texture */}
       <div
-        className={`absolute inset-0 transition-opacity duration-[6400ms] ease-linear ${
-          lightOn ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="absolute inset-0"
         style={{
-          background:
-            'radial-gradient(ellipse at 50% 44%, rgba(255,255,235,0.26) 0%, rgba(255,255,220,0.1) 14%, rgba(18,18,18,0) 46%)',
-          transform: lightOn ? 'scale(1.65)' : 'scale(0.35)',
-          transitionProperty: 'opacity, transform',
-          transitionDuration: '6400ms',
-          transitionTimingFunction: 'cubic-bezier(0.19, 0.8, 0.25, 1)',
+          backgroundColor: '#080608',
+          backgroundImage: [
+            'repeating-linear-gradient(90deg, rgba(0,0,0,0.62) 0px, rgba(0,0,0,0.62) 3px, transparent 3px, transparent 118px)',
+            'repeating-linear-gradient(0deg, rgba(0,0,0,0.55) 0px, rgba(0,0,0,0.55) 3px, transparent 3px, transparent 72px)',
+            'repeating-conic-gradient(from 12deg at 30% 40%, rgba(46,38,52,0.45) 0deg 90deg, rgba(20,16,26,0.45) 90deg 180deg)',
+            'radial-gradient(circle at 18% 22%, rgba(58,48,66,0.5) 0%, transparent 38%)',
+          ].join(', '),
+          backgroundSize: '118px 72px, 118px 72px, 26px 26px, 100% 100%',
         }}
       />
 
+      {/* Crack lines */}
       <div
-        className={`absolute inset-0 bg-white transition-opacity duration-500 ${
-          flash ? 'opacity-90' : 'opacity-0'
-        }`}
+        className="absolute"
+        style={{
+          top: '12%',
+          left: '22%',
+          width: '34%',
+          height: '0',
+          borderTop: '1px solid rgba(0,0,0,0.7)',
+          transform: 'rotate(28deg)',
+          boxShadow: '0 1px 0 rgba(70,60,78,0.25)',
+        }}
+      />
+      <div
+        className="absolute"
+        style={{
+          top: '58%',
+          left: '60%',
+          width: '26%',
+          height: '0',
+          borderTop: '1px solid rgba(0,0,0,0.65)',
+          transform: 'rotate(-34deg)',
+          boxShadow: '0 1px 0 rgba(70,60,78,0.2)',
+        }}
       />
 
+      {/* Ceiling band */}
       <div
-        className={`absolute inset-0 bg-black transition-opacity duration-1000 ${
-          fadeOut ? 'opacity-100' : 'opacity-0'
-        }`}
+        className="absolute inset-x-0 top-0"
+        style={{
+          height: '16%',
+          background: 'linear-gradient(to bottom, rgba(34,28,40,0.55), rgba(8,6,8,0))',
+          boxShadow: 'inset 0 -40px 60px rgba(0,0,0,0.6)',
+        }}
       />
+
+      {/* Vignette */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(0,0,0,0.85) 100%)',
+        }}
+      />
+
+      {/* Distant light at the end of the corridor */}
+      <div
+        className="absolute"
+        style={{
+          top: '35%',
+          left: '50%',
+          width: '90vmax',
+          height: '90vmax',
+          marginLeft: '-45vmax',
+          marginTop: '-45vmax',
+          background:
+            'radial-gradient(circle, rgba(255,247,220,0.95) 0%, rgba(255,238,190,0.5) 16%, rgba(255,226,160,0.16) 38%, rgba(8,6,8,0) 60%)',
+          transform: lightOn ? 'scale(0.8)' : 'scale(0.02)',
+          opacity: lightOn ? 1 : 0.12,
+          transition: 'transform 8000ms cubic-bezier(0.16, 0.7, 0.3, 1), opacity 8000ms ease-in',
+          willChange: 'transform, opacity',
+        }}
+      />
+
+      {/* Dust particles */}
+      <div
+        className="absolute h-[3px] w-[3px] rounded-full bg-amber-100/40"
+        style={{ top: '46%', left: '44%', animation: 'beneath-dust-a 9s ease-in-out infinite' }}
+      />
+      <div
+        className="absolute h-[2px] w-[2px] rounded-full bg-amber-100/30"
+        style={{ top: '52%', left: '54%', animation: 'beneath-dust-b 11s ease-in-out infinite 1.5s' }}
+      />
+      <div
+        className="absolute h-[2px] w-[2px] rounded-full bg-amber-100/30"
+        style={{ top: '40%', left: '49%', animation: 'beneath-dust-a 13s ease-in-out infinite 3s' }}
+      />
+      <div
+        className="absolute h-[3px] w-[3px] rounded-full bg-amber-100/25"
+        style={{ top: '58%', left: '47%', animation: 'beneath-dust-b 10s ease-in-out infinite 4.5s' }}
+      />
+
+      {/* Flash */}
+      <div
+        className={`absolute inset-0 bg-white transition-opacity duration-500 ${flash ? 'opacity-90' : 'opacity-0'}`}
+      />
+
+      {/* Fade to black */}
+      <div
+        className={`absolute inset-0 bg-black transition-opacity duration-1000 ${fadeOut ? 'opacity-100' : 'opacity-0'}`}
+      />
+
+      {/* Closing text */}
+      <div
+        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-[800ms] ${
+          showText ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <p className="text-center text-[1.5rem] font-bold tracking-[0.35em] text-white">
+          You should return...
+        </p>
+      </div>
     </main>
   );
 }
