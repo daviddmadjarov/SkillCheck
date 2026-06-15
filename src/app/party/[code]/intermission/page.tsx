@@ -170,10 +170,3 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     </main>
   );
 }
-// ... your main IntermissionPage component code ends here
-
-export function generateStaticParams() {
-  return [{ code: 'placeholder' }];
-}
-
-export const dynamic = 'force-static';

@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 import { MouseProtocols } from './mouse-protocols';
 
-export const dynamic = 'force-static';
-
 type MouseMode = 'symbol' | 'cps';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {

@@ -5,8 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 
 import { AimProtocols } from './aim-protocols';
 
-export const dynamic = 'force-static';
-
 type AimMode = 'trainer' | 'moving' | 'tracking' | 'split';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {

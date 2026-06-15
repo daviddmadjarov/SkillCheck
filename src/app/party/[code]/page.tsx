@@ -202,10 +202,3 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
     </main>
   );
 }
-// ... your main IntermissionPage component code ends here
-
-export function generateStaticParams() {
-  return [{ code: 'placeholder' }];
-}
-
-export const dynamic = 'force-static';
