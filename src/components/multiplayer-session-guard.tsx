@@ -90,9 +90,9 @@ export function MultiplayerSessionGuard() {
       }
     }, 2000);
 
-    // ── Send heartbeat every 10s ──
+    // ── Send heartbeat every 3s for fast forfeit detection ──
     const heartbeatInterval = window.setInterval(async () => {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || forfeitDetectedRef.current) return;
 
       try {
         const response = await fetch('/api/multiplayer/heartbeat', {
@@ -134,7 +134,7 @@ export function MultiplayerSessionGuard() {
       } catch {
         // keep trying
       }
-    }, 10000);
+    }, 3000);
 
     // Send an immediate first heartbeat
     fetch('/api/multiplayer/heartbeat', {
@@ -147,6 +147,14 @@ export function MultiplayerSessionGuard() {
       mountedRef.current = false;
       window.clearInterval(statusInterval);
       window.clearInterval(heartbeatInterval);
+
+      // Signal the server that we're leaving so the opponent gets instant forfeit
+      fetch('/api/multiplayer/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lobbyCode, leave: true }),
+        keepalive: true,
+      }).catch(() => {});
     };
   }, [isMultiplayer, lobbyCode, playerId, gameSlug, round, router]);
 

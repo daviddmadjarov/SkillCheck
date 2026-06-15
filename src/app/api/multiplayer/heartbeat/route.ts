@@ -6,12 +6,13 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * POST /api/multiplayer/heartbeat
  *
- * Called by MultiplayerSessionGuard every 10 seconds during a duel.
+ * Called by MultiplayerSessionGuard every 3 seconds during a duel.
  * Updates the player's last_heartbeat_at timestamp and checks for
  * forfeits from the opponent.
  *
- * If the opponent has been absent for >30 seconds, the forfeit is
- * processed server-side and the caller receives a forfeit notification.
+ * Supports a `leave: true` flag for instant forfeit when a player
+ * navigates away — sets the leaver's heartbeat to epoch so the
+ * forfeit detection picks it up immediately.
  */
 export async function POST(request: NextRequest) {
   if (!hasSupabaseEnv()) {
@@ -25,11 +26,43 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => null)) as {
     lobbyCode?: string;
+    leave?: boolean;
   } | null;
 
   const lobbyCode = body?.lobbyCode;
   if (!lobbyCode) {
     return NextResponse.json({ error: 'Missing lobby code.' }, { status: 400 });
+  }
+
+  // ── Player is leaving — mark their heartbeat as expired instantly ──
+  if (body?.leave) {
+    // Look up lobby id
+    const { data: lobbyRow } = await supabase
+      .from('multiplayer_lobbies')
+      .select('id')
+      .eq('code', lobbyCode)
+      .maybeSingle();
+
+    if (lobbyRow) {
+      // Set heartbeat to epoch so process_duel_forfeit detects absence immediately
+      // Cast to bypass TS since generated types may not include last_heartbeat_at
+      await (supabase.from('multiplayer_lobby_players') as any)
+        .update({ last_heartbeat_at: new Date(0).toISOString() })
+        .eq('lobby_id', lobbyRow.id)
+        .eq('user_id', user.id);
+    }
+
+    // Call forfeit check with null checking_user so it doesn't re-set our heartbeat
+    const { data: leaveResult, error: leaveError } = await (supabase.rpc as any)('process_duel_forfeit', {
+      p_lobby_code: lobbyCode,
+      p_checking_user_id: null,
+    });
+
+    if (leaveError) {
+      return NextResponse.json({ action: 'left' }, { status: 200 });
+    }
+
+    return NextResponse.json(leaveResult, { status: 200 });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

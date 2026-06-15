@@ -86,8 +86,6 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     })
     : null;
 
-  const isSessionFinished = nextHref === null;
-
   // ── Forfeit check ──
   const forfeitedRaw = Array.isArray(resolvedSearchParams.forfeited)
     ? resolvedSearchParams.forfeited[0]
@@ -96,6 +94,10 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     ? resolvedSearchParams.message[0]
     : resolvedSearchParams.message;
   const isForfeit = forfeitedRaw === '1';
+
+  // When a forfeit happens, end the entire session immediately — don't advance to next round
+  const finalNextHref = isForfeit ? null : nextHref;
+  const isSessionFinished = finalNextHref === null;
 
   return (
     <main className="min-h-screen px-4 py-6">
@@ -178,7 +180,7 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
           initialReadyToAdvance={initialReadyToAdvance}
           initialSubmittedCount={submittedIds.size}
           lobbyCode={lobby.code}
-          nextHref={nextHref}
+          nextHref={finalNextHref}
           round={roundIndex}
         />
       </div>
