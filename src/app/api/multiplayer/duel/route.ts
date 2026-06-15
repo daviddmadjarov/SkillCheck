@@ -114,6 +114,14 @@ export async function POST() {
 
   if (rpcError) {
     console.error('[duel] atomic_matchmake_duel RPC failed', rpcError.message, { userId: user.id });
+
+    // If the function doesn't exist yet, give a clear actionable message
+    if (rpcError.message?.includes('Could not find the function')) {
+      return NextResponse.json({
+        error: 'Duel matchmaking is not fully configured. Please run the migration SQL in your Supabase SQL Editor: supabase/migration-duel-atomic-matchmaking.sql',
+      }, { status: 503 });
+    }
+
     return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
   }
 
