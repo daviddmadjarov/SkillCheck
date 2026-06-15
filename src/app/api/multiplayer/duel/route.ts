@@ -80,82 +80,107 @@ export async function POST() {
   // Ensure the user has a profile row before any FK-dependent operations
   await ensureProfile(supabase, user.id, displayName);
 
-  const { data: waitingEntries } = await supabase
-    .from('multiplayer_duel_queue')
-    .select('id, user_id, display_name')
-    .neq('user_id', user.id)
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  const opponent = waitingEntries?.[0] ?? null;
-
-  if (opponent) {
-    await supabase
+  // Try up to 3 times to find an opponent (handles race conditions)
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
+    const { data: waitingEntries } = await supabase
       .from('multiplayer_duel_queue')
-      .delete()
-      .in('user_id', [user.id, opponent.user_id]);
+      .select('id, user_id, display_name')
+      .neq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .limit(1);
 
-    const code = createLobbyCode();
-    const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
-    const selectedGames = games.map((game) => game.slug);
-    const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
+    const opponent = waitingEntries?.[0] ?? null;
 
-    const { data: lobby, error: lobbyError } = await supabase
-      .from('multiplayer_lobbies')
-      .insert({
-        code,
-        game_order: gameOrder,
-        host_id: user.id,
-        max_players: 2,
-        mode: 'duel',
-        selected_games: selectedGames,
-        status: 'waiting',
-      })
-      .select('id')
-      .single();
+    if (opponent) {
+      // Try to delete both from queue atomically — if another process already deleted
+      // the opponent, this is a no-op and we'll retry.
+      const { data: deleted } = await supabase
+        .from('multiplayer_duel_queue')
+        .delete()
+        .in('user_id', [user.id, opponent.user_id])
+        .select('user_id');
 
-    if (lobbyError || !lobby) {
-      console.error('Duel lobby insert failed:', lobbyError?.message ?? 'no data returned', { code, mode: 'duel' });
-      return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
+      const deletedUserIds = new Set((deleted ?? []).map((row) => row.user_id));
+      // Only proceed if we actually deleted both users from the queue
+      if (!deletedUserIds.has(opponent.user_id) || !deletedUserIds.has(user.id)) {
+        // Opponent was already claimed by another match — re-insert ourselves and retry
+        if (!deletedUserIds.has(user.id)) {
+          await supabase
+            .from('multiplayer_duel_queue')
+            .upsert(
+              { created_at: new Date().toISOString(), display_name: displayName, user_id: user.id },
+              { onConflict: 'user_id' },
+            );
+        }
+        continue;
+      }
+
+      const code = createLobbyCode();
+      const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
+      const selectedGames = games.map((game) => game.slug);
+      const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
+
+      const { data: lobby, error: lobbyError } = await supabase
+        .from('multiplayer_lobbies')
+        .insert({
+          code,
+          game_order: gameOrder,
+          host_id: user.id,
+          max_players: 2,
+          mode: 'duel',
+          selected_games: selectedGames,
+          status: 'lobby',
+        })
+        .select('id')
+        .single();
+
+      if (lobbyError || !lobby) {
+        console.error('Duel lobby insert failed:', lobbyError?.message ?? 'no data returned', { code, mode: 'duel' });
+        return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
+      }
+
+      const { error: playersError } = await supabase.from('multiplayer_lobby_players').insert([
+        {
+          display_name: opponent.display_name,
+          lobby_id: lobby.id,
+          seat_index: 0,
+          user_id: opponent.user_id,
+        },
+        {
+          display_name: displayName,
+          lobby_id: lobby.id,
+          seat_index: 1,
+          user_id: user.id,
+        },
+      ]);
+
+      if (playersError) {
+        console.error('Duel players insert failed:', playersError.message, { lobbyId: lobby.id });
+        return NextResponse.json({ error: 'Could not seat duel players.' }, { status: 500 });
+      }
+
+      return NextResponse.json({ url: `/party/${code}?mode=duel` }, { status: 200 });
     }
 
-    const { error: playersError } = await supabase.from('multiplayer_lobby_players').insert([
-      {
-        display_name: opponent.display_name,
-        lobby_id: lobby.id,
-        seat_index: 0,
-        user_id: opponent.user_id,
-      },
-      {
-        display_name: displayName,
-        lobby_id: lobby.id,
-        seat_index: 1,
-        user_id: user.id,
-      },
-    ]);
+    // No opponent found on this attempt — if it's our last try, insert into queue
+    if (attempt === MAX_RETRIES - 1) {
+      const { error: queueError } = await supabase
+        .from('multiplayer_duel_queue')
+        .upsert(
+          {
+            created_at: new Date().toISOString(),
+            display_name: displayName,
+            user_id: user.id,
+          },
+          { onConflict: 'user_id' },
+        );
 
-    if (playersError) {
-      console.error('Duel players insert failed:', playersError.message, { lobbyId: lobby.id });
-      return NextResponse.json({ error: 'Could not seat duel players.' }, { status: 500 });
+      if (queueError) {
+        console.error('Duel queue insert failed:', queueError.message, { userId: user.id });
+        return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
+      }
     }
-
-    return NextResponse.json({ url: `/party/${code}?mode=duel` }, { status: 200 });
-  }
-
-  const { error: queueError } = await supabase
-    .from('multiplayer_duel_queue')
-    .upsert(
-      {
-        created_at: new Date().toISOString(),
-        display_name: displayName,
-        user_id: user.id,
-      },
-      { onConflict: 'user_id' },
-    );
-
-  if (queueError) {
-    console.error('Duel queue insert failed:', queueError.message, { userId: user.id });
-    return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
   }
 
   return NextResponse.json({ status: 'waiting' }, { status: 200 });
@@ -189,7 +214,7 @@ export async function GET() {
     .select('joined_at, multiplayer_lobbies!inner(code, mode, status)')
     .eq('user_id', user.id)
     .eq('multiplayer_lobbies.mode', 'duel')
-    .eq('multiplayer_lobbies.status', 'waiting')
+    .eq('multiplayer_lobbies.status', 'lobby')
     .gte('joined_at', matchWindowStart)
     .order('joined_at', { ascending: false })
     .limit(1)

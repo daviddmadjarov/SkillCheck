@@ -1,11 +1,13 @@
-
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BadgeCheck, ArrowLeft, CircleUserRound, Copy, Play } from 'lucide-react';
+import { BadgeCheck, ArrowLeft, CircleUserRound, Play } from 'lucide-react';
 
 import { buildMultiplayerSessionHref, parseMultiplayerSelectionToken } from '@/lib/multiplayer/catalog';
 import { resolveSynchronizedRoundIndex } from '@/lib/multiplayer/session';
 import { createClient } from '@/lib/supabase/server';
+
+import { LobbyActions } from './lobby-actions';
+import { LobbyRefresher } from './lobby-refresher';
 
 
 type PartyPageProps = {
@@ -23,7 +25,7 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
 
   const { data: lobby } = await supabase
     .from('multiplayer_lobbies')
-    .select('id, code, created_at, current_game_index, game_order, max_players, mode, selected_games, status, winner_user_id')
+    .select('id, code, created_at, current_game_index, game_order, max_players, mode, selected_games, status, winner_user_id, host_id')
     .eq('code', code)
     .maybeSingle();
 
@@ -42,6 +44,9 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
     .order('joined_at', { ascending: true });
 
   const currentPlayer = (players ?? []).find((player) => player.user_id === user?.id) ?? null;
+  const isHost = lobby.host_id === user?.id;
+  const isJoined = currentPlayer !== null;
+  const isLive = lobby.status === 'live';
 
   const nextRound = await resolveSynchronizedRoundIndex({
     gameOrder: lobby.game_order,
@@ -60,6 +65,7 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
 
   return (
     <main className="min-h-screen px-4 py-6">
+      <LobbyRefresher />
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <section className="rounded-[2rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -105,10 +111,10 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
           <div className="rounded-[1.8rem] border-2 border-slate-200 bg-white p-5 shadow-[0_6px_0_rgba(226,232,240,1)]">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl bg-rose-100 p-3 text-rose-600">
-                <Copy className="h-6 w-6" />
+                <CircleUserRound className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{isDuel ? 'Duel Match' : 'Room Code'}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{isDuel ? 'Duel Match' : 'Room'}</p>
                 <h2 className="text-2xl font-black tracking-tight text-slate-800">{isDuel ? 'Random queue matched' : 'Invite and play'}</h2>
               </div>
             </div>
@@ -120,6 +126,18 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
             {!isDuel ? (
               <div className="mt-4 rounded-[1.4rem] border-2 border-rose-200 bg-rose-50 p-4 text-center text-3xl font-black tracking-[0.3em] text-slate-800">
                 {lobby.code}
+              </div>
+            ) : null}
+
+            {!isDuel ? (
+              <div className="mt-4">
+                <LobbyActions
+                  isHost={isHost}
+                  isJoined={isJoined}
+                  lobbyCode={lobby.code}
+                  lobbyStatus={lobby.status}
+                  mode={lobby.mode}
+                />
               </div>
             ) : null}
           </div>
@@ -152,7 +170,7 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
         </section>
 
         <section className="rounded-[1.8rem] border-2 border-slate-200 bg-white p-5 shadow-[0_6px_0_rgba(226,232,240,1)]">
-          {nextGameHref ? (
+          {nextGameHref && isLive ? (
             <div className="mb-4 rounded-[1.4rem] border-2 border-cyan-200 bg-cyan-50 p-4">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Session Flow</p>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
@@ -168,11 +186,18 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
                 {nextRound === 0 ? 'Start Session' : 'Continue Session'}
               </Link>
             </div>
-          ) : (
+          ) : isLive ? (
             <div className="mb-4 rounded-[1.4rem] border-2 border-emerald-200 bg-emerald-50 p-4">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Session Complete</p>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
                 All configured game modes are completed for this player. Final standings are shown in the roster.
+              </p>
+            </div>
+          ) : (
+            <div className="mb-4 rounded-[1.4rem] border-2 border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Session Not Started</p>
+              <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
+                Waiting for the host to start the session. Once started, game links will appear here.
               </p>
             </div>
           )}
