@@ -537,7 +537,7 @@ export default async function Home({
             </section>
 
             <section className="grid gap-4 sm:grid-cols-2">
-              <Link href="/duell" className="rounded-[1.8rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_6px_0_rgba(254,202,202,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(254,202,202,1)]">
+              <Link href="/duel" className="rounded-[1.8rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_6px_0_rgba(254,202,202,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(254,202,202,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500">
                   DUEL
                 </p>

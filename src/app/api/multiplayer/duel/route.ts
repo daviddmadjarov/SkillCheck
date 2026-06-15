@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import {
   buildMultiplayerSessionHref,
-  createLobbyCode,
+  getMultiplayerGame,
   getRandomMultiplayerGames,
   parseMultiplayerSelectionToken,
   serializeMultiplayerSelection,
@@ -11,7 +11,19 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 const DUEL_GAME_COUNT = 4;
-const MATCH_WINDOW_MS = 5 * 60 * 1000;
+
+function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
+  const metadata = user.user_metadata ?? {};
+  const rawName =
+    (typeof metadata.user_name === 'string' ? metadata.user_name : null) ??
+    (typeof metadata.full_name === 'string' ? metadata.full_name : null) ??
+    user.email?.split('@')[0] ??
+    'Researcher';
+  const trimmed = rawName.trim();
+  if (trimmed.length < 3) return `User_${trimmed}`;
+  if (trimmed.length > 24) return trimmed.slice(0, 24);
+  return trimmed;
+}
 
 async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, username: string) {
   const { data: existing } = await supabase
@@ -38,36 +50,41 @@ async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>,
   }
 }
 
-function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> }) {
-  const metadata = user.user_metadata ?? {};
-  const rawName =
-    (typeof metadata.user_name === 'string' ? metadata.user_name : null) ??
-    (typeof metadata.full_name === 'string' ? metadata.full_name : null) ??
-    user.email?.split('@')[0] ??
-    'Researcher';
-  const trimmed = rawName.trim();
-  if (trimmed.length < 3) return `User_${trimmed}`;
-  if (trimmed.length > 24) return trimmed.slice(0, 24);
-  return trimmed;
+/**
+ * Generate the randomized game order and store it on the lobby.
+ * Called once after a match is created.
+ */
+async function assignGamesToLobby(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  lobbyCode: string,
+): Promise<string[]> {
+  const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
+  const selectedGames = games.map((g) => g.slug);
+  const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
+
+  await supabase
+    .from('multiplayer_lobbies')
+    .update({
+      game_order: gameOrder,
+      selected_games: selectedGames,
+    })
+    .eq('code', lobbyCode)
+    .eq('mode', 'duel');
+
+  return gameOrder;
 }
 
-async function lookupDisplayName(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<string> {
-  const { data } = await supabase.from('profiles').select('username').eq('id', userId).maybeSingle();
-  return data?.username ?? `Player_${userId.slice(0, 6)}`;
-}
-
-/** Build the first-game session URL for a player in a duel lobby. */
-function buildFirstGameUrl(playerId: string, lobbyCode: string, gameOrder: string[]): string | null {
-  const firstToken = gameOrder[0];
-  if (!firstToken) return null;
-  return buildMultiplayerSessionHref(parseMultiplayerSelectionToken(firstToken), {
+function buildGameUrl(playerId: string, lobbyCode: string, gameOrder: string[]): string | null {
+  const slug = gameOrder[0] ?? null;
+  if (!slug) return null;
+  return buildMultiplayerSessionHref(parseMultiplayerSelectionToken(slug), {
     lobbyCode,
     playerId,
     round: 0,
   });
 }
 
-// ─── POST: Enter the duel queue or match with an opponent ─────────────────
+// ─── POST: Queue for duel or trigger matchmaking ───────────────────────
 
 export async function POST() {
   if (!hasSupabaseEnv()) {
@@ -88,147 +105,49 @@ export async function POST() {
     return NextResponse.json({ error: 'Could not start a duel.' }, { status: 500 });
   }
 
-  // ── Step 1: Insert ourselves into the queue FIRST ──
-  const { error: upsertError } = await supabase
-    .from('multiplayer_queue')
-    .upsert(
-      {
-        queue_type: 'duel',
-        user_id: user.id,
-        status: 'waiting',
-        matched_code: null,
-        requested_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'user_id, queue_type',
-        ignoreDuplicates: false,
-      },
-    );
+  // ── Call the atomic matchmaking RPC ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)('atomic_matchmake_duel', {
+    p_user_id: user.id,
+    p_display_name: displayName,
+  });
 
-  if (upsertError) {
-    console.error('[duel] queue upsert failed', upsertError.message, { userId: user.id });
+  if (rpcError) {
+    console.error('[duel] atomic_matchmake_duel RPC failed', rpcError.message, { userId: user.id });
     return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
   }
 
-  // ── Step 2: Look for an opponent waiting in the queue (short retry loop) ──
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
+  const result = rpcResult as {
+    action: string;
+    status: string;
+    lobby_code?: string;
+    player_id?: string;
+    opponent_id?: string;
+    opponent_name?: string;
+  };
 
-    const { data: opponents } = await supabase
-      .from('multiplayer_queue')
-      .select('id, user_id')
-      .eq('queue_type', 'duel')
-      .eq('status', 'waiting')
-      .neq('user_id', user.id)
-      .order('requested_at', { ascending: true })
-      .limit(1);
+  // ── If matched: assign games to the lobby and redirect ──
+  if (result.action === 'matched' && result.lobby_code && result.player_id) {
+    const gameOrder = await assignGamesToLobby(supabase, result.lobby_code);
+    const gameUrl = buildGameUrl(result.player_id, result.lobby_code, gameOrder);
 
-    const opponent = opponents?.[0] ?? null;
-
-    if (!opponent) {
-      // No opponent — return waiting with queue count
-      const { count: queueCount } = await supabase
-        .from('multiplayer_queue')
-        .select('*', { count: 'exact', head: true })
-        .eq('queue_type', 'duel')
-        .eq('status', 'waiting');
-
-      return NextResponse.json({ status: 'waiting', queueCount: queueCount ?? 0 }, { status: 200 });
-    }
-
-    // ── Found an opponent! Create a lobby, seat ourselves, and start the session ──
-    // Then redirect both players to the first game directly — no lobby screen.
-
-    const code = createLobbyCode();
-    const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
-    const selectedGames = games.map((g) => g.slug);
-    const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
-
-    // Create lobby (we are the host) — start as 'live' so both go straight to the game
-    const { data: lobby, error: lobbyError } = await supabase
-      .from('multiplayer_lobbies')
-      .insert({
-        code,
-        current_game_index: 0,
-        game_order: gameOrder,
-        host_id: user.id,
-        max_players: 2,
-        mode: 'duel',
-        selected_games: selectedGames,
-        status: 'live',
-      })
-      .select('id')
-      .single();
-
-    if (lobbyError || !lobby) {
-      console.error('[duel] lobby insert failed', lobbyError?.message ?? 'no data', { code });
-      return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
-    }
-
-    // Seat ourselves in the lobby
-    const { data: mySeat, error: seatSelfError } = await supabase
-      .from('multiplayer_lobby_players')
-      .insert({
-        display_name: displayName,
-        lobby_id: lobby.id,
-        seat_index: 0,
-        user_id: user.id,
-      })
-      .select('id')
-      .single();
-
-    if (seatSelfError || !mySeat) {
-      console.error('[duel] seat self failed', seatSelfError?.message ?? 'no data', { lobbyId: lobby.id });
-      await supabase.from('multiplayer_lobbies').delete().eq('id', lobby.id);
-      return NextResponse.json({ error: 'Could not seat you in the duel lobby.' }, { status: 500 });
-    }
-
-    // Mark opponent's queue entry as matched with the lobby code
-    const { error: markError } = await supabase
-      .from('multiplayer_queue')
-      .update({ status: 'matched', matched_code: code })
-      .eq('id', opponent.id)
-      .eq('queue_type', 'duel');
-
-    if (markError) {
-      console.warn('[duel] marking opponent as matched failed, retrying', markError.message, {
-        opponentId: opponent.user_id,
-      });
-      await supabase.from('multiplayer_lobby_players').delete().eq('lobby_id', lobby.id);
-      await supabase.from('multiplayer_lobbies').delete().eq('id', lobby.id);
-      continue;
-    }
-
-    // Mark our own queue entry as matched
-    await supabase
-      .from('multiplayer_queue')
-      .update({ status: 'matched', matched_code: code })
-      .eq('user_id', user.id)
-      .eq('queue_type', 'duel');
-
-    // Build the first game URL and redirect the matcher directly to the game
-    const gameUrl = buildFirstGameUrl(mySeat.id, code, gameOrder);
     if (!gameUrl) {
-      console.error('[duel] could not build game URL');
       return NextResponse.json({ error: 'Could not start the duel game.' }, { status: 500 });
     }
 
-    return NextResponse.json({ url: gameUrl }, { status: 200 });
+    return NextResponse.json({
+      lobbyCode: result.lobby_code,
+      opponentName: result.opponent_name ?? 'Unknown',
+      status: 'matched',
+      url: gameUrl,
+    }, { status: 200 });
   }
 
-  // All retries exhausted — stay in queue
-  const { count: queueCount } = await supabase
-    .from('multiplayer_queue')
-    .select('*', { count: 'exact', head: true })
-    .eq('queue_type', 'duel')
-    .eq('status', 'waiting');
-
-  return NextResponse.json({ status: 'waiting', queueCount: queueCount ?? 0 }, { status: 200 });
+  // ── Already waiting or newly queued ──
+  return NextResponse.json({ status: 'waiting' }, { status: 200 });
 }
 
-// ─── GET: Poll queue status — auto-join and redirect to first game ───────
+// ─── GET: Poll queue status — discover match, get live stats ──────────
 
 export async function GET() {
   if (!hasSupabaseEnv()) {
@@ -240,7 +159,12 @@ export async function GET() {
   const user = userResult?.user;
   if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  // Get current queue info for this user
+  // ── Fetch live stats ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: stats } = await (supabase.rpc as any)('get_duel_queue_stats');
+  const statsData = (stats ?? {}) as { waiting?: number; playing?: number };
+
+  // ── Check our queue status ──
   const { data: queueEntry } = await supabase
     .from('multiplayer_queue')
     .select('id, status, matched_code')
@@ -248,41 +172,11 @@ export async function GET() {
     .eq('queue_type', 'duel')
     .maybeSingle();
 
-  // Check if we're already seated in a duel lobby
-  const matchWindowStart = new Date(Date.now() - MATCH_WINDOW_MS).toISOString();
-  const { data: seat } = await supabase
-    .from('multiplayer_lobby_players')
-    .select('id, joined_at, multiplayer_lobbies!inner(code, mode, game_order, status)')
-    .eq('user_id', user.id)
-    .eq('multiplayer_lobbies.mode', 'duel')
-    .gte('joined_at', matchWindowStart)
-    .order('joined_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (seat?.multiplayer_lobbies?.code) {
-    const lobbyData = seat.multiplayer_lobbies as { code: string; mode: string; game_order: string[]; status: string };
-
-    // If already seated and the lobby is live, go straight to the first game
-    if (lobbyData.status === 'live') {
-      const gameUrl = buildFirstGameUrl(seat.id, lobbyData.code, lobbyData.game_order);
-      if (gameUrl) {
-        return NextResponse.json({ status: 'matched', url: gameUrl }, { status: 200 });
-      }
-    }
-
-    // Otherwise send to lobby page
-    return NextResponse.json({
-      status: 'matched',
-      url: `/party/${lobbyData.code}?mode=duel`,
-    }, { status: 200 });
-  }
-
-  // If we have a matched_code but aren't seated yet, auto-join the lobby
+  // ── If matched: find our seat and redirect ──
   if (queueEntry?.status === 'matched' && queueEntry.matched_code) {
     const lobbyCode = queueEntry.matched_code;
 
-    // Look up the lobby
+    // Find our seat in the lobby
     const { data: lobby } = await supabase
       .from('multiplayer_lobbies')
       .select('id, code, game_order, status')
@@ -291,69 +185,58 @@ export async function GET() {
       .maybeSingle();
 
     if (lobby) {
-      // Look up our display name
-      const opponentDisplayName = await lookupDisplayName(supabase, user.id);
-
-      // Insert ourselves into the lobby
-      const { data: mySeat, error: joinError } = await supabase
+      const { data: seat } = await supabase
         .from('multiplayer_lobby_players')
-        .insert({
-          display_name: opponentDisplayName,
-          lobby_id: lobby.id,
-          seat_index: 1,
-          user_id: user.id,
-        })
         .select('id')
-        .single();
+        .eq('lobby_id', lobby.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (!joinError && mySeat) {
-        // Clear our queue entry
+      if (seat) {
+        // Clean up our queue entry now that we've joined
         await supabase
           .from('multiplayer_queue')
           .delete()
           .eq('id', queueEntry.id);
 
-        // If lobby is already live, redirect straight to the first game
-        if (lobby.status === 'live') {
-          const gameUrl = buildFirstGameUrl(mySeat.id, lobby.code, lobby.game_order);
-          if (gameUrl) {
-            return NextResponse.json({ status: 'matched', url: gameUrl }, { status: 200 });
-          }
+        // Make sure games are assigned (race: both players might call this)
+        let gameOrder = lobby.game_order as string[];
+        if (!gameOrder || gameOrder.length === 0) {
+          gameOrder = await assignGamesToLobby(supabase, lobbyCode);
         }
 
-        // Otherwise send to lobby page
-        return NextResponse.json({
-          status: 'matched',
-          url: `/party/${lobby.code}?mode=duel`,
-        }, { status: 200 });
+        const gameUrl = buildGameUrl(seat.id, lobbyCode, gameOrder);
+        if (gameUrl) {
+          return NextResponse.json({
+            lobbyCode,
+            playingCount: statsData.playing ?? 0,
+            queueCount: statsData.waiting ?? 0,
+            status: 'matched',
+            url: gameUrl,
+          }, { status: 200 });
+        }
       }
-
-      console.warn('[duel] auto-join failed', joinError?.message, { lobbyCode, userId: user.id });
     }
   }
 
-  // No queue entry at all — cancelled
+  // ── Not queued at all ──
   if (!queueEntry) {
-    const { count: queueCount } = await supabase
-      .from('multiplayer_queue')
-      .select('*', { count: 'exact', head: true })
-      .eq('queue_type', 'duel')
-      .eq('status', 'waiting');
-
-    return NextResponse.json({ status: 'cancelled', queueCount: queueCount ?? 0 }, { status: 200 });
+    return NextResponse.json({
+      playingCount: statsData.playing ?? 0,
+      queueCount: statsData.waiting ?? 0,
+      status: 'cancelled',
+    }, { status: 200 });
   }
 
-  // Queue entry exists and is waiting — return queue count
-  const { count: queueCount } = await supabase
-    .from('multiplayer_queue')
-    .select('*', { count: 'exact', head: true })
-    .eq('queue_type', 'duel')
-    .eq('status', 'waiting');
-
-  return NextResponse.json({ status: 'waiting', queueCount: queueCount ?? 0 }, { status: 200 });
+  // ── Still waiting ──
+  return NextResponse.json({
+    playingCount: statsData.playing ?? 0,
+    queueCount: statsData.waiting ?? 0,
+    status: 'waiting',
+  }, { status: 200 });
 }
 
-// ─── DELETE: Cancel queue ────────────────────────────────────────────────
+// ─── DELETE: Cancel queue ─────────────────────────────────────────────
 
 export async function DELETE() {
   if (!hasSupabaseEnv()) {
@@ -365,12 +248,12 @@ export async function DELETE() {
   const user = userResult?.user;
   if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
+  // Remove from queue entirely
   await supabase
     .from('multiplayer_queue')
-    .update({ status: 'cancelled' })
+    .delete()
     .eq('user_id', user.id)
-    .eq('queue_type', 'duel')
-    .eq('status', 'waiting');
+    .eq('queue_type', 'duel');
 
   return NextResponse.json({ status: 'cancelled' }, { status: 200 });
 }

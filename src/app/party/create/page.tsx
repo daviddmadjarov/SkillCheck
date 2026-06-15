@@ -219,7 +219,7 @@ export default function CreatePartyPage() {
             >
               {isCreating ? 'Creating lobby…' : 'Create Party'}
             </button>
-            <a className="lab-button-secondary w-full text-center sm:w-auto" href="/duell">
+            <a className="lab-button-secondary w-full text-center sm:w-auto" href="/duel">
               Go to Duel
             </a>
           </div>
