@@ -33,7 +33,7 @@ const setupChecklist = [
   'Enable Google and Discord providers and add callback URLs for both http://localhost:3000/auth/callback and https://skillcheck.online/auth/callback.',
 ];
 
-type SearchParams = Record<string, string | string[] | undefined>;
+type SearchParams = Record<string, string | string[] | undefined> & { leaderboard?: string };
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ScoreSubmissionRow = Pick<
   Database['public']['Tables']['score_submissions']['Row'],
@@ -313,9 +313,19 @@ function getDisplayName(
   return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
-async function loadHomeData() {
+type EloEntry = {
+  elo_rating: number;
+  duel_wins: number;
+  duel_losses: number;
+  rank: number;
+  user_id: string;
+  username: string | null;
+};
+
+async function loadHomeData(leaderboardType: string) {
   if (!hasSupabaseEnv()) {
     return {
+      eloLeaderboard: [] as EloEntry[],
       leaderboard: [] as ComputedLeaderboardEntry[],
       leaderboardError: null,
       profile: null as ProfileRow | null,
@@ -329,45 +339,53 @@ async function loadHomeData() {
     const { data: userResult } = await supabase.auth.getUser();
     const user = userResult.user;
 
-    const [profilesResult, submissionsResult, profileResult] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, username, avatar_url, created_at'),
-      supabase
-        .from('score_submissions')
-        .select('user_id, test_slug, score'),
-      user
-        ? supabase
-            .from('profiles')
-            .select('id, username, avatar_url, skill_level, created_at')
-            .eq('id', user.id)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
-    ]);
+    let eloLeaderboard: EloEntry[] = [];
+    let leaderboard: ComputedLeaderboardEntry[] = [];
+    let leaderboardError: string | null = null;
 
-    const leaderboard = buildLeaderboard(
-      profilesResult.data ?? [],
-      submissionsResult.data ?? [],
-    );
-    const leaderboardError = profilesResult.error?.message ?? submissionsResult.error?.message ?? null;
+    if (leaderboardType === 'elo') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: eloData } = await (supabase.rpc as any)('get_elo_leaderboard', { p_limit: 8 });
+      eloLeaderboard = (eloData ?? []) as EloEntry[];
+    } else {
+      const [profilesResult, submissionsResult] = await Promise.all([
+        supabase.from('profiles').select('id, username, avatar_url, created_at'),
+        supabase.from('score_submissions').select('user_id, test_slug, score'),
+      ]);
+      leaderboard = buildLeaderboard(profilesResult.data ?? [], submissionsResult.data ?? []);
+      leaderboardError = profilesResult.error?.message ?? submissionsResult.error?.message ?? null;
+    }
+
+    const { data: profileResult } = user
+      ? await supabase.from('profiles').select('id, username, avatar_url, skill_level, created_at').eq('id', user.id).maybeSingle()
+      : { data: null };
 
     return {
+      eloLeaderboard,
       leaderboard,
       leaderboardError,
-      profile: profileResult.data ?? null,
+      profile: profileResult ?? null,
       supabaseReady: true,
       user,
     };
   } catch (error) {
     return {
+      eloLeaderboard: [] as EloEntry[],
       leaderboard: [] as ComputedLeaderboardEntry[],
-      leaderboardError:
-        error instanceof Error ? error.message : 'Unable to reach Supabase.',
+      leaderboardError: error instanceof Error ? error.message : 'Unable to reach Supabase.',
       profile: null as ProfileRow | null,
       supabaseReady: true,
       user: null,
     };
   }
+}
+
+function tabButtonClass(isActive: boolean, accent: string) {
+  const base = 'rounded-full border-2 px-4 py-2 text-sm font-bold transition';
+  if (isActive) {
+    return `${base} ${accent === 'amber' ? 'border-amber-300 bg-amber-100 text-amber-800' : 'border-cyan-300 bg-cyan-100 text-cyan-800'}`;
+  }
+  return `${base} border-slate-200 bg-white text-slate-700 hover:bg-slate-50`;
 }
 
 export default async function Home({
@@ -376,7 +394,8 @@ export default async function Home({
   searchParams?: Promise<SearchParams>;
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const { leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData();
+  const leaderboardType = typeof resolvedSearchParams.leaderboard === 'string' ? resolvedSearchParams.leaderboard : 'lab';
+  const { eloLeaderboard, leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData(leaderboardType);
   const displayName = getDisplayName(user, profile);
   const initials = getInitials(displayName || 'SC');
   const authMessage = getAuthMessage(resolvedSearchParams);
@@ -602,54 +621,116 @@ export default async function Home({
                   Global Board
                 </p>
                 <h2 className="text-2xl font-black tracking-tight text-slate-800">
-                  Overall Leaderboard
+                  Rankings
                 </h2>
               </div>
             </div>
 
-            {leaderboard.length > 0 ? (
-              <ol className="space-y-3">
-                {leaderboard.map((entry, index) => (
-                  <li className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-3 sm:flex-nowrap" key={`${entry.user_id}-${index}`}>
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_3px_0_rgba(226,232,240,1)]">
-                        {index < 3 ? <Medal className="h-5 w-5 text-amber-500" /> : <Orbit className="h-5 w-5 text-cyan-500" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-black text-slate-800">
-                          {sanitizeGeneratedName(entry.username) ?? 'Unnamed Researcher'}
-                        </p>
-                        <p className="text-sm font-medium text-slate-500">
-                          {entry.tests_completed ?? 0} recorded protocols
-                        </p>
-                      </div>
-                    </div>
+            {/* ── Tab switcher ── */}
+            <div className="mb-4 flex gap-2">
+              <Link
+                className={tabButtonClass(leaderboardType === 'lab', 'amber')}
+                href="/?leaderboard=lab"
+              >
+                Lab Points
+              </Link>
+              <Link
+                className={tabButtonClass(leaderboardType === 'elo', 'cyan')}
+                href="/?leaderboard=elo"
+              >
+                Elo Rankings
+              </Link>
+            </div>
 
-                    <div className="text-right">
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                        Rank #{entry.rank ?? index + 1}
-                      </p>
-                      <p className="text-2xl font-black text-slate-800">
-                        {formatScore(entry.overall_score)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            ) : supabaseReady ? (
-              <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
-                <p className="text-sm font-medium leading-6 text-slate-600">
-                  {leaderboardError
-                    ? `Supabase is reachable, but the leaderboard view is not ready yet: ${leaderboardError}`
-                    : 'No leaderboard entries yet. As soon as users sign in and score submissions are stored, ranks will appear here.'}
-                </p>
-              </div>
+            {leaderboardType === 'lab' ? (
+              <>
+                {leaderboard.length > 0 ? (
+                  <ol className="space-y-3">
+                    {leaderboard.map((entry, index) => (
+                      <li className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-3 sm:flex-nowrap" key={`lab-${entry.user_id}-${index}`}>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_3px_0_rgba(226,232,240,1)]">
+                            {index < 3 ? <Medal className="h-5 w-5 text-amber-500" /> : <Orbit className="h-5 w-5 text-cyan-500" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-slate-800">
+                              {sanitizeGeneratedName(entry.username) ?? 'Unnamed Researcher'}
+                            </p>
+                            <p className="text-sm font-medium text-slate-500">
+                              {entry.tests_completed ?? 0} recorded protocols
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                            Rank #{entry.rank ?? index + 1}
+                          </p>
+                          <p className="text-2xl font-black text-slate-800">
+                            {formatScore(entry.overall_score)}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : supabaseReady ? (
+                  <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      {leaderboardError
+                        ? `Supabase is reachable, but the leaderboard view is not ready yet: ${leaderboardError}`
+                        : 'No leaderboard entries yet. As soon as users sign in and score submissions are stored, ranks will appear here.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      Leaderboard data will appear here once the Supabase project is configured and the SQL schema has been applied.
+                    </p>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
-                <p className="text-sm font-medium leading-6 text-slate-600">
-                  Leaderboard data will appear here once the Supabase project is configured and the SQL schema has been applied.
-                </p>
-              </div>
+              <>
+                {eloLeaderboard.length > 0 ? (
+                  <ol className="space-y-3">
+                    {eloLeaderboard.map((entry, index) => {
+                      const displayName = sanitizeGeneratedName(entry.username) ?? 'Unnamed Player';
+                      const totalGames = (entry.duel_wins ?? 0) + (entry.duel_losses ?? 0);
+                      const winRate = totalGames > 0 ? Math.round((entry.duel_wins ?? 0) / totalGames * 100) : 0;
+                      return (
+                        <li className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-3 sm:flex-nowrap" key={`elo-${entry.user_id}-${index}`}>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_3px_0_rgba(226,232,240,1)]">
+                              {index < 3 ? <Medal className="h-5 w-5 text-amber-500" /> : <Orbit className="h-5 w-5 text-cyan-500" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate font-black text-slate-800">{displayName}</p>
+                              <p className="text-sm font-medium text-slate-500">
+                                {entry.duel_wins ?? 0}W / {entry.duel_losses ?? 0}L ({winRate}%)
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                              Rank #{entry.rank}
+                            </p>
+                            <p className="text-2xl font-black text-slate-800">
+                              {entry.elo_rating}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : (
+                  <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      No duel rankings yet. Play a duel to appear on this leaderboard.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </aside>
         </section>

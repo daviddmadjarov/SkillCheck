@@ -97,20 +97,6 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     : resolvedSearchParams.message;
   const isForfeit = forfeitedRaw === '1';
 
-  // ── Process Elo on session completion (duel mode only) ──
-  let eloResult: { winner_new_elo?: number; loser_new_elo?: number; elo_delta?: string } | null = null;
-  if (isSessionFinished && lobby.mode === 'duel') {
-    const winnerEntry = players?.[0];
-    if (winnerEntry?.user_id) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: completionResult } = await (supabase.rpc as any)('process_duel_completion', {
-        p_lobby_id: lobby.id,
-        p_winner_user_id: winnerEntry.user_id,
-      });
-      eloResult = completionResult as typeof eloResult;
-    }
-  }
-
   return (
     <main className="min-h-screen px-4 py-6">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
@@ -132,11 +118,6 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
                       : `Round ${roundIndex + 1} submitted. Waiting for remaining players or round timeout.`}
                 </p>
               )}
-              {eloResult ? (
-                <p className="mt-2 text-sm font-bold text-emerald-700">
-                  Elo updated! Winner gained {eloResult.elo_delta ?? '—'} points.
-                </p>
-              ) : null}
             </div>
             <Link
               className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]"

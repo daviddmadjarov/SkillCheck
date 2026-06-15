@@ -192,37 +192,49 @@ export async function GET() {
       .eq('mode', 'duel')
       .maybeSingle();
 
-    if (lobby) {
-      const { data: seat } = await supabase
-        .from('multiplayer_lobby_players')
-        .select('id')
-        .eq('lobby_id', lobby.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+    // If the lobby doesn't exist or is finished, clean up and return cancelled
+    if (!lobby || lobby.status === 'finished') {
+      await supabase
+        .from('multiplayer_queue')
+        .delete()
+        .eq('id', queueEntry.id);
 
-      if (seat) {
-        // Clean up our queue entry now that we've joined
-        await supabase
-          .from('multiplayer_queue')
-          .delete()
-          .eq('id', queueEntry.id);
+      return NextResponse.json({
+        playingCount: statsData.playing ?? 0,
+        queueCount: statsData.waiting ?? 0,
+        status: 'cancelled',
+      }, { status: 200 });
+    }
 
-        // Make sure games are assigned (race: both players might call this)
-        let gameOrder = lobby.game_order as string[];
-        if (!gameOrder || gameOrder.length === 0) {
-          gameOrder = await assignGamesToLobby(supabase, lobbyCode);
-        }
+    const { data: seat } = await supabase
+      .from('multiplayer_lobby_players')
+      .select('id')
+      .eq('lobby_id', lobby.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-        const gameUrl = buildGameUrl(seat.id, lobbyCode, gameOrder);
-        if (gameUrl) {
-          return NextResponse.json({
-            lobbyCode,
-            playingCount: statsData.playing ?? 0,
-            queueCount: statsData.waiting ?? 0,
-            status: 'matched',
-            url: gameUrl,
-          }, { status: 200 });
-        }
+    if (seat) {
+      // Clean up our queue entry now that we've joined
+      await supabase
+        .from('multiplayer_queue')
+        .delete()
+        .eq('id', queueEntry.id);
+
+      // Make sure games are assigned (race: both players might call this)
+      let gameOrder = lobby.game_order as string[];
+      if (!gameOrder || gameOrder.length === 0) {
+        gameOrder = await assignGamesToLobby(supabase, lobbyCode);
+      }
+
+      const gameUrl = buildGameUrl(seat.id, lobbyCode, gameOrder);
+      if (gameUrl) {
+        return NextResponse.json({
+          lobbyCode,
+          playingCount: statsData.playing ?? 0,
+          queueCount: statsData.waiting ?? 0,
+          status: 'matched',
+          url: gameUrl,
+        }, { status: 200 });
       }
     }
   }
