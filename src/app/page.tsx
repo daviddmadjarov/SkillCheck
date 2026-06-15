@@ -560,16 +560,16 @@ export default async function Home({
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500">
                   DUEL
                 </p>
-                <div className="mt-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
                     <p className="text-3xl font-black text-slate-800">1v1 Match</p>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-white bg-rose-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-rose-600 shadow-sm">
-                      Fast Queue
-                    </span>
+                    <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
+                      Jump straight into a head-to-head lobby and race through a shared game order.
+                    </p>
                   </div>
-                  <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
-                    Jump straight into a head-to-head lobby and race through a shared game order.
-                  </p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-rose-100 px-5 py-3.5 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-rose-600 whitespace-nowrap">Fast Queue</p>
+                  </div>
                 </div>
               </Link>
 
@@ -577,32 +577,32 @@ export default async function Home({
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-500">
                   Create Party
                 </p>
-                <div className="mt-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
                     <p className="text-3xl font-black text-slate-800">Private Lobby</p>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-white bg-cyan-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-cyan-600 shadow-sm">
-                      Share Code
-                    </span>
+                    <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
+                      Build a code-based room, invite friends, and choose the games you want to play.
+                    </p>
                   </div>
-                  <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
-                    Build a code-based room, invite friends, and choose the games you want to play.
-                  </p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-cyan-100 px-5 py-3.5 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 whitespace-nowrap">Share Code</p>
+                  </div>
                 </div>
               </Link>
               <Link href="/party/join" className="rounded-[1.8rem] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-[0_6px_0_rgba(167,243,208,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(167,243,208,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-500">
                   Join Party
                 </p>
-                <div className="mt-3">
-                  <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
                     <p className="text-3xl font-black text-slate-800">Enter Code</p>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-white bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-emerald-600 shadow-sm">
-                      Join Quick
-                    </span>
+                    <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
+                      Got a friend's lobby code? Jump into their party and play together.
+                    </p>
                   </div>
-                  <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
-                    Got a friend's lobby code? Jump into their party and play together.
-                  </p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-emerald-100 px-5 py-3.5 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 whitespace-nowrap">Join Quick</p>
+                  </div>
                 </div>
               </Link>
             </section>
