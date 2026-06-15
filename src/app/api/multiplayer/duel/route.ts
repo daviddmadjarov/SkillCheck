@@ -19,6 +19,13 @@ function resolveDisplayName(user: { email?: string | null; user_metadata?: Recor
   return userName ?? fullName ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
+function safeDisplayName(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.length < 3) return `User_${trimmed}`;
+  if (trimmed.length > 24) return trimmed.slice(0, 24);
+  return trimmed;
+}
+
 async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, displayName: string) {
   const { data: existing } = await supabase
     .from('profiles')
@@ -26,12 +33,32 @@ async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>,
     .eq('id', userId)
     .maybeSingle();
 
-  if (!existing) {
-    await supabase.from('profiles').upsert({
-      id: userId,
-      username: displayName,
-      skill_level: 'Candidate',
-    }).maybeSingle();
+  if (existing) {
+    return;
+  }
+
+  const safeName = safeDisplayName(displayName);
+
+  const { error: upsertError } = await supabase.from('profiles').upsert({
+    id: userId,
+    skill_level: 'Candidate',
+    username: safeName,
+  }).maybeSingle();
+
+  if (upsertError) {
+    if (upsertError.code === '23505') {
+      const { error: retryError } = await supabase.from('profiles').insert({
+        id: userId,
+        skill_level: 'Candidate',
+        username: `${safeName}_${userId.slice(0, 4)}`,
+      }).maybeSingle();
+
+      if (retryError) {
+        console.error('Duel profile create retry failed for', userId, retryError);
+      }
+    } else {
+      console.error('Duel profile upsert failed for', userId, upsertError);
+    }
   }
 }
 
@@ -48,7 +75,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
-  const displayName = resolveDisplayName(user);
+  const displayName = safeDisplayName(resolveDisplayName(user));
 
   // Ensure the user has a profile row before any FK-dependent operations
   await ensureProfile(supabase, user.id, displayName);
@@ -88,6 +115,7 @@ export async function POST() {
       .single();
 
     if (lobbyError || !lobby) {
+      console.error('Duel lobby insert failed:', lobbyError?.message ?? 'no data returned', { code, mode: 'duel' });
       return NextResponse.json({ error: 'Could not create a duel lobby.' }, { status: 500 });
     }
 
@@ -107,6 +135,7 @@ export async function POST() {
     ]);
 
     if (playersError) {
+      console.error('Duel players insert failed:', playersError.message, { lobbyId: lobby.id });
       return NextResponse.json({ error: 'Could not seat duel players.' }, { status: 500 });
     }
 
@@ -125,6 +154,7 @@ export async function POST() {
     );
 
   if (queueError) {
+    console.error('Duel queue insert failed:', queueError.message, { userId: user.id });
     return NextResponse.json({ error: 'Could not join the duel queue.' }, { status: 500 });
   }
 

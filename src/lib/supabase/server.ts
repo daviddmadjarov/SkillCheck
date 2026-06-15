@@ -14,12 +14,16 @@ export async function createClient() {
         return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
+        // In Route Handlers / API routes, cookies can be set directly.
+        // In Server Components during render, this may throw — we catch
+        // and let the middleware handle cookie refresh instead.
+        for (const { name, value, options } of cookiesToSet) {
+          try {
             cookieStore.set(name, value, options);
-          });
-        } catch {
-          // Server Components may not be able to write cookies during render.
+          } catch {
+            // Cookie write not possible during render.
+            // The middleware will handle cookie refresh on the next request.
+          }
         }
       },
     },

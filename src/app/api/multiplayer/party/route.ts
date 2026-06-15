@@ -12,6 +12,13 @@ function resolveDisplayName(user: { email?: string | null; user_metadata?: Recor
   return userName ?? fullName ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
+function safeDisplayName(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.length < 3) return `User_${trimmed}`;
+  if (trimmed.length > 24) return trimmed.slice(0, 24);
+  return trimmed;
+}
+
 async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, displayName: string) {
   const { data: existing } = await supabase
     .from('profiles')
@@ -19,12 +26,36 @@ async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>,
     .eq('id', userId)
     .maybeSingle();
 
-  if (!existing) {
-    await supabase.from('profiles').upsert({
-      id: userId,
-      username: displayName,
-      skill_level: 'Candidate',
-    }).maybeSingle();
+  if (existing) {
+    return;
+  }
+
+  // The DB requires username 3-24 chars. resolveDisplayName may return shorter values
+  // (e.g. "ab" from "ab@test.com"), which would violate the CHECK constraint and
+  // cause subsequent FK-dependent inserts to fail.
+  const safeName = safeDisplayName(displayName);
+
+  const { error: upsertError } = await supabase.from('profiles').upsert({
+    id: userId,
+    skill_level: 'Candidate',
+    username: safeName,
+  }).maybeSingle();
+
+  if (upsertError) {
+    // If the generated safeName still conflicts (e.g. duplicates), append a suffix
+    if (upsertError.code === '23505') {
+      const { error: retryError } = await supabase.from('profiles').insert({
+        id: userId,
+        skill_level: 'Candidate',
+        username: `${safeName}_${userId.slice(0, 4)}`,
+      }).maybeSingle();
+
+      if (retryError) {
+        console.error('Profile create retry failed for', userId, retryError);
+      }
+    } else {
+      console.error('Profile upsert failed for', userId, upsertError);
+    }
   }
 }
 
@@ -66,7 +97,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Max players must be between 2 and 10.' }, { status: 400 });
   }
 
-  const displayName = resolveDisplayName(user);
+  const displayName = safeDisplayName(resolveDisplayName(user));
 
   // Ensure the user has a profile row before any FK-dependent operations
   await ensureProfile(supabase, user.id, displayName);
@@ -91,6 +122,7 @@ export async function POST(request: Request) {
       .single();
 
     if (lobbyError || !lobby) {
+      console.error('Lobby insert failed:', lobbyError?.message ?? 'no data returned', { code, maxPlayers, mode: 'party' });
       return NextResponse.json({ error: 'Could not create a party lobby.' }, { status: 500 });
     }
 
@@ -104,11 +136,13 @@ export async function POST(request: Request) {
     });
 
     if (playerError) {
+      console.error('Player insert failed:', playerError.message, { lobbyId: lobby.id, userId: user.id });
       return NextResponse.json({ error: 'Could not create a party lobby.' }, { status: 500 });
     }
 
     return NextResponse.json({ url: `/party/${code}` }, { status: 200 });
-  } catch {
+  } catch (err) {
+    console.error('Party creation unexpected error:', err);
     return NextResponse.json({ error: 'Could not create a party lobby.' }, { status: 500 });
   }
 }
