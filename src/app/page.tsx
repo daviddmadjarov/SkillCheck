@@ -567,8 +567,8 @@ export default async function Home({
                       Jump straight into a head-to-head lobby and race through a shared game order.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-rose-100 px-6 py-4 text-left shadow-sm sm:self-auto sm:text-right">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-rose-600 whitespace-nowrap">Fast Queue</p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-rose-100 px-6 py-3 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-rose-600 leading-tight">Fast<br />Queue</p>
                   </div>
                 </div>
               </Link>
@@ -584,8 +584,8 @@ export default async function Home({
                       Build a code-based room, invite friends, and choose the games you want to play.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-cyan-100 px-6 py-4 text-left shadow-sm sm:self-auto sm:text-right">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 whitespace-nowrap">Share Code</p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-cyan-100 px-6 py-3 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 leading-tight">Share<br />Code</p>
                   </div>
                 </div>
               </Link>
@@ -600,8 +600,8 @@ export default async function Home({
                       Got a friend's lobby code? Jump into their party and play together.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-emerald-100 px-6 py-4 text-left shadow-sm sm:self-auto sm:text-right">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 whitespace-nowrap">Join Quick</p>
+                  <div className="self-start rounded-3xl border-2 border-white bg-emerald-100 px-6 py-3 text-left shadow-sm sm:self-auto sm:text-right">
+                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 leading-tight">Join<br />Quick</p>
                   </div>
                 </div>
               </Link>

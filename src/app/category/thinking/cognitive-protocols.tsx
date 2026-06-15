@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+
 export type CognitiveMode = 'rotation' | 'estimation' | 'sequence';
 
 export type CognitiveProtocolsProps = {
@@ -360,6 +362,7 @@ function makeRotRound(lastFamilyIdx: number): RotRound {
 }
 
 function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('mental-rotation');
   const ROUNDS = 10;
   const [phase, setPhase] = useState<'idle' | 'playing' | 'reveal' | 'finished'>('idle');
   const [roundIdx, setRoundIdx] = useState(0);
@@ -382,9 +385,11 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
     void fetch('/api/scores/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testSlug: 'mental-rotation', score: labScore }),
+      body: JSON.stringify({ testSlug: 'mental-rotation', score: labScore, ...multiplayerMeta }),
+    }).then(() => {
+      if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
 
   function nextRound(idx: number) {
     const r = makeRotRound(lastFamilyIdx.current);
@@ -791,6 +796,7 @@ function EstVisual({ dotsHidden, task }: { dotsHidden: boolean; task: EstTask })
 }
 
 function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('estimation-challenge');
   const ROUNDS = 10;
   const [phase, setPhase] = useState<'idle' | 'estimating' | 'reveal' | 'finished'>('idle');
   const [roundIdx, setRoundIdx] = useState(0);
@@ -819,9 +825,11 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
     void fetch('/api/scores/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testSlug: 'estimation-challenge', score: labScore }),
+      body: JSON.stringify({ testSlug: 'estimation-challenge', score: labScore, ...multiplayerMeta }),
+    }).then(() => {
+      if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
 
   function startRound(idx: number) {
     if (dotsTimerRef.current) clearTimeout(dotsTimerRef.current);
@@ -1001,6 +1009,7 @@ function useSeqAudio() {
 }
 
 function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('sequence-memory');
   const [phase, setPhase] = useState<'idle' | 'showing' | 'input' | 'wrong'>('idle');
   const [sequence, setSequence] = useState<number[]>([]);
   const [inputSoFar, setInputSoFar] = useState<number[]>([]);
@@ -1025,9 +1034,11 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
     void fetch('/api/scores/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testSlug: 'sequence-memory', score: labScore }),
+      body: JSON.stringify({ testSlug: 'sequence-memory', score: labScore, ...multiplayerMeta }),
+    }).then(() => {
+      if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
 
   // Drive the showing animation via effect so it reacts to phase changes
   useEffect(() => {

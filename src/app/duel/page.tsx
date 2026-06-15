@@ -121,6 +121,24 @@ export default function DuelPage() {
     return () => window.clearInterval(intervalId);
   }, [state, poll]);
 
+  // ── Auto-cancel queue on navigational leave ──
+  // Cancel the queue entry if the user navigates away or closes the tab while queued.
+  // Uses keepalive: true so the request completes even during page unload.
+  useEffect(() => {
+    if (state !== 'waiting') return;
+
+    function cancelOnLeave() {
+      fetch('/api/multiplayer/duel', { method: 'DELETE', keepalive: true }).catch(() => {});
+    }
+
+    window.addEventListener('beforeunload', cancelOnLeave);
+
+    return () => {
+      window.removeEventListener('beforeunload', cancelOnLeave);
+      cancelOnLeave();
+    };
+  }, [state]);
+
   // ── Initial stats load ──
   useEffect(() => {
     async function loadStats() {

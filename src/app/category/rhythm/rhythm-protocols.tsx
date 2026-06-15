@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+
 type RhythmMode = 'sync' | 'timer';
 
 type RhythmProtocolsProps = {
@@ -183,6 +185,7 @@ function RhythmShell({
 }
 
 function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('perfect-sync');
   const BPM_MIN = 40;
   const BPM_MAX = 200;
   const TOTAL_ROUNDS = 4;
@@ -336,7 +339,9 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
         void fetch('/api/scores/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ testSlug: 'perfect-sync', score: finalScore }),
+          body: JSON.stringify({ testSlug: 'perfect-sync', score: finalScore, ...multiplayerMeta }),
+        }).then(() => {
+          if (isMultiplayerSession) goToIntermission();
         });
       }
     }
@@ -487,6 +492,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
 }
 
 function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('stop-timer');
   const TOTAL_ROUNDS = 4;
 
   const [phase, setPhase] = useState<'idle' | 'running' | 'reveal' | 'finished'>('idle');
@@ -609,7 +615,9 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
         void fetch('/api/scores/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ testSlug: 'stop-timer', score }),
+          body: JSON.stringify({ testSlug: 'stop-timer', score, ...multiplayerMeta }),
+        }).then(() => {
+          if (isMultiplayerSession) goToIntermission();
         });
       }
     }
