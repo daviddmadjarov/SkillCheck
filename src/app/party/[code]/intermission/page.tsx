@@ -88,21 +88,55 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
 
   const isSessionFinished = nextHref === null;
 
+  // ── Forfeit check ──
+  const forfeitedRaw = Array.isArray(resolvedSearchParams.forfeited)
+    ? resolvedSearchParams.forfeited[0]
+    : resolvedSearchParams.forfeited;
+  const forfeitedMessage = Array.isArray(resolvedSearchParams.message)
+    ? resolvedSearchParams.message[0]
+    : resolvedSearchParams.message;
+  const isForfeit = forfeitedRaw === '1';
+
+  // ── Process Elo on session completion (duel mode only) ──
+  let eloResult: { winner_new_elo?: number; loser_new_elo?: number; elo_delta?: string } | null = null;
+  if (isSessionFinished && lobby.mode === 'duel') {
+    const winnerEntry = players?.[0];
+    if (winnerEntry?.user_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: completionResult } = await (supabase.rpc as any)('process_duel_completion', {
+        p_lobby_id: lobby.id,
+        p_winner_user_id: winnerEntry.user_id,
+      });
+      eloResult = completionResult as typeof eloResult;
+    }
+  }
+
   return (
     <main className="min-h-screen px-4 py-6">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <section className="rounded-[2rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8">
+        <section className={`rounded-[2rem] border-2 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8 ${isForfeit ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50'}`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="status-pill">Session Leaderboard</p>
+              <p className="status-pill">{isForfeit ? 'Match Forfeited' : 'Session Leaderboard'}</p>
               <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-800">{lobby.code}</h1>
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                {isSessionFinished
-                  ? 'Final session standings are locked in. Great run.'
-                  : initialReadyToAdvance
-                    ? `Round ${roundIndex + 1} completed. Updated standings before the next game.`
-                    : `Round ${roundIndex + 1} submitted. Waiting for remaining players or round timeout.`}
-              </p>
+              {isForfeit && forfeitedMessage ? (
+                <p className="mt-2 max-w-2xl rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
+                  {forfeitedMessage}
+                </p>
+              ) : (
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                  {isSessionFinished
+                    ? 'Final session standings are locked in. Great run.'
+                    : initialReadyToAdvance
+                      ? `Round ${roundIndex + 1} completed. Updated standings before the next game.`
+                      : `Round ${roundIndex + 1} submitted. Waiting for remaining players or round timeout.`}
+                </p>
+              )}
+              {eloResult ? (
+                <p className="mt-2 text-sm font-bold text-emerald-700">
+                  Elo updated! Winner gained {eloResult.elo_delta ?? '—'} points.
+                </p>
+              ) : null}
             </div>
             <Link
               className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]"

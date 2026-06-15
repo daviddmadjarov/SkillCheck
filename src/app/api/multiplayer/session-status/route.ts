@@ -21,9 +21,11 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
 
-  const { data: lobby } = await supabase
+  // Check if lobby is forfeited
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lobby } = await (supabase as any)
     .from('multiplayer_lobbies')
-    .select('id, code, game_order')
+    .select('id, code, game_order, status, forfeited, winner_user_id')
     .eq('code', lobbyCode)
     .maybeSingle();
 
@@ -31,6 +33,59 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Lobby not found.' }, { status: 404 });
   }
 
+  // ── Forfeit detection ──
+  if (lobby.forfeited || lobby.status === 'finished') {
+    // Get the winner info
+    const { data: winnerPlayer } = await supabase
+      .from('multiplayer_lobby_players')
+      .select('display_name, user_id')
+      .eq('lobby_id', lobby.id)
+      .eq('user_id', lobby.winner_user_id)
+      .maybeSingle();
+
+    // Get all players with scores for final standings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: players } = await (supabase as any)
+      .from('multiplayer_lobby_players')
+      .select('id, display_name, user_id, score_total, forfeited')
+      .eq('lobby_id', lobby.id)
+      .order('score_total', { ascending: false })
+      .order('joined_at', { ascending: true });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: eloResult } = await (supabase as any)
+      .from('profiles')
+      .select('elo_rating')
+      .eq('id', lobby.winner_user_id)
+      .maybeSingle();
+
+    const forfeitedStandings = (players ?? []).map((p: { display_name: string; forfeited: boolean; id: string; score_total: number; user_id: string }, index: number) => ({
+      displayName: p.display_name,
+      forfeited: p.forfeited,
+      isLeading: index === 0,
+      playerId: p.id,
+      rank: index + 1,
+      scoreTotal: p.score_total,
+      userId: p.user_id,
+    }));
+
+    return NextResponse.json({
+      forfeited: true,
+      forfeitedMessage: lobby.forfeited
+        ? `Opponent has left the match. ${winnerPlayer?.display_name ?? 'You'} win!`
+        : 'Match has ended.',
+      isSessionFinished: true,
+      playersCount: players?.length ?? 0,
+      readyToAdvance: true,
+      standings: forfeitedStandings,
+      submittedCount: 0,
+      totalRounds: lobby.game_order.length,
+      winnerDisplayName: winnerPlayer?.display_name ?? null,
+      winnerElo: eloResult?.elo_rating ?? null,
+    });
+  }
+
+  // ── Normal round synchronization ──
   // Get players with their cumulative scores
   const { data: players } = await supabase
     .from('multiplayer_lobby_players')
@@ -83,6 +138,7 @@ export async function GET(request: NextRequest) {
   // Build the standings array (already sorted by score_total DESC)
   const standings = (players ?? []).map((p, index) => ({
     displayName: p.display_name,
+    forfeited: false,
     isLeading: index === 0,
     playerId: p.id,
     rank: index + 1,
@@ -92,6 +148,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     deadlineAt,
+    forfeited: false,
     isSessionFinished,
     playersCount,
     readyToAdvance,
