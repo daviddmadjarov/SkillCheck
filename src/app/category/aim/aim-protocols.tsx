@@ -1021,6 +1021,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
   const [timeInsideMs, setTimeInsideMs] = useState(0);
 
   const cursorInsideRef = useRef(false);
+  const timeInsideRef = useRef(0);
   const arenaRef = useRef<HTMLDivElement | null>(null);
   const targetRef = useRef<HTMLButtonElement | null>(null);
   const pointRef = useRef(trackPoint);
@@ -1144,8 +1145,10 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       const speedMultiplier = 0.45 + progress * 1.2;
       setSecondsLeft(Math.ceil(remainingMs / 1000));
 
+      // Accumulate time inside target using a ref to avoid stale closures
       if (cursorInsideRef.current) {
-        setTimeInsideMs((current) => Math.min(ROUND_MS, current + frameDeltaMs));
+        timeInsideRef.current = Math.min(ROUND_MS, timeInsideRef.current + frameDeltaMs);
+        setTimeInsideMs(timeInsideRef.current);
       }
 
       const jitter = 10 + progress * 18;
@@ -1189,7 +1192,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       if (elapsedMsRef.current >= ROUND_MS) {
         updateInsideState(false);
         if (isSignedIn && !hasSavedRunRef.current) {
-          const finalInsideMs = Math.min(ROUND_MS, timeInsideMs + (cursorInsideRef.current ? frameDeltaMs : 0));
+          const finalInsideMs = timeInsideRef.current;
           const finalScore = Math.round((finalInsideMs / ROUND_MS) * 1000);
           hasSavedRunRef.current = true;
 
@@ -1232,6 +1235,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
     setRunning(true);
     setSecondsLeft(20);
     setTimeInsideMs(0);
+    timeInsideRef.current = 0;
     setCursorInside(false);
     cursorInsideRef.current = false;
     pointerPositionRef.current = initialPointer;

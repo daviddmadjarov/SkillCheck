@@ -1,0 +1,266 @@
+
+> skillbench@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.47:3000
+- Environments: .env.local
+✓ Ready in 290ms
+
+○ Compiling / ...
+
+thread '<unnamed>' (132496) panicked at C:\Users\runneradmin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rayon-core-1.12.1\src\registry.rs:168:10:
+The global thread pool has not been initialized.: ThreadPoolBuildError { kind: IOError(Os { code: 1450, kind: Uncategorized, message: "Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen." }) }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+ 1: 00007FF6D5EB495D 
+ 2: 00007FF6D7322006 
+ 3: 00007FF6D6BAF676 
+ 4: 00007FF6D6A169EE 
+ 5: 00007FF6D6A49FEF 
+ 6: 00007FF6D6A4AAA2 
+ 7: 00007FF6D6A4B482 
+ 8: 00007FF6D65472F3 
+ 9: 00007FF6D6BDA536 
+10: 00007FF6D6073C3D 
+11: 00007FF6D5DC4903 
+12: 00007FF6D5DC3C99 
+13: 00007FF6D5DCD6A0 
+14: 00007FF6D6C046D6 
+15: 00007FF6D7E6A033 
+16: 00007FFAE0C2E957 
+17: 00007FFAE216427C 
+
+
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+ 1: 00007FF6D5EB495D 
+ 2: 00007FF6D7322006 
+ 3: 00007FF6D6BAF676 
+ 4: 00007FF6D6A169EE 
+ 5: 00007FF6D6A49FEF 
+ 6: 00007FF6D6A4AAA2 
+ 7: 00007FF6D6A4B482 
+ 8: 00007FF6D65472F3 
+ 9: 00007FF6D6BDA536 
+10: 00007FF6D6073C3D 
+11: 00007FF6D5DC4903 
+12: 00007FF6D5DC3C99 
+13: 00007FF6D5DCD6A0 
+14: 00007FF6D6C046D6 
+15: 00007FF6D7E6A033 
+16: 00007FFAE0C2E957 BaseThreadInitThunk+23
+17: 00007FFAE216427C RtlUserThreadStart+44
+✓ Finished writing to filesystem cache in 21.8s
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to C:\Users\david\AppData\Local\Temp\next-panic-a63229a7e3ced17154ea8558cf60eece.log.
+
+To help make Turbopack better, report this error by clicking here: https://bugs.nextjs.org/search?category=turbopack-error-report&title=Turbopack%20Error%3A%20failed%20to%20write%20to%20%22c%3A%5C%5CUsers%5C%5Cdavid%5C%5COneDrive%5C%5CDocuments%5C%5CGitHub%5C%5CSkillCheck%5C%5C.next%5C%5Cdev%5C%5Cserver%5C%5Cmiddleware.js%22&body=Turbopack%20version%3A%20%60f37fad94%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0Afailed%20to%20write%20to%20%22c%3A%5C%5CUsers%5C%5Cdavid%5C%5COneDrive%5C%5CDocuments%5C%5CGitHub%5C%5CSkillCheck%5C%5C.next%5C%5Cdev%5C%5Cserver%5C%5Cmiddleware.js%22%0A%0ACaused%20by%3A%0A-%20Nicht%20gen%C3%BCgend%20Systemressourcen%2C%20um%20den%20angeforderten%20Dienst%20auszuf%C3%BChren.%20%28os%20error%201450%29%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+[Server HMR] Subscription error: Error [TurbopackInternalError]: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js"
+
+Caused by:
+- Nicht genügend Systemressourcen, um den angeforderten Dienst auszuführen. (os error 1450)
+    at <unknown> (TurbopackInternalError: failed to write to "c:\\Users\\david\\OneDrive\\Documents\\GitHub\\SkillCheck\\.next\\dev\\server\\middleware.js") {
+  location: undefined
+}
+
+<--- Last few GCs --->
+
+[42452:000001FA31927000]    13142 ms: Scavenge 6.8 (8.9) -> 6.0 (7.6) MB, pooled: 1 MB, 0.55 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[42452:000001FA31927000]    13146 ms: Scavenge 6.6 (7.6) -> 6.4 (10.8) MB, pooled: 0 MB, 0.39 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+
+ 1: 00007FF6D5F60CCF 
+ 2: 00007FF6D6BAF697 
+ 3: 00007FF6D6529576 
+ 4: 00007FF6D6BACEAA 
+ 5: 00007FF6D6BACC50 
+ 6: 00007FF6D6633F3F 
+ 7: 00007FF6D6654B66 
+ 8: 00007FF6D666B25B 
+ 9: 00007FF6D666A42E 
+10: 00007FF6D666A0E9 
+11: 00007FF6D66728B0 
+12: 00007FF6D6669B56 
+13: 00007FF6D666B25B 
+14: 00007FF6D666A42E 
+15: 00007FF6D666A0E9 
+16: 00007FF6D66728B0 
+17: 00007FF6D6669B56 
+18: 00007FF6D666B25B 
+19: 00007FF6D666A42E 
+20: 00007FF6D667C302 
+21: 00007FF6D665BDD5 
+22: 00007FF6D66649DB 
+23: 00007FF6D6663EDA 
+24: 00007FF6D66575D7 
+25: 00007FF6D66567A4 
+26: 00007FF6D6655A92 
+27: 00007FF6D665573A 
+28: 00007FF6D6650D69 
+29: 00007FF6D6B2D0DF 
+30: 00007FF6D6B2FEE1 
+31: 00007FF6D6BB8B53 
+32: 00007FF6D5F7E8C3 
+33: 00007FF6D5F7D06E 
+34: 000001FA69ECF64D 
+✓ Finished writing to filesystem cache in 13.6s
+
+
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+ 1: 00007FF6D5EB495D 
+ 2: 00007FF6D7322006 
+ 3: 00007FF6D6BAF676 
+ 4: 00007FF6D6A169EE 
+ 5: 00007FF6D6A49FEF 
+ 6: 00007FF6D6A4AAA2 
+ 7: 00007FF6D6A4B482 
+ 8: 00007FF6D65472F3 
+ 9: 00007FF6D6BDA536 
+10: 00007FF6D6073C3D 
+11: 00007FF6D5DC4903 
+12: 00007FF6D5DC3C99 
+13: 00007FF6D5DCD6A0 
+14: 00007FF6D6C046D6 
+15: 00007FF6D7E6A033 
+16: 00007FFAE0C2E957 
+17: 00007FFAE216427C 
+
+
+
+#
+
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+#
+
+----- Native stack trace -----
+
+ 1: 00007FF6D5EB495D node::MultiIsolatePlatform::DisposeIsolate+5341
+ 2: 00007FF6D7322006 v8::base::FatalOOM+54
+ 3: 00007FF6D6BAF676 v8::Function::NewInstance+390
+ 1: 00007FF6D5EB495D node::MultiIsolatePlatform::DisposeIsolate+5341
+ 4: 00007FF6D6A169EE v8::CppHeap::CollectGarbageInYoungGenerationForTesting+111438
+ 2: 00007FF6D7322006 v8::base::FatalOOM+54
+ 5: 00007FF6D6A49FEF SSL_CTX_set_default_read_buffer_len+41247
+ 3: 00007FF6D6BAF676 v8::Function::NewInstance+390
+ 6: 00007FF6D6A4AAA2 SSL_CTX_set_default_read_buffer_len+43986
+ 4: 00007FF6D6A169EE v8::CppHeap::CollectGarbageInYoungGenerationForTesting+111438
+ 7: 00007FF6D6A4B482 SSL_CTX_set_default_read_buffer_len+46514
+ 5: 00007FF6D6A49FEF SSL_CTX_set_default_read_buffer_len+41247
+ 8: 00007FF6D65472F3 v8::internal::Version::GetSONAME+121171
+ 6: 00007FF6D6A4AAA2 SSL_CTX_set_default_read_buffer_len+43986
+ 9: 00007FF6D6BDA536 v8::Isolate::Initialize+662
+ 7: 00007FF6D6A4B482 SSL_CTX_set_default_read_buffer_len+46514
+10: 00007FF6D6073C3D node::SetIsolateUpForNode+749
+ 8: 00007FF6D65472F3 v8::internal::Version::GetSONAME+121171
+11: 00007FF6D5DC4903 RSA_meth_get_flags+223171
+ 9: 00007FF6D6BDA536 v8::Isolate::Initialize+662
+12: 00007FF6D5DC3C99 RSA_meth_get_flags+219993
+10: 00007FF6D6073C3D node::SetIsolateUpForNode+749
+13: 00007FF6D5DCD6A0 RSA_meth_get_flags+259424
+11: 00007FF6D5DC4903 RSA_meth_get_flags+223171
+14: 00007FF6D6C046D6 uv_thread_detach+150
+12: 00007FF6D5DC3C99 RSA_meth_get_flags+219993
+15: 00007FF6D7E6A033 v8::base::UnsignedDivisionByConstant<unsigned __int64>+2907267
+13: 00007FF6D5DCD6A0 RSA_meth_get_flags+259424
+16: 00007FFAE0C2E957 BaseThreadInitThunk+23
+14: 00007FF6D6C046D6 uv_thread_detach+150
+17: 00007FFAE216427C RtlUserThreadStart+44
+15: 00007FF6D7E6A033 v8::base::UnsignedDivisionByConstant<unsigned __int64>+2907267
+16: 00007FFAE0C2E957 BaseThreadInitThunk+23
+17: 00007FFAE216427C RtlUserThreadStart+44
+
+<--- Last few GCs --->
+
+[143120:00000222CC2AC000]       56 ms: Scavenge 8.9 (11.5) -> 7.6 (11.7) MB, pooled: 0 MB, 0.55 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[143120:00000222CC2AC000]       69 ms: Scavenge 9.7 (12.5) -> 9.1 (17.7) MB, pooled: 0 MB, 0.90 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+
+ 1: 00007FF6D5F60CCF node::OnFatalError+1343
+ 2: 00007FF6D6BAF697 v8::Function::NewInstance+423
+ 3: 00007FF6D6529576 v8::SnapshotCreator::GetIsolate+56566
+ 4: 00007FF6D7360AAB v8::internal::compiler::CompilationDependencies::FieldTypeDependencyOffTheRecord+55627
+ 5: 00007FF6D7361DDA v8::internal::compiler::CompilationDependencies::FieldTypeDependencyOffTheRecord+60538
+ 6: 00007FF6D735FE0B v8::internal::compiler::CompilationDependencies::FieldTypeDependencyOffTheRecord+52395
+ 7: 00007FF6D63A089D SSL_CTX_get_client_CA_list+327261
+ 8: 00007FF6D63A14E7 SSL_CTX_get_client_CA_list+330407
+ 9: 00007FF6D63B5B3B SSL_CTX_get_client_CA_list+413947
+10: 00007FF6D638A80B SSL_CTX_get_client_CA_list+237003
+11: 00007FF6D6402866 SSL_CTX_get_client_CA_list+728614
+12: 00007FF6D6401580 SSL_CTX_get_client_CA_list+723776
+13: 00007FF6D63FF37A SSL_CTX_get_client_CA_list+715066
+14: 00007FF6D6B2335F EVP_MD_CTX_set_update_fn+200559
+15: 00007FF6D6400E5B SSL_CTX_get_client_CA_list+721947
+16: 00007FF6D739519F v8::platform::DefaultJobHandle::UpdatePriority+591
+17: 00007FF6D5EB081E node::GetNodeReport+90430
+18: 00007FF6D6C046D6 uv_thread_detach+150
+19: 00007FF6D7E6A033 v8::base::UnsignedDivisionByConstant<unsigned __int64>+2907267
+20: 00007FFAE0C2E957 BaseThreadInitThunk+23
+21: 00007FFAE216427C RtlUserThreadStart+44

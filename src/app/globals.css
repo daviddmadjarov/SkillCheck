@@ -318,5 +318,105 @@
         color: #f1f5f9 !important;
       }
     }
+
+    /* ----- DARK MODE CONTRAST FIXES ----- */
+
+    /* Improve text-slate-500 readability (was too dim on dark bg) */
+    .text-slate-500 {
+      color: #94a3b8 !important;
+    }
+
+    /* Indigo gradient/target backgrounds for tracking test */
+    .from-indigo-50 {
+      --tw-gradient-from: #1e1b4b !important;
+      --tw-gradient-stops: var(--tw-gradient-from), #0f172a, var(--tw-gradient-to);
+    }
+    .bg-indigo-50 {
+      background-color: #1e1b4b !important;
+    }
+    .border-indigo-200 {
+      border-color: #4338ca !important;
+    }
+
+    /* White text on colored backgrounds */
+    button span.text-white,
+    .text-white {
+      color: #ffffff !important;
+    }
+
+    /* Overlay backgrounds (white/40, white/90, etc.) */
+    .bg-white\/40 {
+      background-color: rgba(15, 23, 42, 0.7) !important;
+    }
+    .bg-white\/45 {
+      background-color: rgba(15, 23, 42, 0.75) !important;
+    }
+    .bg-white\/90 {
+      background-color: rgba(15, 23, 42, 0.9) !important;
+    }
+    .bg-white\/80 {
+      background-color: rgba(15, 23, 42, 0.8) !important;
+    }
+
+    /* Card shadow overlays need dark colors instead of light */
+    .shadow-lg,
+    .shadow-sm,
+    .shadow-md {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* Party creation cards - selected state */
+    .bg-cyan-50 button .text-cyan-700 {
+      color: #22d3ee !important;
+    }
+
+    /* Dropdowns and selects - dark bg for readability */
+    select option {
+      background-color: #1e293b;
+      color: #e2e8f0;
+    }
+    select {
+      background-color: #1e293b !important;
+      color: #e2e8f0 !important;
+    }
+
+    /* Improve contrast of stat cards and info boxes */
+    .rounded-\[1\.4rem\] .text-slate-400 {
+      color: #94a3b8 !important;
+    }
+
+    /* Text in result overlays */
+    .text-slate-600.font-semibold {
+      color: #cbd5e1 !important;
+    }
+
+    /* Party page create button text */
+    .text-cyan-700.font-bold {
+      color: #22d3ee !important;
+    }
+
+    /* "Launch Match" style links with white text */
+    .text-white.font-bold:not([class*="hover"]) {
+      color: #ffffff !important;
+    }
+
+    /* Underline summary details text */
+    summary .text-slate-400 {
+      color: #94a3b8 !important;
+    }
+
+    /* Duel page stat info */
+    .text-rose-500.font-bold,
+    .text-cyan-500.font-bold,
+    .text-amber-500.font-bold {
+      color: #f43f5e !important; 
+    }
+
+    /* Footer copyright text */
+    .site-footer .text-slate-400,
+    .site-footer .text-slate-500,
+    .site-footer p {
+      color: #94a3b8 !important;
+    }
   }
 }

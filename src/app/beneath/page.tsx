@@ -3,19 +3,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const TOTAL_MS = 13000;
+const TOTAL_MS = 14000;
 
 export default function BeneathPage() {
   const router = useRouter();
   const audioContextRef = useRef<AudioContext | null>(null);
   const teardownRef = useRef<(() => void) | null>(null);
-  const [lightOn, setLightOn] = useState(false);
-  const [flash, setFlash] = useState(false);
+  const [lightIntensity, setLightIntensity] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
   const [showText, setShowText] = useState(false);
 
   useEffect(() => {
     const timers: number[] = [];
+    const startTime = performance.now();
 
     const cleanupAudio = () => {
       teardownRef.current?.();
@@ -47,6 +47,7 @@ export default function BeneathPage() {
         master.gain.value = 0.13;
         master.connect(context.destination);
 
+        // Low rumble (sub-bass)
         const lowNoise = context.createBufferSource();
         lowNoise.buffer = createNoiseBuffer(context, 2);
         lowNoise.loop = true;
@@ -60,6 +61,7 @@ export default function BeneathPage() {
         lowGain.connect(master);
         lowNoise.start();
 
+        // Air - high frequency whisper
         const airNoise = context.createBufferSource();
         airNoise.buffer = createNoiseBuffer(context, 2);
         airNoise.loop = true;
@@ -73,6 +75,7 @@ export default function BeneathPage() {
         airGain.connect(master);
         airNoise.start();
 
+        // Periodic creak (structural settling)
         const creak = () => {
           const now = context.currentTime;
           const osc = context.createOscillator();
@@ -98,6 +101,7 @@ export default function BeneathPage() {
 
         const creakTimer = window.setInterval(creak, 2400);
 
+        // Distant whisper (builds around 9s)
         const whisper = () => {
           const now = context.currentTime;
           const source = context.createBufferSource();
@@ -147,19 +151,34 @@ export default function BeneathPage() {
 
     void startAudio();
 
-    timers.push(window.setTimeout(() => setLightOn(true), 2800));
-    timers.push(window.setTimeout(() => setFlash(true), 10800));
-    timers.push(window.setTimeout(() => setFadeOut(true), 11600));
-    timers.push(window.setTimeout(() => setShowText(true), 12200));
+    // Light animation: gradually increase intensity from 0 to 1 over ~12 seconds
+    const lightAnimFrame = () => {
+      const elapsed = performance.now() - startTime;
+      // Light starts becoming visible around 1.5s, reaches full at ~11s
+      const progress = Math.min(1, Math.max(0, (elapsed - 1500) / 9500));
+      // Ease-in curve for more natural approach feeling
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      setLightIntensity(eased);
+    };
+
+    // Kick off light animation loop
+    const lightInterval = window.setInterval(lightAnimFrame, 50);
+
+    timers.push(window.setTimeout(() => setFadeOut(true), 12000));
+    timers.push(window.setTimeout(() => setShowText(true), 12700));
     timers.push(
       window.setTimeout(() => {
         cleanupAudio();
+        window.clearInterval(lightInterval);
         router.replace('/');
       }, TOTAL_MS),
     );
 
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
+      window.clearInterval(lightInterval);
       cleanupAudio();
     };
   }, [router]);
@@ -179,22 +198,27 @@ export default function BeneathPage() {
         }
       `}</style>
 
-      {/* Stone wall texture */}
+      {/* Stone wall texture - cramped cellar feel */}
       <div
         className="absolute inset-0"
         style={{
           backgroundColor: '#080608',
           backgroundImage: [
-            'repeating-linear-gradient(90deg, rgba(0,0,0,0.62) 0px, rgba(0,0,0,0.62) 3px, transparent 3px, transparent 118px)',
-            'repeating-linear-gradient(0deg, rgba(0,0,0,0.55) 0px, rgba(0,0,0,0.55) 3px, transparent 3px, transparent 72px)',
+            // Horizontal mortar lines (more frequent = narrower walls)
+            'repeating-linear-gradient(90deg, rgba(0,0,0,0.62) 0px, rgba(0,0,0,0.62) 2px, transparent 2px, transparent 96px)',
+            // Vertical mortar lines
+            'repeating-linear-gradient(0deg, rgba(0,0,0,0.55) 0px, rgba(0,0,0,0.55) 2px, transparent 2px, transparent 64px)',
+            // Stone patterning
             'repeating-conic-gradient(from 12deg at 30% 40%, rgba(46,38,52,0.45) 0deg 90deg, rgba(20,16,26,0.45) 90deg 180deg)',
+            // Damp patches
             'radial-gradient(circle at 18% 22%, rgba(58,48,66,0.5) 0%, transparent 38%)',
+            'radial-gradient(circle at 72% 68%, rgba(40,35,48,0.4) 0%, transparent 42%)',
           ].join(', '),
-          backgroundSize: '118px 72px, 118px 72px, 26px 26px, 100% 100%',
+          backgroundSize: '96px 64px, 96px 64px, 22px 22px, 100% 100%, 100% 100%',
         }}
       />
 
-      {/* Crack lines */}
+      {/* Crack line top-left */}
       <div
         className="absolute"
         style={{
@@ -207,6 +231,7 @@ export default function BeneathPage() {
           boxShadow: '0 1px 0 rgba(70,60,78,0.25)',
         }}
       />
+      {/* Crack line bottom-right */}
       <div
         className="absolute"
         style={{
@@ -219,14 +244,35 @@ export default function BeneathPage() {
           boxShadow: '0 1px 0 rgba(70,60,78,0.2)',
         }}
       />
+      {/* Small crack */}
+      <div
+        className="absolute"
+        style={{
+          top: '38%',
+          left: '38%',
+          width: '14%',
+          height: '0',
+          borderTop: '1px solid rgba(0,0,0,0.5)',
+          transform: 'rotate(12deg)',
+        }}
+      />
 
-      {/* Ceiling band */}
+      {/* Ceiling band - dark overhead */}
       <div
         className="absolute inset-x-0 top-0"
         style={{
-          height: '16%',
-          background: 'linear-gradient(to bottom, rgba(34,28,40,0.55), rgba(8,6,8,0))',
+          height: '18%',
+          background: 'linear-gradient(to bottom, rgba(34,28,40,0.6), rgba(8,6,8,0))',
           boxShadow: 'inset 0 -40px 60px rgba(0,0,0,0.6)',
+        }}
+      />
+
+      {/* Floor band */}
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{
+          height: '12%',
+          background: 'linear-gradient(to top, rgba(34,28,40,0.5), rgba(8,6,8,0))',
         }}
       />
 
@@ -234,26 +280,43 @@ export default function BeneathPage() {
       <div
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at 50% 42%, transparent 30%, rgba(0,0,0,0.85) 100%)',
+          background: 'radial-gradient(ellipse at 50% 42%, transparent 22%, rgba(0,0,0,0.85) 100%)',
         }}
       />
 
-      {/* Distant light at the end of the corridor */}
+      {/* Distant light approaching - grows over time */}
       <div
         className="absolute"
         style={{
           top: '35%',
           left: '50%',
-          width: '90vmax',
-          height: '90vmax',
-          marginLeft: '-45vmax',
-          marginTop: '-45vmax',
-          background:
-            'radial-gradient(circle, rgba(255,247,220,0.95) 0%, rgba(255,238,190,0.5) 16%, rgba(255,226,160,0.16) 38%, rgba(8,6,8,0) 60%)',
-          transform: lightOn ? 'scale(0.8)' : 'scale(0.02)',
-          opacity: lightOn ? 1 : 0.12,
-          transition: 'transform 8000ms cubic-bezier(0.16, 0.7, 0.3, 1), opacity 8000ms ease-in',
+          width: '100vmax',
+          height: '100vmax',
+          marginLeft: '-50vmax',
+          marginTop: '-50vmax',
+          background: [
+            `radial-gradient(circle at 50% 50%, rgba(255,247,220,${0.95 * lightIntensity}) 0%, rgba(255,238,190,${0.5 * lightIntensity}) 12%, rgba(255,226,160,${0.16 * lightIntensity}) 28%, rgba(8,6,8,0) 50%)`,
+          ].join(', '),
+          opacity: Math.max(0.08, lightIntensity),
           willChange: 'transform, opacity',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Secondary glow - ambient light spill */}
+      <div
+        className="absolute"
+        style={{
+          top: '30%',
+          left: '44%',
+          width: '40vmax',
+          height: '40vmax',
+          background: lightIntensity > 0.1
+            ? `radial-gradient(circle, rgba(255,240,200,${0.08 * lightIntensity}) 0%, transparent 100%)`
+            : 'none',
+          opacity: lightIntensity,
+          willChange: 'opacity',
+          pointerEvents: 'none',
         }}
       />
 
@@ -275,21 +338,18 @@ export default function BeneathPage() {
         style={{ top: '58%', left: '47%', animation: 'beneath-dust-b 10s ease-in-out infinite 4.5s' }}
       />
 
-      {/* Flash */}
-      <div
-        className={`absolute inset-0 bg-white transition-opacity duration-500 ${flash ? 'opacity-90' : 'opacity-0'}`}
-      />
-
       {/* Fade to black */}
       <div
-        className={`absolute inset-0 bg-black transition-opacity duration-1000 ${fadeOut ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-black transition-opacity duration-[1200ms] ${fadeOut ? 'opacity-100' : 'opacity-0'}`}
+        style={{ pointerEvents: 'none' }}
       />
 
       {/* Closing text */}
       <div
-        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-[800ms] ${
+        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-[1000ms] ${
           showText ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ pointerEvents: 'none' }}
       >
         <p className="text-center text-[1.5rem] font-bold tracking-[0.35em] text-white">
           You should return...

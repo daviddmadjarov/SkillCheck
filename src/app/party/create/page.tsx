@@ -263,12 +263,20 @@ export default function CreatePartyPage() {
                       <label
                         key={`${game.slug}-${option.key}`}
                         className="flex items-center justify-between gap-3 rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"
+                        onPointerDown={(e) => {
+                          // Stop propagation on pointerdown (fires before click) to
+                          // prevent the parent button's toggleGame from toggling selection
+                          // when interacting with configuration controls
+                          e.stopPropagation();
+                        }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <span>{option.label}</span>
                         <select
                           className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-semibold text-slate-700"
                           value={gameConfigs[game.slug]?.[option.key] ?? option.defaultValue}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                           onChange={(event) => updateGameOption(game.slug, option.key, event.target.value)}
                         >
                           {option.choices.map((choice) => (

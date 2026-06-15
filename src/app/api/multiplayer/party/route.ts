@@ -12,6 +12,22 @@ function resolveDisplayName(user: { email?: string | null; user_metadata?: Recor
   return userName ?? fullName ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
+async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, displayName: string) {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!existing) {
+    await supabase.from('profiles').upsert({
+      id: userId,
+      username: displayName,
+      skill_level: 'Candidate',
+    }).maybeSingle();
+  }
+}
+
 export async function POST(request: Request) {
   if (!hasSupabaseEnv()) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
@@ -50,6 +66,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Max players must be between 2 and 10.' }, { status: 400 });
   }
 
+  const displayName = resolveDisplayName(user);
+
+  // Ensure the user has a profile row before any FK-dependent operations
+  await ensureProfile(supabase, user.id, displayName);
+
   try {
     const code = createLobbyCode();
     const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug, gameConfigs[slug]));
@@ -72,8 +93,6 @@ export async function POST(request: Request) {
     if (lobbyError || !lobby) {
       return NextResponse.json({ error: 'Could not create a party lobby.' }, { status: 500 });
     }
-
-    const displayName = resolveDisplayName(user);
 
     const { error: playerError } = await supabase.from('multiplayer_lobby_players').insert({
       display_name: displayName,

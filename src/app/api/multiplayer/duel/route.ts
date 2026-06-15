@@ -1,42 +1,3 @@
-// Run this SQL in the Supabase SQL editor to create the duel matchmaking queue:
-//
-// create table if not exists public.multiplayer_duel_queue (
-//   id uuid primary key default gen_random_uuid(),
-//   user_id uuid not null references auth.users (id) on delete cascade,
-//   display_name text not null,
-//   created_at timestamptz not null default now(),
-//   unique (user_id)
-// );
-//
-// alter table public.multiplayer_duel_queue enable row level security;
-//
-// -- Authenticated users can read the queue so they can find an opponent.
-// drop policy if exists "duel queue is readable by authenticated users" on public.multiplayer_duel_queue;
-// create policy "duel queue is readable by authenticated users"
-//   on public.multiplayer_duel_queue
-//   for select
-//   using (auth.role() = 'authenticated');
-//
-// drop policy if exists "users can queue themselves for duels" on public.multiplayer_duel_queue;
-// create policy "users can queue themselves for duels"
-//   on public.multiplayer_duel_queue
-//   for insert
-//   with check (auth.uid() = user_id);
-//
-// drop policy if exists "users can update their duel queue row" on public.multiplayer_duel_queue;
-// create policy "users can update their duel queue row"
-//   on public.multiplayer_duel_queue
-//   for update
-//   using (auth.uid() = user_id)
-//   with check (auth.uid() = user_id);
-//
-// -- The matched player removes both queue entries, so any authenticated user may delete.
-// drop policy if exists "authenticated users can clear duel queue rows" on public.multiplayer_duel_queue;
-// create policy "authenticated users can clear duel queue rows"
-//   on public.multiplayer_duel_queue
-//   for delete
-//   using (auth.role() = 'authenticated');
-
 import { NextResponse } from 'next/server';
 
 import {
@@ -58,6 +19,22 @@ function resolveDisplayName(user: { email?: string | null; user_metadata?: Recor
   return userName ?? fullName ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
+async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, displayName: string) {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!existing) {
+    await supabase.from('profiles').upsert({
+      id: userId,
+      username: displayName,
+      skill_level: 'Candidate',
+    }).maybeSingle();
+  }
+}
+
 export async function POST() {
   if (!hasSupabaseEnv()) {
     return NextResponse.json({ error: 'Supabase is not configured.' }, { status: 503 });
@@ -72,6 +49,9 @@ export async function POST() {
   }
 
   const displayName = resolveDisplayName(user);
+
+  // Ensure the user has a profile row before any FK-dependent operations
+  await ensureProfile(supabase, user.id, displayName);
 
   const { data: waitingEntries } = await supabase
     .from('multiplayer_duel_queue')
@@ -164,8 +144,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
   }
 
+  // First check if user is still in the queue
+  const { data: queueEntry } = await supabase
+    .from('multiplayer_duel_queue')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   const matchWindowStart = new Date(Date.now() - MATCH_WINDOW_MS).toISOString();
 
+  // Check if the user has been seated in a duel lobby (by the opponent's POST)
   const { data: seat } = await supabase
     .from('multiplayer_lobby_players')
     .select('joined_at, multiplayer_lobbies!inner(code, mode, status)')
@@ -181,6 +169,11 @@ export async function GET() {
 
   if (lobbyCode) {
     return NextResponse.json({ status: 'matched', url: `/party/${lobbyCode}?mode=duel` }, { status: 200 });
+  }
+
+  // If the user is no longer in the queue but hasn't been matched, something is inconsistent
+  if (!queueEntry) {
+    return NextResponse.json({ status: 'cancelled' }, { status: 200 });
   }
 
   return NextResponse.json({ status: 'waiting' }, { status: 200 });
