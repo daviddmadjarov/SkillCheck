@@ -122,7 +122,6 @@ export async function POST(request: Request) {
       max_players: maxPlayers,
       mode: 'party',
       selected_games: selectedGames,
-      status: 'waiting',
     })
     .select('id, code')
     .single();

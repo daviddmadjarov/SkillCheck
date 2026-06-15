@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Lobby not found.' }, { status: 404 });
   }
 
-  if (lobby.status !== 'waiting') {
+  if (lobby.status !== 'waiting' && lobby.status !== 'lobby') {
     return NextResponse.json({ error: 'This lobby is no longer accepting players.' }, { status: 410 });
   }
 
