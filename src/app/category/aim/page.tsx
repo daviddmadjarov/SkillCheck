@@ -8,7 +8,7 @@ import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard'
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string };
 
-type AimMode = 'trainer' | 'moving' | 'tracking' | 'split';
+type AimMode = 'trainer' | 'moving' | 'split';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) {
@@ -50,10 +50,6 @@ function getAimMode(value: string | undefined): AimMode {
     return 'moving';
   }
 
-  if (value === 'tracking') {
-    return 'tracking';
-  }
-
   if (value === 'split') {
     return 'split';
   }
@@ -90,7 +86,7 @@ export default async function AimPage({
               Aim Assessment
             </h1>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-              Choose a mode: aim trainer, moving targets, tracking test, or perfect split.
+              Choose a mode: aim trainer, moving targets, or perfect split.
             </p>
           </div>
 
@@ -118,9 +114,6 @@ export default async function AimPage({
               </Link>
               <Link className={tabClass(mode === 'moving')} href="/category/aim?mode=moving">
                 Moving Targets
-              </Link>
-              <Link className={tabClass(mode === 'tracking')} href="/category/aim?mode=tracking">
-                Tracking Test
               </Link>
               <Link className={tabClass(mode === 'split')} href="/category/aim?mode=split">
                 Perfect Split

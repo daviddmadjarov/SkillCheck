@@ -170,7 +170,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         ? `${roundAvg ?? '--'} ms avg`
         : phase === 'clicked'
           ? `${reactionMs ?? '--'} ms`
-          : phase === 'waiting'
+          : phase === 'waiting' || phase === 'ready'
             ? 'Listen'
             : 'Start protocol';
 
@@ -181,7 +181,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         ? 'Round complete — click to start a new round.'
         : phase === 'clicked'
           ? `Round ${roundTimes.length} / 4 — click for next signal.`
-          : phase === 'waiting'
+          : phase === 'waiting' || phase === 'ready'
             ? 'Wait for the beep and react as fast as possible.'
             : 'Click the panel to begin.';
 

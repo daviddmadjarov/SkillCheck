@@ -50,9 +50,9 @@ export const MULTIPLAYER_GAME_POOL: MultiplayerGame[] = [
     slug: 'aim-moving-targets',
   },
   {
-    category: 'aim',
+    category: 'mouse',
     description: 'High-control tracking test.',
-    href: '/category/aim?mode=tracking',
+    href: '/category/mouse?mode=tracking',
     label: 'Tracking Test',
     slug: 'aim-tracking-test',
   },

@@ -8,7 +8,7 @@ import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard'
 
 type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string };
 
-type MouseMode = 'symbol' | 'cps';
+type MouseMode = 'symbol' | 'cps' | 'tracking';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) {
@@ -50,6 +50,10 @@ function getMouseMode(value: string | undefined): MouseMode {
     return 'cps';
   }
 
+  if (value === 'tracking') {
+    return 'tracking';
+  }
+
   return 'symbol';
 }
 
@@ -88,7 +92,7 @@ export default async function MousePage({
               Mouse Control
             </h1>
             <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-              Choose a mode: symbol tracing or CPS tester.
+              Choose a mode: symbol tracing, tracking test, or CPS tester.
             </p>
           </div>
 
@@ -113,6 +117,9 @@ export default async function MousePage({
             <div className="flex flex-wrap gap-2">
               <Link className={tabClass(mode === 'symbol')} href="/category/mouse?mode=symbol">
                 Symbol Tracing
+              </Link>
+              <Link className={tabClass(mode === 'tracking')} href="/category/mouse?mode=tracking">
+                Tracking Test
               </Link>
               <Link className={tabClass(mode === 'cps')} href="/category/mouse?mode=cps">
                 CPS Tester
