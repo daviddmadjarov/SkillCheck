@@ -1086,9 +1086,9 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
         setTimeInsideMs(timeInsideRef.current);
       }
 
-      // Speed ramps from 1.2 → 5.5 over the run — faster at the end
-      const baseSpeed = 1.2;
-      const maxSpeed = 5.5;
+      // Speed ramps from 0.6 → 3.0 over the run — faster at the end
+      const baseSpeed = 0.6;
+      const maxSpeed = 3.0;
       const angularSpeed = baseSpeed + progress * (maxSpeed - baseSpeed);
 
       angleRef.current += angularSpeed * (dt / 1000);
