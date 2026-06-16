@@ -1067,14 +1067,6 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
     };
     window.addEventListener('pointermove', pointerHandler, { passive: true });
 
-    // Sync display state from refs every ~100ms so React doesn't choke on per-frame updates
-    const displayInterval = window.setInterval(() => {
-      setTimeInsideMs(timeInsideRef.current);
-      setSecondsLeft(Math.max(0, Math.ceil((ROUND_MS - elapsedRef.current) / 1000)));
-    }, 100);
-
-    let frameCount = 0;
-
     const step = (ts: number) => {
       if (prevTsRef.current === null) {
         prevTsRef.current = ts;
@@ -1085,23 +1077,13 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       prevTsRef.current = ts;
 
       elapsedRef.current = ts - runStartRef.current;
+      const remaining = Math.max(0, ROUND_MS - elapsedRef.current);
       const progress = Math.min(1, elapsedRef.current / ROUND_MS);
-      frameCount += 1;
+      setSecondsLeft(Math.ceil(remaining / 1000));
 
-      // Check collision status as of NOW against the current target position
-      const ptr = pointerPercentRef.current;
-      if (ptr) {
-        const coll = checkCollision(ptr.x, ptr.y, targetPosRef.current.x, targetPosRef.current.y);
-        insideRef.current = coll;
-        setIsInside(coll);
-      } else {
-        insideRef.current = false;
-        setIsInside(false);
-      }
-
-      // Credit time for this frame if the pointer is inside the target
       if (insideRef.current) {
         timeInsideRef.current = Math.min(ROUND_MS, timeInsideRef.current + dt);
+        setTimeInsideMs(timeInsideRef.current);
       }
 
       // Speed ramps from 1.2 → 5.5 over the run — faster at the end
@@ -1133,16 +1115,8 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       const totalWobbleX = mainWobble + fastWobble + jitter + erratic;
       const totalWobbleY = mainWobble * 0.6 + fastWobble * 0.4 + jitter * 0.7 + erratic * 0.5;
 
-      // First moving frame: start from center (no orbital offset)
-      let nx: number;
-      let ny: number;
-      if (frameCount <= 1) {
-        nx = 50;
-        ny = 50;
-      } else {
-        nx = centerRef.current.x + Math.cos(angleRef.current) * (currentRadiusX + totalWobbleX);
-        ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (currentRadiusY + totalWobbleY);
-      }
+      let nx = centerRef.current.x + Math.cos(angleRef.current) * (currentRadiusX + totalWobbleX);
+      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (currentRadiusY + totalWobbleY);
 
       const margin = 10;
       nx = Math.min(100 - margin, Math.max(margin, nx));
@@ -1151,12 +1125,18 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       targetPosRef.current = { x: nx, y: ny };
       setTargetPercent({ x: nx, y: ny });
 
+      const ptr = pointerPercentRef.current;
+      if (ptr) {
+        const coll = checkCollision(ptr.x, ptr.y, nx, ny);
+        insideRef.current = coll;
+        setIsInside(coll);
+      }
+
       if (elapsedRef.current >= ROUND_MS) {
         insideRef.current = false;
         setIsInside(false);
         setRunning(false);
         setRunComplete(true);
-        setTimeInsideMs(timeInsideRef.current);
 
         if (isSignedIn && !savedRunRef.current) {
           savedRunRef.current = true;
@@ -1182,7 +1162,6 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
 
     return () => {
       window.removeEventListener('pointermove', pointerHandler);
-      clearInterval(displayInterval);
       if (frameIdRef.current !== null) cancelAnimationFrame(frameIdRef.current);
       frameIdRef.current = null;
     };
