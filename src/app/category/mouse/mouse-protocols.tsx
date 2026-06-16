@@ -1165,7 +1165,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
       if (frameIdRef.current !== null) cancelAnimationFrame(frameIdRef.current);
       frameIdRef.current = null;
     };
-  }, [running, resolveFromClient, checkCollision, isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission]);
+  }, [running, resolveFromClient, checkCollision, isSignedIn]);
 
   const startRun = useCallback((initPtr: { x: number; y: number } | null = null) => {
     savedRunRef.current = false;
