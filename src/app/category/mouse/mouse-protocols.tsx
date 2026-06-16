@@ -1086,16 +1086,37 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
         setTimeInsideMs(timeInsideRef.current);
       }
 
-      const baseSpeed = 0.8;
-      const maxSpeed = 3.0;
+      // Speed ramps from 1.2 → 5.5 over the run — faster at the end
+      const baseSpeed = 1.2;
+      const maxSpeed = 5.5;
       const angularSpeed = baseSpeed + progress * (maxSpeed - baseSpeed);
 
       angleRef.current += angularSpeed * (dt / 1000);
 
-      const wobble = Math.sin(angleRef.current * 1.7) * 6 * progress;
+      // Multiple wobble layers for chaotic, less predictable motion
+      const wobbleAmp = 4 + progress * 10;
+      const mainWobble = Math.sin(angleRef.current * 1.7) * wobbleAmp * progress;
+      const fastWobble = Math.sin(angleRef.current * 3.2) * 4 * progress;
+      const jitter = Math.cos(angleRef.current * 5.1) * 2.5 * progress;
+      const erratic = Math.sin(angleRef.current * 0.9 + progress * 8) * 3 * progress;
 
-      let nx = centerRef.current.x + Math.cos(angleRef.current) * (radiusXRef.current + wobble);
-      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (radiusYRef.current + wobble * 0.6);
+      // Center slowly drifts in a pseudo-random walk so the target doesn't orbit a fixed point
+      const driftRate = 0.2 + progress * 0.5;
+      centerRef.current.x += Math.sin(angleRef.current * 0.37 + 1.2) * driftRate * (dt / 1000);
+      centerRef.current.y += Math.cos(angleRef.current * 0.53 + 0.8) * driftRate * (dt / 1000);
+      centerRef.current.x = Math.min(70, Math.max(30, centerRef.current.x));
+      centerRef.current.y = Math.min(70, Math.max(30, centerRef.current.y));
+
+      // Radius pulses to further vary the path shape
+      const pulse = 1 + 0.35 * Math.sin(angleRef.current * 0.25);
+      const currentRadiusX = radiusXRef.current * pulse;
+      const currentRadiusY = radiusYRef.current * pulse;
+
+      const totalWobbleX = mainWobble + fastWobble + jitter + erratic;
+      const totalWobbleY = mainWobble * 0.6 + fastWobble * 0.4 + jitter * 0.7 + erratic * 0.5;
+
+      let nx = centerRef.current.x + Math.cos(angleRef.current) * (currentRadiusX + totalWobbleX);
+      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (currentRadiusY + totalWobbleY);
 
       const margin = 10;
       nx = Math.min(100 - margin, Math.max(margin, nx));
