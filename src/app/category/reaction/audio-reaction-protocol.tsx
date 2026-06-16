@@ -170,7 +170,9 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         ? `${roundAvg ?? '--'} ms avg`
         : phase === 'clicked'
           ? `${reactionMs ?? '--'} ms`
-          : 'Start protocol';
+          : phase === 'waiting'
+            ? 'Listen'
+            : 'Start protocol';
 
   const arenaSubtitle =
     phase === 'too-soon'
@@ -179,7 +181,9 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         ? 'Round complete — click to start a new round.'
         : phase === 'clicked'
           ? `Round ${roundTimes.length} / 4 — click for next signal.`
-          : 'Click the panel to begin.';
+          : phase === 'waiting'
+            ? 'Wait for the beep and react as fast as possible.'
+            : 'Click the panel to begin.';
 
   return (
     <section className="lab-card p-4 sm:p-6">
