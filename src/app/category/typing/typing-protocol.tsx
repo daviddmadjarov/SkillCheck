@@ -173,6 +173,8 @@ export function TypingProtocol({
     resetRun(language, nextDuration);
   }
 
+  const hiddenInputRef = useRef<HTMLInputElement | null>(null);
+
   function handleInputChange(nextValue: string) {
     if (finished) {
       return;
@@ -231,6 +233,10 @@ export function TypingProtocol({
 
   const visibleWords = words.slice(0, 120);
 
+  function handlePanelClick() {
+    hiddenInputRef.current?.focus();
+  }
+
   return (
     <section className="lab-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -271,8 +277,18 @@ export function TypingProtocol({
         </button>
       </div>
 
-      <div className="rounded-[1.7rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 sm:p-5">
-        <div className="relative mb-4 rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
+      <div className="relative rounded-[1.7rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 sm:p-5" onClick={handlePanelClick}>
+        {/* Invisible input overlay to capture keyboard on mobile */}
+        <input
+          ref={hiddenInputRef}
+          className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
+          inputMode="none"
+          aria-label="Typing test input"
+          tabIndex={0}
+          value=""
+          onChange={() => {}}
+        />
+        <div className="mb-4 rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
           <div className={finished ? 'pointer-events-none blur-[2.5px]' : ''}>
           {visibleWords.map((word, wordIndex) => {
             const beforeWord = visibleWords.slice(0, wordIndex).join(' ');

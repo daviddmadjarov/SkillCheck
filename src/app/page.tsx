@@ -628,12 +628,14 @@ export default async function Home({
               <Link
                 className={tabButtonClass(leaderboardType === 'lab', 'amber')}
                 href="/?leaderboard=lab"
+                scroll={false}
               >
                 Lab Points
               </Link>
               <Link
                 className={tabButtonClass(leaderboardType === 'elo', 'cyan')}
                 href="/?leaderboard=elo"
+                scroll={false}
               >
                 Elo Rankings
               </Link>

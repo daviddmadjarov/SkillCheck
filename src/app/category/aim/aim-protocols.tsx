@@ -1583,7 +1583,7 @@ function PerfectSplit({ isSignedIn }: { isSignedIn: boolean }) {
       ]}
     >
       <div className="space-y-4">
-        <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-80">
+        <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-40 sm:pb-80">
           {showShape && (
             <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full border-2 border-slate-200 bg-white/90 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-slate-500 shadow-sm">
               {currentShape.label}
