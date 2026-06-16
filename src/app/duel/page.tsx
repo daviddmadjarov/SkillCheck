@@ -146,23 +146,33 @@ export default function DuelPage() {
     };
   }, [state]);
 
-  // ── Initial stats load ──
+  // ── Background stats polling ──
+  // Polls stats every 5 s when NOT queued (the waiting-poller at 2 s handles it when queued).
+  // This keeps queueCount / playingCount fresh for all viewers, even those not in queue.
   useEffect(() => {
-    async function loadStats() {
+    if (state === 'waiting') return;
+
+    async function fetchStats() {
       try {
         const response = await fetch('/api/multiplayer/duel', { method: 'GET' });
         const payload = (await response.json().catch(() => null)) as {
           queueCount?: number;
           playingCount?: number;
+          status?: string;
         } | null;
+        if (!response.ok) return;
         if (typeof payload?.queueCount === 'number') setQueueCount(payload.queueCount);
         if (typeof payload?.playingCount === 'number') setPlayingCount(payload.playingCount);
       } catch {
         // ignore
       }
     }
-    loadStats();
-  }, []);
+
+    fetchStats();
+
+    const intervalId = window.setInterval(fetchStats, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [state]);
 
   return (
     <main className="min-h-screen px-4 py-6">
