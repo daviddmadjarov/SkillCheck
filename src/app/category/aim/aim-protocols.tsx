@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 
@@ -1010,342 +1010,309 @@ function MovingTargets({ isSignedIn }: { isSignedIn: boolean }) {
   );
 }
 
+// ── Tracking Test v2: Smooth speed ramp, precise collision, touch-first ──
+
+const TARGET_RADIUS_PERCENT = 6.5; // Hitbox radius in percentage of arena
+const TARGET_DISPLAY_SIZE = 72; // CSS pixel size must match JSX
+const ROUND_MS = 20000;
+
 function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('aim-tracking-test');
-  const ROUND_MS = 20000;
-  const [secondsLeft, setSecondsLeft] = useState(20);
+
   const [running, setRunning] = useState(false);
   const [runComplete, setRunComplete] = useState(false);
-  const [trackPoint, setTrackPoint] = useState({ x: 50, y: 50 });
-  const [cursorInside, setCursorInside] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(20);
   const [timeInsideMs, setTimeInsideMs] = useState(0);
+  const [targetPercent, setTargetPercent] = useState({ x: 50, y: 50 });
+  const [isInside, setIsInside] = useState(false);
 
-  const cursorInsideRef = useRef(false);
-  const timeInsideRef = useRef(0);
   const arenaRef = useRef<HTMLDivElement | null>(null);
-  const targetRef = useRef<HTMLButtonElement | null>(null);
-  const pointRef = useRef(trackPoint);
-  const pointerPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const pointerClientRef = useRef<{ x: number; y: number } | null>(null);
+  const frameIdRef = useRef<number | null>(null);
+  const runStartRef = useRef<number>(0);
+  const elapsedRef = useRef(0);
+  const timeInsideRef = useRef(0);
+  const insideRef = useRef(false);
+
+  // Smooth circular path state
+  const angleRef = useRef(0);
+  const radiusXRef = useRef(32);
+  const radiusYRef = useRef(28);
+  const centerRef = useRef({ x: 50, y: 50 });
+
   const pointerInArenaRef = useRef(false);
-  const velocityRef = useRef({ x: 0, y: 0 });
-  const frameRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<number | null>(null);
-  const runStartRef = useRef<number | null>(null);
-  const elapsedMsRef = useRef(0);
+  const pointerPercentRef = useRef<{ x: number; y: number } | null>(null);
+  const savedRunRef = useRef(false);
+
   const playInsideSound = useLabHitSound();
-  const hasSavedRunRef = useRef(false);
+  const prevInsideSoundRef = useRef(false);
 
-  const labScore = Math.round((timeInsideMs / ROUND_MS) * 1000);
+  const accuracyPercent = ROUND_MS > 0 ? Math.round((timeInsideMs / ROUND_MS) * 100) : 0;
+  const labScore = accuracyPercent * 10; // 0–1000 scale
 
-  useEffect(() => {
-    pointRef.current = trackPoint;
-  }, [trackPoint]);
-
-  function updateInsideState(nextInside: boolean) {
-    const wasInside = cursorInsideRef.current;
-    cursorInsideRef.current = nextInside;
-    setCursorInside(nextInside);
-
-    if (running && nextInside && !wasInside) {
-      playInsideSound();
-    }
-  }
-
-  function randomVelocity() {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 10 + Math.random() * 6;
-    return { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
-  }
-
-  function resolvePointerPosition(event: React.PointerEvent<HTMLDivElement>) {
-    pointerClientRef.current = { x: event.clientX, y: event.clientY };
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    return { x, y };
-  }
-
-  function resolvePointerFromClientPoint(clientX: number, clientY: number) {
+  // ─── resolve pointer from client coords (touch + mouse) ───
+  const resolveFromClient = useCallback((cx: number, cy: number) => {
     const arena = arenaRef.current;
-    if (!arena) {
-      return null;
-    }
-
-    pointerClientRef.current = { x: clientX, y: clientY };
-
+    if (!arena) return null;
     const rect = arena.getBoundingClientRect();
-    const relativeX = clientX - rect.left;
-    const relativeY = clientY - rect.top;
-    const isInsideArena =
-      relativeX >= 0 && relativeX <= rect.width && relativeY >= 0 && relativeY <= rect.height;
-
-    pointerInArenaRef.current = isInsideArena;
-
-    if (!isInsideArena) {
-      pointerPositionRef.current = null;
+    const rx = cx - rect.left;
+    const ry = cy - rect.top;
+    const insideArena = rx >= 0 && rx <= rect.width && ry >= 0 && ry <= rect.height;
+    pointerInArenaRef.current = insideArena;
+    if (!insideArena) {
+      pointerPercentRef.current = null;
       return null;
     }
-
-    const pointer = {
-      x: (relativeX / rect.width) * 100,
-      y: (relativeY / rect.height) * 100,
+    const pct = {
+      x: (rx / rect.width) * 100,
+      y: (ry / rect.height) * 100,
     };
+    pointerPercentRef.current = pct;
+    return pct;
+  }, []);
 
-    pointerPositionRef.current = pointer;
-    return pointer;
-  }
+  // ─── check collision: pointer inside target circle ───
+  const checkCollision = useCallback((px: number, py: number, tx: number, ty: number) => {
+    const dist = Math.hypot(px - tx, py - ty);
+    return dist < TARGET_RADIUS_PERCENT;
+  }, []);
 
+  // ─── global pointermove listener ───
   useEffect(() => {
-    if (!running) {
-      return;
-    }
-
-    const handleWindowPointerMove = (event: PointerEvent) => {
-      const pointer = resolvePointerFromClientPoint(event.clientX, event.clientY);
-
-      if (pointer === null) {
-        updateInsideState(false);
+    if (!running) return;
+    const handler = (e: PointerEvent) => {
+      const pct = resolveFromClient(e.clientX, e.clientY);
+      if (!pct) {
+        insideRef.current = false;
+        setIsInside(false);
         return;
       }
-
-      const distance = Math.hypot(pointer.x - pointRef.current.x, pointer.y - pointRef.current.y);
-      updateInsideState(distance < 10);
+      // Compare against latest target position from closed-over ref
+      // We use a separate effect to sync the ref
     };
+    window.addEventListener('pointermove', handler, { passive: true });
+    return () => window.removeEventListener('pointermove', handler);
+  }, [running, resolveFromClient]);
 
-    window.addEventListener('pointermove', handleWindowPointerMove, { passive: true });
-
-    return () => {
-      window.removeEventListener('pointermove', handleWindowPointerMove);
-    };
-  }, [running]);
-
+  // ─── game loop ───
   useEffect(() => {
-    if (frameRef.current !== null) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
+    if (!running) return;
+    if (frameIdRef.current !== null) cancelAnimationFrame(frameIdRef.current);
 
-    if (!running) {
-      lastFrameRef.current = null;
-      return;
-    }
+    // Sync target position to a ref the pointer handler can read
+    const targetPosRef = { x: targetPercent.x, y: targetPercent.y };
+    const syncTargetRef = (x: number, y: number) => { targetPosRef.x = x; targetPosRef.y = y; };
 
-    const step = (timestamp: number) => {
-      const previous = lastFrameRef.current ?? timestamp;
-      const deltaMs = timestamp - previous;
-      const frameDeltaMs = Math.max(deltaMs, 0);
-      const deltaSeconds = Math.max(deltaMs / 1000, 0.016);
-      lastFrameRef.current = timestamp;
+    // Re-register pointermove with access to targetPosRef
+    const pointerHandler = (e: PointerEvent) => {
+      const pct = resolveFromClient(e.clientX, e.clientY);
+      if (!pct) {
+        insideRef.current = false;
+        setIsInside(false);
+        return;
+      }
+      const colliding = checkCollision(pct.x, pct.y, targetPosRef.x, targetPosRef.y);
+      insideRef.current = colliding;
+      setIsInside(colliding);
+    };
+    window.addEventListener('pointermove', pointerHandler, { passive: true });
 
-      const runStart = runStartRef.current ?? timestamp;
-      elapsedMsRef.current = Math.max(0, timestamp - runStart);
-      const remainingMs = Math.max(0, ROUND_MS - elapsedMsRef.current);
-      const progress = Math.min(1, elapsedMsRef.current / ROUND_MS);
-      const speedMultiplier = 0.45 + progress * 1.2;
-      setSecondsLeft(Math.ceil(remainingMs / 1000));
+    let prevTs: number | null = null;
 
-      // Accumulate time inside target using a ref to avoid stale closures
-      if (cursorInsideRef.current) {
-        timeInsideRef.current = Math.min(ROUND_MS, timeInsideRef.current + frameDeltaMs);
+    const step = (ts: number) => {
+      if (prevTs === null) prevTs = ts;
+      const dt = Math.min(ts - prevTs, 50); // cap delta to avoid spiral on tab-unfocus
+      prevTs = ts;
+
+      elapsedRef.current = ts - runStartRef.current;
+      const remaining = Math.max(0, ROUND_MS - elapsedRef.current);
+      const progress = Math.min(1, elapsedRef.current / ROUND_MS);
+      setSecondsLeft(Math.ceil(remaining / 1000));
+
+      // ── accumulate time inside target ──
+      if (insideRef.current) {
+        timeInsideRef.current = Math.min(ROUND_MS, timeInsideRef.current + dt);
         setTimeInsideMs(timeInsideRef.current);
+        if (!prevInsideSoundRef.current) {
+          playInsideSound();
+          prevInsideSoundRef.current = true;
+        }
+      } else {
+        prevInsideSoundRef.current = false;
       }
 
-      const jitter = 10 + progress * 18;
-      velocityRef.current.x += (Math.random() - 0.5) * jitter * deltaSeconds;
-      velocityRef.current.y += (Math.random() - 0.5) * jitter * deltaSeconds;
+      // ── smooth speed ramp: angular speed grows linearly over the 20s ──
+      // Start at ~0.8 rad/s, end at ~3.0 rad/s
+      const baseSpeed = 0.8;
+      const maxSpeed = 3.0;
+      const angularSpeed = baseSpeed + progress * (maxSpeed - baseSpeed);
 
-      const velocityMagnitude = Math.hypot(velocityRef.current.x, velocityRef.current.y);
-      const maxSpeed = 20 + progress * 28;
-      if (velocityMagnitude > maxSpeed) {
-        velocityRef.current.x = (velocityRef.current.x / velocityMagnitude) * maxSpeed;
-        velocityRef.current.y = (velocityRef.current.y / velocityMagnitude) * maxSpeed;
+      angleRef.current += angularSpeed * (dt / 1000);
+
+      // Slight figure-8 perturbation so it doesn't follow a perfect circle
+      const wobble = Math.sin(angleRef.current * 1.7) * 6 * progress;
+
+      let nx = centerRef.current.x + Math.cos(angleRef.current) * (radiusXRef.current + wobble);
+      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (radiusYRef.current + wobble * 0.6);
+
+      // Clamp to visible area (leaving room for target display size)
+      const margin = 10;
+      nx = Math.min(100 - margin, Math.max(margin, nx));
+      ny = Math.min(100 - margin, Math.max(margin, ny));
+
+      syncTargetRef(nx, ny);
+      setTargetPercent({ x: nx, y: ny });
+
+      // ── collision check with current pointer ──
+      const ptr = pointerPercentRef.current;
+      if (ptr) {
+        const coll = checkCollision(ptr.x, ptr.y, nx, ny);
+        insideRef.current = coll;
+        setIsInside(coll);
       }
 
-      const minSpeed = 7 + progress * 6;
-      if (velocityMagnitude < minSpeed) {
-        velocityRef.current = randomVelocity();
-      }
+      // ── end condition ──
+      if (elapsedRef.current >= ROUND_MS) {
+        insideRef.current = false;
+        setIsInside(false);
+        setRunning(false);
+        setRunComplete(true);
 
-      if (Math.random() < 0.015) {
-        velocityRef.current = randomVelocity();
-      }
-
-      const currentPoint = pointRef.current;
-      let nextX = currentPoint.x + velocityRef.current.x * deltaSeconds * speedMultiplier;
-      let nextY = currentPoint.y + velocityRef.current.y * deltaSeconds * speedMultiplier;
-
-      if (nextX <= 10 || nextX >= 90) {
-        velocityRef.current.x *= -1;
-        nextX = Math.min(90, Math.max(10, nextX));
-      }
-
-      if (nextY <= 12 || nextY >= 88) {
-        velocityRef.current.y *= -1;
-        nextY = Math.min(88, Math.max(12, nextY));
-      }
-
-      const nextPoint = { x: nextX, y: nextY };
-      pointRef.current = nextPoint;
-      setTrackPoint(nextPoint);
-
-      if (elapsedMsRef.current >= ROUND_MS) {
-        updateInsideState(false);
-        if (isSignedIn && !hasSavedRunRef.current) {
-          const finalInsideMs = timeInsideRef.current;
-          const finalScore = Math.round((finalInsideMs / ROUND_MS) * 1000);
-          hasSavedRunRef.current = true;
-
+        if (isSignedIn && !savedRunRef.current) {
+          savedRunRef.current = true;
+          const finalMs = timeInsideRef.current;
+          const finalScore = Math.round((finalMs / ROUND_MS) * 1000);
           void (async () => {
-            const response = await fetch('/api/scores/submit', {
+            const res = await fetch('/api/scores/submit', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ testSlug: 'aim-tracking-test', score: finalScore, ...multiplayerMeta }),
             });
-
-            if (response.ok && isMultiplayerSession) {
-              goToIntermission();
-            }
+            if (res.ok && isMultiplayerSession) goToIntermission();
           })();
         }
-
-        setRunning(false);
-        setRunComplete(true);
-        setTrackPoint({ x: 50, y: 50 });
         return;
       }
 
-      frameRef.current = requestAnimationFrame(step);
+      frameIdRef.current = requestAnimationFrame(step);
     };
 
-    frameRef.current = requestAnimationFrame(step);
+    frameIdRef.current = requestAnimationFrame(step);
 
     return () => {
-      if (frameRef.current !== null) {
-        cancelAnimationFrame(frameRef.current);
-      }
-      frameRef.current = null;
-      lastFrameRef.current = null;
+      window.removeEventListener('pointermove', pointerHandler);
+      if (frameIdRef.current !== null) cancelAnimationFrame(frameIdRef.current);
+      frameIdRef.current = null;
     };
-  }, [goToIntermission, isMultiplayerSession, running, multiplayerMeta]);
+  }, [running, resolveFromClient, checkCollision, isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission, playInsideSound, targetPercent.x, targetPercent.y]);
 
-  function startRun(initialPointer: { x: number; y: number } | null = null) {
-    hasSavedRunRef.current = false;
-    setRunComplete(false);
+  // ─── start a new run ───
+  const startRun = useCallback((initPtr: { x: number; y: number } | null = null) => {
+    savedRunRef.current = false;
     setRunning(true);
+    setRunComplete(false);
     setSecondsLeft(20);
     setTimeInsideMs(0);
+    setIsInside(false);
     timeInsideRef.current = 0;
-    setCursorInside(false);
-    cursorInsideRef.current = false;
-    pointerPositionRef.current = initialPointer;
-    pointerInArenaRef.current = initialPointer !== null;
-    if (initialPointer !== null && arenaRef.current) {
-      const rect = arenaRef.current.getBoundingClientRect();
-      pointerClientRef.current = {
-        x: rect.left + (initialPointer.x / 100) * rect.width,
-        y: rect.top + (initialPointer.y / 100) * rect.height,
-      };
-    }
-    elapsedMsRef.current = 0;
+    insideRef.current = false;
+    prevInsideSoundRef.current = false;
+    pointerPercentRef.current = initPtr;
+    pointerInArenaRef.current = initPtr !== null;
+    elapsedRef.current = 0;
     runStartRef.current = performance.now();
-    setTrackPoint({ x: 50, y: 50 });
-    velocityRef.current = randomVelocity();
-    lastFrameRef.current = performance.now() - 16;
-  }
+    angleRef.current = Math.random() * Math.PI * 2;
+    radiusXRef.current = 28 + Math.random() * 12;
+    radiusYRef.current = 22 + Math.random() * 10;
+    centerRef.current = { x: 50, y: 50 };
+    setTargetPercent({ x: 50, y: 50 });
+  }, []);
 
-  function storePointerPositionFromClientPoint(clientX: number, clientY: number) {
-    const pointer = resolvePointerFromClientPoint(clientX, clientY);
-
-    if (pointer === null) {
-      pointerInArenaRef.current = true;
-      return null;
-    }
-
-    return pointer;
-  }
-
-  function handleTargetClick(event: React.MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    if (!running) {
-      const pointer = storePointerPositionFromClientPoint(event.clientX, event.clientY);
-      startRun(pointer);
-    }
-  }
+  // ─── pointer down on arena to start ───
+  const handleArenaPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (running) return;
+    // Prevent the event from being treated as a click on the button
+    const pct = resolveFromClient(e.clientX, e.clientY);
+    startRun(pct);
+  }, [running, resolveFromClient, startRun]);
 
   return (
     <AimShell
       title={MODE_META.tracking.title}
       kicker={MODE_META.tracking.kicker}
-      description={MODE_META.tracking.description}
+      description="Keep your pointer inside the moving target. Touch also works on mobile."
       accent={MODE_META.tracking.accent}
       isSignedIn={isSignedIn}
       stats={[
-        { label: 'Seconds left', value: `${secondsLeft}s`, detail: 'The tracking window lasts twenty seconds.' },
-        { label: 'Time inside target', value: `${(timeInsideMs / 1000).toFixed(2)}s`, detail: 'Total time your cursor stayed inside the target.' },
-        { label: 'Lab score', value: String(labScore), detail: 'Based on how long you stayed inside the target.' },
-        {
-          label: 'Status',
-          value: running ? 'Live' : runComplete ? 'Done' : 'Ready',
-          detail: running
-            ? 'Keep your cursor inside as long as possible.'
-            : runComplete
-              ? 'Run complete. Review your lab score and start again when ready.'
-              : 'Click the target to begin.',
-        },
+        { label: 'Seconds left', value: `${secondsLeft}s`, detail: 'The tracking window lasts exactly 20 seconds.' },
+        { label: 'Time on target', value: `${(timeInsideMs / 1000).toFixed(2)}s`, detail: 'Total time your pointer stayed inside the target.' },
+        { label: 'Accuracy', value: `${accuracyPercent}%`, detail: 'Percentage of the 20-second window spent on target.' },
+        { label: 'Lab score', value: String(labScore), detail: '0–1000 scale based on tracking accuracy.' },
+        { label: 'Status', value: running ? 'Live' : runComplete ? 'Done' : 'Ready', detail: running ? 'Keep your pointer inside the moving target.' : runComplete ? 'Run complete. Tap to try again.' : 'Tap anywhere in the arena to begin.' },
       ]}
     >
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">Pointer stay challenge</div>
-        </div>
+        {/* Timer indicator bar */}
+        {running && (
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-[width] duration-300 ease-linear"
+              style={{ width: `${((ROUND_MS - secondsLeft * 1000) / ROUND_MS) * 100}%` }}
+            />
+          </div>
+        )}
 
         <div
-          id="tracking-test-arena"
           ref={arenaRef}
-          className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4 sm:min-h-[28rem]"
-          onPointerEnter={(event) => {
-            const pointer = resolvePointerPosition(event);
-            pointerInArenaRef.current = true;
-            pointerPositionRef.current = pointer;
-          }}
-          onPointerLeave={() => {
-            pointerInArenaRef.current = false;
-            pointerPositionRef.current = null;
-            updateInsideState(false);
-          }}
-          onPointerMove={(event) => {
-            const pointer = resolvePointerPosition(event);
-            pointerPositionRef.current = pointer;
-          }}
+          className="relative min-h-[18rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4 sm:min-h-[26rem] touch-none select-none"
+          onPointerDown={handleArenaPointerDown}
         >
-          <button
-            ref={targetRef}
-            className="absolute h-[72px] w-[72px] cursor-pointer rounded-full border-0 bg-transparent transition-[transform,opacity] duration-75"
-            onClick={handleTargetClick}
-            type="button"
-            style={{ left: `${trackPoint.x}%`, top: `${trackPoint.y}%`, transform: 'translate(-50%, -50%)' }}
+          {/* Target — rendered as div not button so touch scroll doesn't interfere */}
+          <div
+            className={`absolute flex items-center justify-center rounded-full border-0 transition-[box-shadow] duration-100 ${running ? 'pointer-events-none' : 'pointer-events-auto'}`}
+            style={{
+              left: `${targetPercent.x}%`,
+              top: `${targetPercent.y}%`,
+              width: TARGET_DISPLAY_SIZE,
+              height: TARGET_DISPLAY_SIZE,
+              transform: 'translate(-50%, -50%)',
+            }}
           >
-            <span className={`relative flex h-full w-full items-center justify-center rounded-full border-[6px] bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)] ${cursorInside ? 'border-indigo-400' : 'border-indigo-500'}`}>
-              <span className={`absolute h-[54px] w-[54px] rounded-full border-[6px] border-white ${cursorInside ? 'bg-indigo-400' : 'bg-indigo-500'}`} />
-              <span className={`absolute h-[32px] w-[32px] rounded-full border-[5px] border-white ${cursorInside ? 'bg-indigo-200' : 'bg-indigo-300'}`} />
-              <span className={`absolute h-[12px] w-[12px] rounded-full border-2 border-white ${cursorInside ? 'bg-indigo-600' : 'bg-indigo-700'}`} />
+            <span
+              className={`relative flex h-full w-full items-center justify-center rounded-full border-[6px] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.14)] transition-colors duration-150 ${
+                isInside ? 'border-emerald-400 shadow-[0_0_24px_rgba(52,211,153,0.4)]' : 'border-indigo-500'
+              }`}
+            >
+              <span className={`absolute h-[54px] w-[54px] rounded-full border-[6px] border-white transition-colors duration-150 ${isInside ? 'bg-emerald-400' : 'bg-indigo-500'}`} />
+              <span className={`absolute h-[32px] w-[32px] rounded-full border-[5px] border-white transition-colors duration-150 ${isInside ? 'bg-emerald-200' : 'bg-indigo-300'}`} />
+              <span className={`absolute h-[12px] w-[12px] rounded-full border-2 border-white transition-colors duration-150 ${isInside ? 'bg-emerald-600' : 'bg-indigo-700'}`} />
             </span>
+          </div>
 
-            {!running && (
-              <span className="pointer-events-none absolute top-[calc(100%+12px)] left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                CLICK TO START
+          {/* Idle prompt */}
+          {!running && !runComplete && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+              <span className="rounded-full border-2 border-slate-200 bg-white/90 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.2em] text-slate-500 shadow-sm">
+                Tap to start
               </span>
-            )}
-          </button>
+            </div>
+          )}
 
+          {/* Run complete overlay */}
           {runComplete && !running && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
-              <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/50 backdrop-blur-sm">
+              <div className="mx-4 w-full max-w-xs rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
                 <p className="mt-3 text-4xl font-black tracking-tight text-slate-800">{labScore}</p>
-                <p className="mt-1 text-sm font-semibold text-slate-500">Time inside target: {(timeInsideMs / 1000).toFixed(2)}s</p>
-                <button className="lab-button mt-4" onClick={() => startRun()} type="button">Start New ...</button>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Time on target: {(timeInsideMs / 1000).toFixed(2)}s ({accuracyPercent}%)
+                </p>
+                <button
+                  className="mt-4 rounded-2xl border-b-4 border-indigo-700 bg-indigo-600 px-6 py-3 font-bold text-white transition-all duration-150 hover:-translate-y-1 hover:border-indigo-600 hover:bg-indigo-500 active:translate-y-1 active:border-b-0"
+                  onClick={(e) => { e.stopPropagation(); startRun(); }}
+                  type="button"
+                >
+                  Start New Run
+                </button>
               </div>
             </div>
           )}

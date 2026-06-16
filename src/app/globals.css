@@ -420,3 +420,103 @@
     }
   }
 }
+
+/* =========================================================================
+   Mobile-friendly game overrides
+   ========================================================================= */
+
+/* Ensure all game arenas are touch-friendly: no accidental text selection,
+   no scroll interference during pointer tracking. */
+.touch-none {
+  touch-action: none;
+}
+
+/* Prevent iOS Safari from zooming on rapid taps */
+button, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Minimum touch target size for mobile (44px per WCAG AA) */
+@media (pointer: coarse) {
+  button, [role="button"], a.lab-button, .lab-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Small-screen game arena sizing */
+@media (max-width: 640px) {
+  .lab-card {
+    padding: 0.75rem !important;
+  }
+
+  /* Let game arenas fill the screen on mobile */
+  .relative.min-h-\[24rem\],
+  .relative.min-h-\[18rem\] {
+    min-height: 14rem !important;
+  }
+
+  /* Reduce target sizes slightly on small screens to fit */
+  [id="tracking-test-arena"] .absolute[style] > span {
+    transform-origin: center;
+  }
+
+  /* Typing test input on mobile */
+  textarea, input[type="text"] {
+    font-size: 16px !important; /* prevents iOS zoom on focus */
+  }
+
+  /* Stat card grids stack cleanly */
+  .grid-cols-2.xl\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Landscape phone optimization */
+@media (max-width: 850px) and (orientation: landscape) {
+  .relative.min-h-\[24rem\] {
+    min-height: 70vh !important;
+  }
+
+  .relative.min-h-\[18rem\] {
+    min-height: 60vh !important;
+  }
+}
+
+/* Mobile-friendly button sizing in game areas */
+@media (max-width: 480px) {
+  button.lab-button,
+  a.lab-button,
+  .lab-button {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  /* CPS tester click area */
+  [id="cps-click-area"] {
+    min-height: 220px !important;
+  }
+}
+
+/* Pointer coarse (touch) devices: increase target hitboxes */
+@media (pointer: coarse) {
+  /* Aim trainer / moving targets targets */
+  .absolute.h-\[88px\].w-\[88px\] {
+    height: 96px !important;
+    width: 96px !important;
+  }
+
+  /* Tracking test target */
+  [id="tracking-test-arena"] .absolute[style] > span {
+    /* Already sized via JS constant, but ensure visibility */
+  }
+
+  /* Split test handles */
+  .h-8.w-8.rounded-full.border-4 {
+    height: 2.75rem !important;
+    width: 2.75rem !important;
+  }
+}

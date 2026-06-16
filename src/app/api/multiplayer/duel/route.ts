@@ -256,7 +256,7 @@ export async function GET() {
   }, { status: 200 });
 }
 
-// ─── DELETE: Cancel queue ─────────────────────────────────────────────
+// ─── DELETE: Cancel queue (server-authoritative, uses atomic RPC) ──────────
 
 export async function DELETE() {
   if (!hasSupabaseEnv()) {
@@ -268,12 +268,31 @@ export async function DELETE() {
   const user = userResult?.user;
   if (!user) return NextResponse.json({ error: 'Sign in required.' }, { status: 401 });
 
-  // Remove from queue entirely
-  await supabase
-    .from('multiplayer_queue')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('queue_type', 'duel');
+  // Use the atomic unqueue_player RPC to remove ALL queue entries for this user
+  // This handles edge cases: stale rows, duplicate entries, mixed statuses.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: unqueueResult, error: unqueueError } = await (supabase.rpc as any)('unqueue_player', {
+    p_user_id: user.id,
+  });
 
-  return NextResponse.json({ status: 'cancelled' }, { status: 200 });
+  if (unqueueError) {
+    // Fallback: direct delete if RPC not deployed yet
+    await supabase
+      .from('multiplayer_queue')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('queue_type', 'duel');
+  }
+
+  const result = (unqueueResult ?? {}) as {
+    action?: string;
+    waiting?: number;
+    playing?: number;
+  };
+
+  return NextResponse.json({
+    playingCount: result.playing ?? 0,
+    queueCount: result.waiting ?? 0,
+    status: 'cancelled',
+  }, { status: 200 });
 }
