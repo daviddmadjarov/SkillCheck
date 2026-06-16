@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { useDuelAutoStart } from '@/components/duel-auto-hooks';
 
 import { reactionMsToLeaderboardScore } from '@/lib/scoring/reaction';
 
@@ -695,9 +696,12 @@ function AimTrainer({ isSignedIn }: { isSignedIn: boolean }) {
   const hitsLeft = Math.max(25 - reactionTimes.length, 0);
   const averageReactionMs = reactionTimes.length > 0 ? Math.round(reactionTimes.reduce((sum, value) => sum + value, 0) / reactionTimes.length) : null;
   const isFinished = reactionTimes.length >= 25;
+  const isIdle = !running && !isFinished;
   const currentLabScore = averageReactionMs === null ? null : reactionMsToLeaderboardScore(averageReactionMs);
   const bestLabScore = bestRun === null ? null : reactionMsToLeaderboardScore(bestRun);
   const displayedLabScore = bestLabScore ?? currentLabScore;
+
+  const { shouldAutoStart } = useDuelAutoStart(isMultiplayerSession, isIdle, startRun);
 
   function spawnTarget(nextTarget: Point = { x: randomPercent(18, 82), y: randomPercent(18, 82) }) {
     setTarget(nextTarget);
@@ -793,7 +797,7 @@ function AimTrainer({ isSignedIn }: { isSignedIn: boolean }) {
                 <span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-blue-300" />
                 <span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-blue-700" />
               </span>
-              {!running && !isFinished && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
+              {!running && !isFinished && !shouldAutoStart && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
             </span>
           </button>
 
@@ -830,6 +834,9 @@ function MovingTargets({ isSignedIn }: { isSignedIn: boolean }) {
   const bestLabScore = bestRun === null ? null : reactionMsToLeaderboardScore(bestRun);
   const displayedLabScore = bestLabScore ?? currentLabScore;
   const isFinished = hits >= 25;
+  const isIdle = !running && !isFinished;
+
+  const { shouldAutoStart } = useDuelAutoStart(isMultiplayerSession, isIdle, startRun);
 
   function getRandomVelocity() {
     const angle = Math.random() * Math.PI * 2;
@@ -987,7 +994,7 @@ function MovingTargets({ isSignedIn }: { isSignedIn: boolean }) {
                 <span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-emerald-300" />
                 <span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-emerald-700" />
               </span>
-              {!running && !isFinished && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
+              {!running && !isFinished && !shouldAutoStart && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
             </span>
           </button>
 
@@ -1133,7 +1140,10 @@ function PerfectSplit({ isSignedIn }: { isSignedIn: boolean }) {
   const splitResult = useMemo(() => evaluateSplit(currentShape.key, leftProgress, rightProgress), [currentShape.key, leftProgress, rightProgress]);
   const isReviewing = submittedResult !== null;
   const isFinished = !running && solvedShapes >= 4;
+  const isIdle = !running && !isFinished;
   const showShape = running || isReviewing || isFinished;
+
+  const { shouldAutoStart } = useDuelAutoStart(isMultiplayerSession, isIdle, startRun);
   const reviewedBalances = submittedResult === null ? completedBalances : [...completedBalances, submittedResult.balanceScore];
   const averageBalance = reviewedBalances.length === 0
     ? null
@@ -1354,7 +1364,7 @@ function PerfectSplit({ isSignedIn }: { isSignedIn: boolean }) {
                 Done
               </button>
             </div>
-          ) : (
+          ) : shouldAutoStart ? null : (
             <div className="absolute inset-0 flex items-center justify-center">
               <button className="lab-button" onClick={startRun} type="button">Start Split Test</button>
             </div>

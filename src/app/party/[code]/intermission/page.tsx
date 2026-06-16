@@ -8,6 +8,7 @@ import { getRoundSlugFromGameOrder, getRoundTimeLimitSeconds, resolveSynchronize
 import { createClient } from '@/lib/supabase/server';
 
 import { IntermissionCountdown } from './intermission-countdown';
+import { IntermissionHeartbeat } from './intermission-heartbeat';
 
 type IntermissionPageProps = {
   params: Promise<{ code: string }>;
@@ -172,6 +173,7 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
           </div>
         </section>
 
+        <IntermissionHeartbeat lobbyCode={lobby.code} />
         <IntermissionCountdown
           fallbackHref={`/party/${lobby.code}${lobby.mode === 'duel' ? '?mode=duel' : ''}`}
           gameSlug={currentRoundSlug ?? gameSlug}

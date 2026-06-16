@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: lobby } = await (supabase as any)
     .from('multiplayer_lobbies')
-    .select('id, code, game_order, status, forfeited, winner_user_id')
+    .select('id, code, game_order, status, mode, forfeited, winner_user_id')
     .eq('code', lobbyCode)
     .maybeSingle();
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Get all players with scores for final standings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: players } = await (supabase as any)
+    const { data: finishedPlayers } = await (supabase as any)
       .from('multiplayer_lobby_players')
       .select('id, display_name, user_id, score_total, forfeited')
       .eq('lobby_id', lobby.id)
@@ -59,15 +59,17 @@ export async function GET(request: NextRequest) {
       .eq('id', lobby.winner_user_id)
       .maybeSingle();
 
-    const forfeitedStandings = (players ?? []).map((p: { display_name: string; forfeited: boolean; id: string; score_total: number; user_id: string }, index: number) => ({
-      displayName: p.display_name,
-      forfeited: p.forfeited,
-      isLeading: index === 0,
-      playerId: p.id,
-      rank: index + 1,
-      scoreTotal: p.score_total,
-      userId: p.user_id,
-    }));
+    const forfeitedStandings = (finishedPlayers ?? []).map(
+      (p: { display_name: string; forfeited: boolean; id: string; score_total: number; user_id: string }, index: number) => ({
+        displayName: p.display_name,
+        forfeited: p.forfeited,
+        isLeading: index === 0,
+        playerId: p.id,
+        rank: index + 1,
+        scoreTotal: p.score_total,
+        userId: p.user_id,
+      }),
+    );
 
     return NextResponse.json({
       forfeited: true,
@@ -75,7 +77,7 @@ export async function GET(request: NextRequest) {
         ? `Opponent has left the match. ${winnerPlayer?.display_name ?? 'You'} win!`
         : 'Match has ended.',
       isSessionFinished: true,
-      playersCount: players?.length ?? 0,
+      playersCount: finishedPlayers?.length ?? 0,
       readyToAdvance: true,
       standings: forfeitedStandings,
       submittedCount: 0,
@@ -86,15 +88,15 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Normal round synchronization ──
-  // Get players with their cumulative scores
-  const { data: players } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: sessionPlayers } = await (supabase as any)
     .from('multiplayer_lobby_players')
     .select('id, display_name, user_id, score_total')
     .eq('lobby_id', lobby.id)
     .order('score_total', { ascending: false })
     .order('joined_at', { ascending: true });
 
-  const playerIds = new Set((players ?? []).map((p) => p.id));
+  const playerIds = new Set((sessionPlayers ?? []).map((p: { id: string }) => p.id));
   const playersCount = playerIds.size;
 
   const resolvedRound = await resolveSynchronizedRoundIndex({
@@ -106,6 +108,67 @@ export async function GET(request: NextRequest) {
 
   const readyToAdvance = resolvedRound > round;
   const isSessionFinished = resolvedRound >= lobby.game_order.length;
+
+  // ── Normal match completion: all rounds resolved, trigger Elo processing ──
+  if (isSessionFinished && lobby.status === 'live' && lobby.mode === 'duel' && !lobby.winner_user_id) {
+    const duelPlayers = sessionPlayers ?? [];
+    if (duelPlayers.length >= 2) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: completionResult } = await (supabase.rpc as any)('process_duel_completion', {
+        p_lobby_id: lobby.id,
+        p_winner_user_id: duelPlayers[0].user_id,
+      });
+
+      // Reload lobby to get the new winner_user_id
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: updatedLobby } = await (supabase as any)
+        .from('multiplayer_lobbies')
+        .select('status, forfeited, winner_user_id')
+        .eq('id', lobby.id)
+        .maybeSingle();
+
+      if (updatedLobby) {
+        lobby.status = updatedLobby.status;
+        lobby.forfeited = updatedLobby.forfeited;
+        lobby.winner_user_id = updatedLobby.winner_user_id;
+      }
+
+      // If completion was processed, return finished response
+      if (completionResult && updatedLobby?.status === 'finished') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: eloData } = await (supabase as any)
+          .from('profiles')
+          .select('elo_rating')
+          .eq('id', duelPlayers[0].user_id)
+          .maybeSingle();
+
+        const completionStandings = duelPlayers.map(
+          (p: { display_name: string; id: string; score_total: number; user_id: string }, index: number) => ({
+            displayName: p.display_name,
+            forfeited: false,
+            isLeading: index === 0,
+            playerId: p.id,
+            rank: index + 1,
+            scoreTotal: p.score_total,
+            userId: p.user_id,
+          }),
+        );
+
+        return NextResponse.json({
+          forfeited: false,
+          forfeitedMessage: `Match complete! ${duelPlayers[0].display_name} wins!`,
+          isSessionFinished: true,
+          playersCount: duelPlayers.length,
+          readyToAdvance: true,
+          standings: completionStandings,
+          submittedCount: playersCount,
+          totalRounds: lobby.game_order.length,
+          winnerDisplayName: duelPlayers[0].display_name,
+          winnerElo: eloData?.elo_rating ?? null,
+        });
+      }
+    }
+  }
 
   // Count submissions for the current round
   const currentRoundSlug = getRoundSlugFromGameOrder(lobby.game_order, round);
@@ -136,15 +199,17 @@ export async function GET(request: NextRequest) {
   }
 
   // Build the standings array (already sorted by score_total DESC)
-  const standings = (players ?? []).map((p, index) => ({
-    displayName: p.display_name,
-    forfeited: false,
-    isLeading: index === 0,
-    playerId: p.id,
-    rank: index + 1,
-    scoreTotal: p.score_total,
-    userId: p.user_id,
-  }));
+  const standings = (sessionPlayers ?? []).map(
+    (p: { display_name: string; id: string; score_total: number; user_id: string }, index: number) => ({
+      displayName: p.display_name,
+      forfeited: false,
+      isLeading: index === 0,
+      playerId: p.id,
+      rank: index + 1,
+      scoreTotal: p.score_total,
+      userId: p.user_id,
+    }),
+  );
 
   return NextResponse.json({
     deadlineAt,

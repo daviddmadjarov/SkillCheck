@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { DuelCountdown } from '@/components/duel-countdown';
 
 type MouseMode = 'symbol' | 'cps' | 'tracking';
 
@@ -688,6 +689,7 @@ function SymbolTracing({ initialTraceMode = 'assist', isSignedIn }: { initialTra
 
   const isIdle = !running && !sessionFinished && result === null && roundScores.length === 0;
   const modeLocked = !sessionFinished && (running || result !== null || roundScores.length > 0);
+  const showDuelCountdown = isIdle && isMultiplayerSession;
 
   return (
     <MouseShell
@@ -794,12 +796,22 @@ function SymbolTracing({ initialTraceMode = 'assist', isSignedIn }: { initialTra
             />
           </svg>
 
-          {isIdle && (
+          {isIdle && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/35 backdrop-blur-sm">
               <button className="lab-button" onClick={startTraceRun} type="button">
                 Start Tracing
               </button>
             </div>
+          )}
+
+          {showDuelCountdown && (
+            <DuelCountdown
+              gameSlug="Symbol Tracing"
+              isMultiplayer={isMultiplayerSession}
+              onLaunch={startTraceRun}
+            >
+              <div className="absolute inset-0 z-20" />
+            </DuelCountdown>
           )}
 
           {sessionFinished && (
@@ -1244,12 +1256,22 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
             </span>
           </div>
 
-          {!running && !runComplete && (
+          {!running && !runComplete && !isMultiplayerSession && (
             <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
               <span className="rounded-full border-2 border-slate-200 bg-white/90 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.2em] text-slate-500 shadow-sm">
                 Tap to start
               </span>
             </div>
+          )}
+
+          {!running && !runComplete && isMultiplayerSession && (
+            <DuelCountdown
+              gameSlug="Tracking Test"
+              isMultiplayer={isMultiplayerSession}
+              onLaunch={() => startRun()}
+            >
+              <div className="absolute inset-0 z-10" />
+            </DuelCountdown>
           )}
 
           {runComplete && !running && (
