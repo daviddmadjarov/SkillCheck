@@ -1017,6 +1017,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
   const radiusYRef = useRef(28);
   const centerRef = useRef({ x: 50, y: 50 });
 
+  const pointerInArenaRef = useRef(false);
   const pointerPercentRef = useRef<{ x: number; y: number } | null>(null);
   const savedRunRef = useRef(false);
   const targetPosRef = useRef({ x: 50, y: 50 });
@@ -1032,6 +1033,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
     const rx = cx - rect.left;
     const ry = cy - rect.top;
     const insideArena = rx >= 0 && rx <= rect.width && ry >= 0 && ry <= rect.height;
+    pointerInArenaRef.current = insideArena;
     if (!insideArena) {
       pointerPercentRef.current = null;
       return null;
@@ -1084,55 +1086,48 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
         setTimeInsideMs(timeInsideRef.current);
       }
 
-      // Speed ramps from 1.2 → 5.5 rad/s over the run
+      // Speed ramps from 1.2 → 5.5 over the run — faster at the end
       const baseSpeed = 1.2;
       const maxSpeed = 5.5;
-      angleRef.current += (baseSpeed + progress * (maxSpeed - baseSpeed)) * (dt / 1000);
+      const angularSpeed = baseSpeed + progress * (maxSpeed - baseSpeed);
 
-      // Multi-layer wobble for unpredictable motion
-      const wobbleAmp = 4 + progress * 12;
-      const wobble1 = Math.sin(angleRef.current * 1.7) * wobbleAmp * progress;
-      const wobble2 = Math.sin(angleRef.current * 3.2) * 4.5 * progress;
-      const wobble3 = Math.cos(angleRef.current * 5.1) * 3 * progress;
-      const wobble4 = Math.sin(angleRef.current * 0.9 + progress * 8) * 3.5 * progress;
+      angleRef.current += angularSpeed * (dt / 1000);
 
-      // Center drift
-      const drift = 0.2 + progress * 0.6;
-      centerRef.current.x += Math.sin(angleRef.current * 0.37 + 1.2) * drift * (dt / 1000);
-      centerRef.current.y += Math.cos(angleRef.current * 0.53 + 0.8) * drift * (dt / 1000);
-      centerRef.current.x = Math.min(72, Math.max(28, centerRef.current.x));
-      centerRef.current.y = Math.min(72, Math.max(28, centerRef.current.y));
+      // Multiple wobble layers for chaotic, less predictable motion
+      const wobbleAmp = 4 + progress * 10;
+      const mainWobble = Math.sin(angleRef.current * 1.7) * wobbleAmp * progress;
+      const fastWobble = Math.sin(angleRef.current * 3.2) * 4 * progress;
+      const jitter = Math.cos(angleRef.current * 5.1) * 2.5 * progress;
+      const erratic = Math.sin(angleRef.current * 0.9 + progress * 8) * 3 * progress;
 
-      // Radius pulse
+      // Center slowly drifts in a pseudo-random walk so the target doesn't orbit a fixed point
+      const driftRate = 0.2 + progress * 0.5;
+      centerRef.current.x += Math.sin(angleRef.current * 0.37 + 1.2) * driftRate * (dt / 1000);
+      centerRef.current.y += Math.cos(angleRef.current * 0.53 + 0.8) * driftRate * (dt / 1000);
+      centerRef.current.x = Math.min(70, Math.max(30, centerRef.current.x));
+      centerRef.current.y = Math.min(70, Math.max(30, centerRef.current.y));
+
+      // Radius pulses to further vary the path shape
       const pulse = 1 + 0.35 * Math.sin(angleRef.current * 0.25);
-      const rx = radiusXRef.current * pulse;
-      const ry = radiusYRef.current * pulse;
+      const currentRadiusX = radiusXRef.current * pulse;
+      const currentRadiusY = radiusYRef.current * pulse;
 
-      const wobX = wobble1 + wobble2 + wobble3 + wobble4;
-      const wobY = wobble1 * 0.6 + wobble2 * 0.4 + wobble3 * 0.7 + wobble4 * 0.5;
+      const totalWobbleX = mainWobble + fastWobble + jitter + erratic;
+      const totalWobbleY = mainWobble * 0.6 + fastWobble * 0.4 + jitter * 0.7 + erratic * 0.5;
 
-      let nx = centerRef.current.x + Math.cos(angleRef.current) * (rx + wobX);
-      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (ry + wobY);
+      let nx = centerRef.current.x + Math.cos(angleRef.current) * (currentRadiusX + totalWobbleX);
+      let ny = centerRef.current.y + Math.sin(angleRef.current * 0.85) * (currentRadiusY + totalWobbleY);
 
-      const margin = 8;
+      const margin = 10;
       nx = Math.min(100 - margin, Math.max(margin, nx));
       ny = Math.min(100 - margin, Math.max(margin, ny));
 
-      // Ease-in from center over the first 300ms to avoid teleport
-      const easeTime = 300;
-      const ease = Math.min(1, elapsedRef.current / easeTime);
-      // Cubic ease-out: starts smooth, ends snappy
-      const easeFactor = 1 - Math.pow(1 - ease, 3);
-      const finalX = 50 + (nx - 50) * easeFactor;
-      const finalY = 50 + (ny - 50) * easeFactor;
+      targetPosRef.current = { x: nx, y: ny };
+      setTargetPercent({ x: nx, y: ny });
 
-      targetPosRef.current = { x: finalX, y: finalY };
-      setTargetPercent({ x: finalX, y: finalY });
-
-      // Re-check collision with the new (possibly eased) target position
       const ptr = pointerPercentRef.current;
       if (ptr) {
-        const coll = checkCollision(ptr.x, ptr.y, finalX, finalY);
+        const coll = checkCollision(ptr.x, ptr.y, nx, ny);
         insideRef.current = coll;
         setIsInside(coll);
       }
@@ -1174,14 +1169,6 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
 
   const startRun = useCallback((initPtr: { x: number; y: number } | null = null) => {
     savedRunRef.current = false;
-    // Reset all position state to center
-    centerRef.current = { x: 50, y: 50 };
-    angleRef.current = Math.random() * Math.PI * 2;
-    radiusXRef.current = 28 + Math.random() * 12;
-    radiusYRef.current = 22 + Math.random() * 10;
-    targetPosRef.current = { x: 50, y: 50 };
-    setTargetPercent({ x: 50, y: 50 });
-    // Reset tracking state
     setRunning(true);
     setRunComplete(false);
     setSecondsLeft(20);
@@ -1190,8 +1177,14 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
     timeInsideRef.current = 0;
     insideRef.current = false;
     pointerPercentRef.current = initPtr;
+    pointerInArenaRef.current = initPtr !== null;
     elapsedRef.current = 0;
     runStartRef.current = performance.now();
+    angleRef.current = Math.random() * Math.PI * 2;
+    radiusXRef.current = 28 + Math.random() * 12;
+    radiusYRef.current = 22 + Math.random() * 10;
+    centerRef.current = { x: 50, y: 50 };
+    setTargetPercent({ x: 50, y: 50 });
   }, []);
 
   const handleArenaPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -1204,7 +1197,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
     <MouseShell
       title={MODE_META.tracking.title}
       kicker={MODE_META.tracking.kicker}
-      description="Keep your pointer inside the moving target. The target starts at center then accelerates."
+      description="Keep your pointer inside the moving target. Touch also works on mobile."
       accent={MODE_META.tracking.accent}
       isSignedIn={isSignedIn}
       stats={[
