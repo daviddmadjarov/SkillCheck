@@ -803,15 +803,12 @@ function SymbolTracing({ initialTraceMode = 'assist', isSignedIn }: { initialTra
               </button>
             </div>
           )}
-
           {showDuelCountdown && (
             <DuelCountdown
               gameSlug="Symbol Tracing"
               isMultiplayer={isMultiplayerSession}
               onLaunch={startTraceRun}
-            >
-              <div className="absolute inset-0 z-20" />
-            </DuelCountdown>
+            />
           )}
 
           {sessionFinished && (
@@ -1269,9 +1266,7 @@ function TrackingTest({ isSignedIn }: { isSignedIn: boolean }) {
               gameSlug="Tracking Test"
               isMultiplayer={isMultiplayerSession}
               onLaunch={() => startRun()}
-            >
-              <div className="absolute inset-0 z-10" />
-            </DuelCountdown>
+            />
           )}
 
           {runComplete && !running && (

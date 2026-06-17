@@ -191,41 +191,42 @@ export function MultiReactionProtocol({
         </div>
       </div>
 
-      <DuelCountdown
-        gameSlug="Multi-Reaction"
-        isMultiplayer={isMultiplayerSession}
-        onLaunch={startGame}
-      >
-        <div className="relative">
-          <BetweenRoundCountdown
-            active={isMultiplayerSession && gamePhase === 'waiting' && currentRound > 0}
-            label={`Round ${currentRound + 1}`}
-            onLaunch={() => {}}
+      <div className="relative">
+        {isMultiplayerSession && gamePhase === 'idle' && (
+          <DuelCountdown
+            gameSlug="Multi-Reaction"
+            isMultiplayer={isMultiplayerSession}
+            onLaunch={startGame}
           />
-          <div className={`grid grid-cols-2 gap-4 ${isTooSoon ? 'opacity-60' : ''}`}>
-            {BUTTON_LABELS.map((label, i) => {
-              const isActive = gamePhase === 'active' && activeButton === i;
-              return (
-                <button
-                  key={i}
-                  className={`flex min-h-[10rem] cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-6 text-center transition-all duration-75 sm:min-h-[12rem] ${
-                    isActive ? BUTTON_ACTIVE_STYLE[i] : BUTTON_IDLE_STYLE[i]
-                  }`}
-                  onClick={() => handleButtonClick(i)}
-                  type="button"
-                >
-                  <span className="text-5xl font-black tracking-tight sm:text-6xl">{label}</span>
-                  {isIdle && (
-                    <span className="mt-2 text-xs font-bold uppercase tracking-[0.18em] opacity-60">
-                      {gamePhase === 'idle' ? 'Click to start' : 'Click to restart'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        )}
+        <BetweenRoundCountdown
+          active={isMultiplayerSession && gamePhase === 'waiting' && currentRound > 0}
+          label={`Round ${currentRound + 1}`}
+          onLaunch={() => {}}
+        />
+        <div className={`grid grid-cols-2 gap-4 ${isTooSoon ? 'opacity-60' : ''}`}>
+          {BUTTON_LABELS.map((label, i) => {
+            const isActive = gamePhase === 'active' && activeButton === i;
+            return (
+              <button
+                key={i}
+                className={`flex min-h-[10rem] cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-6 text-center transition-all duration-75 sm:min-h-[12rem] ${
+                  isActive ? BUTTON_ACTIVE_STYLE[i] : BUTTON_IDLE_STYLE[i]
+                }`}
+                onClick={() => handleButtonClick(i)}
+                type="button"
+              >
+                <span className="text-5xl font-black tracking-tight sm:text-6xl">{label}</span>
+                {isIdle && (
+                  <span className="mt-2 text-xs font-bold uppercase tracking-[0.18em] opacity-60">
+                    {gamePhase === 'idle' ? 'Click to start' : 'Click to restart'}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      </DuelCountdown>
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
