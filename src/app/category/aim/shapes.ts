@@ -2,8 +2,6 @@
 
 import type { Point } from './aim-protocols';
 
-// ─── Utilities ──────────────────────────────────────────────────────────────
-
 function vertPath(p: Point[]): string {
   return 'M' + p.map(pt => `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join(' L') + ' Z';
 }
@@ -13,8 +11,6 @@ function pts(...list: number[]): Point[] {
   for (let i = 0; i < list.length; i += 2) p.push({ x: list[i], y: list[i + 1] });
   return p;
 }
-
-// ─── Colors ─────────────────────────────────────────────────────────────────
 
 const C = [
   { fill: '#fde68a', stroke: '#ca8a04' },
@@ -37,6 +33,26 @@ const C = [
   { fill: '#d1fae5', stroke: '#059669' },
   { fill: '#e0f2fe', stroke: '#0284c7' },
   { fill: '#fef9c3', stroke: '#a16207' },
+  { fill: '#e2e8f0', stroke: '#475569' },
+  { fill: '#fef08a', stroke: '#ca8a04' },
+  { fill: '#fae8ff', stroke: '#c026d3' },
+  { fill: '#ffedd5', stroke: '#9a3412' },
+  { fill: '#dbeafe', stroke: '#2563eb' },
+  { fill: '#f0fdf4', stroke: '#15803d' },
+  { fill: '#fdf2f8', stroke: '#be185d' },
+  { fill: '#f5f5dc', stroke: '#78716c' },
+  { fill: '#fee2e2', stroke: '#b91c1c' },
+  { fill: '#ecfeff', stroke: '#0e7490' },
+  { fill: '#fefce8', stroke: '#a16207' },
+  { fill: '#f3e8ff', stroke: '#7e22ce' },
+  { fill: '#fce7f3', stroke: '#be185d' },
+  { fill: '#fdf4ff', stroke: '#a21caf' },
+  { fill: '#e0f2fe', stroke: '#0369a1' },
+  { fill: '#dcfce7', stroke: '#166534' },
+  { fill: '#fff7ed', stroke: '#c2410c' },
+  { fill: '#f5f5f4', stroke: '#44403c' },
+  { fill: '#fef2f2', stroke: '#991b1b' },
+  { fill: '#faf5ff', stroke: '#6b21a8' },
 ];
 
 let colorIdx = 0;
@@ -59,197 +75,218 @@ function make(label: string, p: Point[]): SplitShapeDef {
   return { pts: p, label, path: vertPath(p), ...col };
 }
 
-// ─── Smooth organic shape generator ────────────────────────────────────────
-// Generates a cartoon-like blob from a set of control points that define
-// the outline's character, with natural asymmetry built in.
-
-/**
- * Produces a smooth closed polygon from a set of anchor points.
- * Each [x,y] pair in anchors defines where the shape should pass through.
- * The output is a dense polygon (~48 pts) that traces smooth arcs between anchors.
- */
-function blob(anchors: number[]): Point[] {
-  const n = anchors.length / 2;
-  const pts: { x: number; y: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    pts.push({ x: anchors[i * 2], y: anchors[i * 2 + 1] });
-  }
-
-  // Interpolate through anchors with a Catmull-Rom like curve
-  const raw: Point[] = [];
-  const steps = 5;
-  for (let i = 0; i < n; i++) {
-    const p0 = pts[(i - 1 + n) % n];
-    const p1 = pts[i];
-    const p2 = pts[(i + 1) % n];
-    const p3 = pts[(i + 2) % n];
-
-    for (let t = 0; t <= steps; t++) {
-      const s = t / steps;
-      const s2 = s * s;
-      const s3 = s2 * s;
-      const x = 0.5 * (
-        (2 * p1.x) + (-p0.x + p2.x) * s +
-        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * s2 +
-        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * s3
-      );
-      const y = 0.5 * (
-        (2 * p1.y) + (-p0.y + p2.y) * s +
-        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * s2 +
-        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * s3
-      );
-      raw.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
-    }
-  }
-
-  // Remove consecutive points that are too close (line stacking prevention)
-  const MIN_DIST = 0.8;
-  const result: Point[] = [];
-  for (let i = 0; i < raw.length; i++) {
-    const p = raw[i];
-    const prev = result.length > 0 ? result[result.length - 1] : raw[raw.length - 1];
-    const dx = p.x - prev.x;
-    const dy = p.y - prev.y;
-    if (dx * dx + dy * dy >= MIN_DIST * MIN_DIST) {
-      result.push(p);
-    }
-  }
-
-  return result;
-}
-
 export function randomShape(): SplitShapeDef {
   return ALL_SHAPES[Math.floor(Math.random() * ALL_SHAPES.length)]();
 }
 
 export function resetColorIdx() { colorIdx = 0; }
 
-// ─── 24 Asymmetrical Cartoon Blob Shapes ────────────────────────────────────
-// Each shape is defined by a small number of anchor points that create
-// a smooth, organic, asymmetrical silhouette via Catmull-Rom interpolation.
-// All shapes are ~30-35 radius, non-self-intersecting, and interesting to split.
+// ─── 40 Recognizable Cartoon Silhouettes ────────────────────────────────────
+// Every shape is a single continuous non-self-intersecting polygon.
+// All shapes are asymmetrical except Circle.
+// Coordinates use 0-100 space, shapes are ~28-35 radius.
 
 const ALL_SHAPES: (() => SplitShapeDef)[] = [
 
-  // 1. Circle (the only symmetrical shape)
-  () => make('Circle', blob([
-    50,12, 68,16, 80,32, 82,50, 78,68, 64,80, 50,84, 36,80, 22,68, 18,50, 20,32, 32,16,
-  ])),
+  // 1. Apple
+  () => make('Apple', pts(
+    50,8, 56,14, 60,22, 64,32, 66,42, 64,52, 60,60, 54,66, 48,70, 42,68, 36,64, 32,58, 28,50, 26,42, 28,34, 34,26, 40,18, 46,14
+  )),
 
-  // 2. Squishy Blob — fat on top-left, thin bottom-right
-  () => make('Squishy', blob([
-    42,14, 64,16, 78,30, 74,48, 66,58, 56,62, 48,68, 40,78, 30,76, 20,64, 18,48, 22,32,
-  ])),
+  // 2. Pear
+  () => make('Pear', pts(
+    48,14, 56,18, 60,26, 60,36, 58,44, 62,52, 64,60, 60,68, 54,72, 46,74, 38,70, 34,64, 30,56, 32,48, 36,40, 34,32, 36,24, 42,18
+  )),
 
-  // 3. Crooked Crescent — thick middle, tapered ends
-  () => make('Crescent', blob([
-    30,20, 52,14, 74,22, 78,40, 72,56, 58,62, 42,58, 34,44, 38,30, 30,32,
-  ])),
+  // 3. Mushroom
+  () => make('Mushroom', pts(
+    28,38, 32,26, 40,18, 50,14, 60,18, 68,26, 72,38, 70,48, 64,52, 56,48, 54,56, 56,66, 52,74, 46,76, 40,74, 38,66, 40,56, 38,48, 32,50
+  )),
 
-  // 4. Melting Drip — bulbous top, narrow bottom
-  () => make('Drip', blob([
-    38,12, 60,14, 74,26, 72,44, 66,56, 58,62, 54,72, 48,82, 42,72, 36,60, 30,52, 26,40, 28,26,
-  ])),
+  // 4. Fish
+  () => make('Fish', pts(
+    18,46, 30,38, 44,32, 56,30, 66,32, 74,38, 78,44, 76,50, 70,54, 60,56, 50,58, 40,56, 30,52, 24,50
+  )),
 
-  // 5. Ink Splash — irregular pentagon with bulges
-  () => make('Splash', blob([
-    34,18, 58,12, 76,24, 70,46, 60,60, 44,66, 28,58, 20,42, 22,28, 38,22, 50,20,
-  ])),
+  // 5. Whale
+  () => make('Whale', pts(
+    16,48, 30,40, 46,34, 60,32, 72,34, 80,40, 84,48, 80,54, 72,58, 60,60, 48,58, 36,56, 26,54
+  )),
 
-  // 6. Cartoon Cloud — fluffy asymmetrical cloud
-  () => make('Cloud', blob([
-    28,38, 34,26, 44,18, 60,16, 72,22, 80,34, 78,48, 70,56, 56,60, 42,58, 30,52, 24,46,
-  ])),
+  // 6. Dolphin
+  () => make('Dolphin', pts(
+    16,48, 28,38, 42,32, 56,28, 66,30, 74,36, 78,44, 72,50, 64,52, 56,50, 48,52, 42,56, 36,60, 30,58, 38,50, 44,44, 40,40, 32,44, 24,48
+  )),
 
-  // 7. Bent Leaf — curved with a twist
-  () => make('Leaf', blob([
-    50,10, 66,16, 76,30, 78,46, 72,58, 60,64, 46,60, 38,50, 34,38, 30,28, 24,34, 22,46, 28,58, 38,68, 50,72,
-  ])),
+  // 7. Seahorse
+  () => make('Seahorse', pts(
+    44,14, 54,16, 60,24, 58,34, 52,40, 48,48, 46,58, 44,66, 40,74, 44,80, 50,78, 52,70, 56,60, 60,52, 64,44, 62,32, 56,22, 50,18
+  )),
 
-  // 8. Crooked Star — 5-pointed but asymmetrical
-  () => make('Star', blob([
-    50,10, 54,22, 68,18, 60,30, 74,36, 62,40, 60,52, 52,42, 44,54, 40,40, 28,38, 40,30, 34,18, 46,24,
-  ])),
+  // 8. Duck
+  () => make('Duck', pts(
+    36,30, 46,22, 56,20, 64,26, 66,34, 62,42, 54,46, 48,50, 44,58, 46,68, 50,76, 56,80, 60,76, 58,66, 52,56, 50,48, 52,44, 56,40, 58,32, 52,26, 44,28
+  )),
 
-  // 9. Wavy Droplet — tear shape with wavy edge
-  () => make('Droplet', blob([
-    50,8, 62,24, 70,40, 72,56, 66,70, 54,76, 44,74, 34,66, 28,54, 30,38, 38,24,
-  ])),
+  // 9. Chicken
+  () => make('Chicken', pts(
+    38,24, 50,18, 62,20, 70,30, 68,42, 60,50, 52,52, 46,58, 42,66, 44,74, 50,80, 56,76, 54,66, 48,58, 50,50, 58,46, 64,38, 62,28, 54,24
+  )),
 
-  // 10. Lopsided Mushroom — fat cap, tilted stem
-  () => make('Mushroom', blob([
-    26,34, 34,18, 50,10, 68,14, 76,28, 72,42, 64,48, 54,44, 52,52, 56,60, 54,70, 48,76, 42,70, 40,60, 44,52, 42,44, 32,40,
-  ])),
+  // 10. Penguin
+  () => make('Penguin', pts(
+    38,22, 50,14, 62,22, 68,34, 66,48, 60,58, 52,66, 48,74, 52,82, 44,82, 40,74, 36,66, 30,58, 24,48, 22,34
+  )),
 
-  // 11. Swoosh — crescent-like but curlier, good for mid-difficulty splits
-  () => make('Swoosh', blob([
-    24,36, 38,20, 58,14, 74,24, 78,42, 72,58, 60,68, 46,66, 36,56, 32,44, 30,30,
-  ])),
+  // 11. Owl
+  () => make('Owl', pts(
+    34,26, 44,18, 50,14, 56,18, 66,26, 70,38, 68,50, 62,60, 54,66, 46,66, 38,60, 32,50, 30,38
+  )),
 
-  // 12. Chubby Ghost — rounded top, wavy bottom
-  () => make('Ghost', blob([
-    32,18, 50,12, 68,18, 76,32, 74,50, 68,62, 60,72, 54,78, 48,74, 42,68, 36,60, 30,50, 28,34,
-  ])),
+  // 12. Elephant Head
+  () => make('Elefant', pts(
+    36,24, 48,16, 62,18, 72,28, 74,42, 70,54, 64,60, 58,64, 56,74, 50,82, 44,74, 42,64, 36,58, 32,50, 28,40, 30,30
+  )),
 
-  // 13. Twisted Bean — figure-8-ish but closed, asymmetrical
-  () => make('Bean', blob([
-    28,40, 36,22, 52,16, 68,22, 76,38, 72,56, 60,68, 46,70, 36,64, 30,52, 38,44, 48,42, 56,48, 58,58, 50,62, 40,56,
-  ])),
+  // 13. Rhino Head
+  () => make('Rhino', pts(
+    38,22, 50,16, 60,14, 70,20, 76,32, 74,46, 68,58, 58,64, 48,66, 38,60, 32,50, 30,38, 34,30, 44,28, 52,30, 58,36, 54,44, 46,46, 40,42, 36,34
+  )),
 
-  // 14. Blunt Arrow — arrowhead shape with one side longer
-  () => make('Arrow', blob([
-    20,46, 44,38, 56,30, 68,26, 78,34, 74,42, 64,40, 52,44, 40,50, 28,54,
-  ])),
+  // 14. Fox Head
+  () => make('Fox', pts(
+    32,24, 44,16, 50,20, 52,16, 58,20, 68,24, 74,36, 72,50, 64,60, 54,64, 44,62, 36,56, 30,46, 28,34
+  )),
 
-  // 15. Puzzle Nub — like a puzzle piece edge, one side bulging
-  () => make('Puzzle', blob([
-    28,24, 48,22, 48,30, 52,30, 52,22, 70,24, 74,38, 72,52, 62,56, 58,50, 54,56, 44,56, 40,50, 36,56, 28,52, 24,38,
-  ])),
+  // 15. Dino Footprint
+  () => make('Dino Print', pts(
+    40,24, 52,18, 62,22, 66,34, 60,44, 50,48, 42,46, 36,40, 34,32, 38,28, 46,30, 52,28, 50,22
+  )),
 
-  // 16. Floppy Hat — wide top, narrow asymmetrical bottom
-  () => make('Hat', blob([
-    22,38, 36,26, 50,18, 64,20, 76,30, 78,44, 70,50, 60,46, 56,54, 52,62, 46,62, 42,54, 38,46, 30,50, 24,46,
-  ])),
+  // 16. Leaf
+  () => make('Leaf', pts(
+    50,8, 62,16, 72,28, 76,42, 72,56, 62,66, 50,72, 38,66, 28,56, 24,42, 28,28, 38,16
+  )),
 
-  // 17. Organic Blob A — lumpy potato shape, one big bump
-  () => make('Blob A', blob([
-    34,16, 56,12, 72,22, 78,40, 70,56, 58,64, 44,68, 32,62, 26,50, 24,36, 30,24, 40,20,
-  ])),
+  // 17. Maple Leaf
+  () => make('Maple Leaf', pts(
+    50,10, 56,22, 64,18, 60,28, 70,30, 62,38, 72,48, 60,48, 56,56, 50,66, 44,56, 40,48, 28,48, 38,38, 30,30, 40,28, 36,18, 44,22
+  )),
 
-  // 18. Organic Blob B — three-lobed, like clover without symmetry
-  () => make('Blob B', blob([
-    40,14, 56,18, 64,32, 72,28, 80,40, 74,52, 62,54, 54,62, 44,58, 34,64, 26,56, 22,42, 30,32, 38,36, 46,28,
-  ])),
+  // 18. Feather
+  () => make('Feather', pts(
+    50,10, 60,20, 66,32, 68,44, 64,56, 56,66, 46,72, 36,66, 28,56, 24,44, 26,32, 34,20, 42,14, 38,26, 40,40, 46,50, 52,46, 50,32
+  )),
 
-  // 19. Flame — fire shape leaning left
-  () => make('Flame', blob([
-    50,10, 62,28, 72,42, 74,56, 66,68, 54,74, 42,70, 34,60, 32,48, 38,36, 44,28, 42,40, 48,52, 56,50, 58,38,
-  ])),
+  // 19. Flame
+  () => make('Flame', pts(
+    50,8, 60,24, 70,38, 74,52, 68,66, 56,74, 42,70, 34,58, 32,44, 38,30, 44,22, 42,38, 48,52, 56,50, 58,36
+  )),
 
-  // 20. Scroll — curled edge shape, like a ribbon
-  () => make('Scroll', blob([
-    24,30, 40,22, 60,20, 76,28, 78,44, 70,56, 56,60, 42,58, 32,50, 28,38, 38,34, 52,32, 64,38, 62,48, 50,50,
-  ])),
+  // 20. Water Drop
+  () => make('Water Drop', pts(
+    50,8, 62,24, 70,40, 72,56, 66,70, 54,76, 42,72, 32,62, 28,50, 30,36, 38,24
+  )),
 
-  // 21. Crown — three peaks but irregular heights
-  () => make('Crown', blob([
-    24,44, 32,30, 40,38, 50,24, 60,38, 68,30, 76,44, 70,54, 60,58, 50,60, 40,58, 30,54,
-  ])),
+  // 21. Splash
+  () => make('Splash', pts(
+    50,10, 60,26, 70,34, 72,48, 66,60, 54,66, 44,72, 36,66, 30,56, 24,44, 28,30, 38,22, 46,28, 52,36, 56,30, 48,20
+  )),
 
-  // 22. Snail Shell — spiral-ish closed shape
-  () => make('Shell', blob([
-    34,36, 44,28, 58,26, 68,34, 70,46, 62,56, 50,60, 40,56, 34,48, 38,42, 46,44, 52,42, 54,36, 48,32, 42,34, 40,40, 46,52, 56,50, 60,42, 56,34, 48,32,
-  ])),
+  // 22. Cloud
+  () => make('Cloud', pts(
+    26,44, 30,32, 42,24, 56,22, 68,26, 78,36, 82,48, 76,58, 64,64, 50,66, 36,62, 26,54
+  )),
 
-  // 23. Boot — cartoon boot shape
-  () => make('Boot', blob([
-    34,26, 50,22, 64,26, 70,36, 72,48, 66,56, 58,58, 56,64, 52,72, 44,72, 40,64, 38,56, 36,48, 30,44, 24,38, 26,30,
-  ])),
+  // 23. Lightning Bolt
+  () => make('Lightning', pts(
+    58,16, 48,38, 56,38, 40,68, 54,46, 44,46, 58,16
+  )),
 
-  // 24. Bell — asymmetrical bell shape
-  () => make('Bell', blob([
-    34,22, 50,14, 66,22, 74,34, 76,48, 72,58, 64,64, 56,62, 56,70, 44,70, 44,62, 36,64, 28,58, 24,48, 26,34,
-  ])),
+  // 24. Ghost
+  () => make('Ghost', pts(
+    34,18, 50,12, 66,18, 74,32, 72,48, 66,60, 58,72, 52,80, 48,74, 42,66, 36,58, 30,46, 28,32
+  )),
+
+  // 25. Keyhole
+  () => make('Keyhole', pts(
+    50,14, 60,20, 66,30, 64,42, 58,48, 60,54, 64,58, 62,66, 56,74, 44,74, 38,66, 36,58, 40,54, 42,48, 36,42, 34,30, 40,20
+  )),
+
+  // 26. Puzzle Piece
+  () => make('Puzzle', pts(
+    30,28, 46,28, 46,36, 50,36, 50,28, 64,28, 68,38, 64,48, 58,44, 54,50, 46,50, 42,44, 36,50, 28,48, 26,38
+  )),
+
+  // 27. Sock
+  () => make('Sock', pts(
+    44,18, 56,18, 60,28, 58,42, 54,54, 52,66, 48,76, 42,82, 38,76, 36,66, 38,54, 42,42, 44,30
+  )),
+
+  // 28. Boot
+  () => make('Boot', pts(
+    36,20, 54,18, 66,24, 72,36, 68,48, 60,52, 54,50, 52,60, 50,70, 42,74, 36,68, 34,58, 30,52, 24,44, 26,32
+  )),
+
+  // 29. Mitten
+  () => make('Mitten', pts(
+    34,28, 44,20, 56,20, 64,28, 66,40, 64,52, 58,62, 54,72, 50,80, 44,78, 38,70, 34,60, 30,50, 28,38
+  )),
+
+  // 30. Trophy
+  () => make('Trophy', pts(
+    30,42, 38,30, 48,24, 52,18, 56,24, 66,30, 74,42, 72,50, 64,54, 56,52, 54,58, 58,64, 52,70, 48,70, 42,64, 46,58, 48,52, 40,54, 32,50
+  )),
+
+  // 31. Chess Knight
+  () => make('Knight', pts(
+    40,18, 54,14, 64,22, 68,34, 64,46, 56,54, 48,56, 44,62, 38,70, 32,66, 34,58, 40,50, 42,42, 36,34, 38,26
+  )),
+
+  // 32. Wizard Hat
+  () => make('Wizard Hat', pts(
+    22,52, 34,38, 44,28, 50,16, 56,28, 66,38, 78,52, 72,58, 60,54, 54,60, 48,60, 42,54, 30,58
+  )),
+
+  // 33. Potion Bottle
+  () => make('Potion', pts(
+    42,20, 50,16, 58,20, 60,30, 58,42, 64,46, 66,58, 62,70, 54,78, 46,78, 38,70, 34,58, 36,46, 42,42, 40,30
+  )),
+
+  // 34. Treasure Chest
+  () => make('Chest', pts(
+    26,42, 34,32, 46,28, 60,28, 72,32, 78,42, 76,52, 68,56, 60,52, 52,54, 44,52, 36,56, 28,52
+  )),
+
+  // 35. Anchor
+  () => make('Anchor', pts(
+    46,20, 56,20, 58,30, 58,44, 64,48, 72,46, 74,54, 66,60, 58,56, 56,66, 56,76, 50,84, 44,76, 44,66, 42,56, 34,60, 26,54, 28,46, 36,48, 42,44, 42,30
+  )),
+
+  // 36. Hook
+  () => make('Hook', pts(
+    44,18, 58,18, 62,28, 58,42, 50,50, 44,58, 42,68, 46,76, 54,80, 60,76, 62,68, 56,62, 50,64, 48,70, 46,64, 48,54, 52,48, 56,42, 58,32, 52,24
+  )),
+
+  // 37. Guitar Pick
+  () => make('Pick', pts(
+    50,14, 64,30, 72,46, 74,60, 66,72, 54,80, 42,76, 32,66, 26,54, 28,40, 36,28
+  )),
+
+  // 38. Paint Palette
+  () => make('Palette', pts(
+    26,38, 34,26, 48,20, 64,22, 76,32, 80,46, 74,58, 62,64, 48,62, 36,56, 28,48, 38,46, 46,50, 54,48, 56,40, 46,38, 38,42
+  )),
+
+  // 39. Ice Cream Cone
+  () => make('Ice Cream', pts(
+    26,46, 38,34, 44,28, 48,34, 52,28, 58,34, 70,46, 64,54, 56,50, 54,58, 60,66, 56,74, 44,74, 40,66, 46,58, 44,50, 36,54
+  )),
+
+  // 40. Croissant
+  () => make('Croissant', pts(
+    32,28, 44,20, 58,22, 68,30, 72,42, 66,54, 56,62, 44,64, 34,58, 28,48, 26,38, 30,32, 38,30, 48,32, 54,40, 50,50, 42,52, 38,44
+  )),
 ];
 
 export function getShapeCount() { return ALL_SHAPES.length; }
