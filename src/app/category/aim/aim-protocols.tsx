@@ -114,172 +114,461 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   </AimShell>
 }
 
-type SplitShape = {
-  path: string;      // SVG path data for the shape outline
-  cx: number;         // center x (0-100)
-  cy: number;         // center y (0-100)
-  r: number;          // radius
-  label: string;      // shape name
+// ─────────────────────────────────────────────────────────────────────
+// PERFECT SPLIT — proper contour-based shape splitting with area scoring
+// ─────────────────────────────────────────────────────────────────────
+
+type SplitShapeDef = {
+  /** Polygon vertices in 0-100 coordinate space */
+  pts: Point[];
+  label: string;
   fill: string;
   stroke: string;
+  /** SVG path string for rendering */
+  path: string;
 };
 
-function randomSplitShape(): SplitShape {
-  const shapes: (() => SplitShape)[] = [
-    () => ({ path: '', cx: 50, cy: 50, r: 28, label: 'Circle', fill: '#fde68a', stroke: '#ca8a04' }),
-    () => {
-      const s = 28;
-      return { path: `M${50},${50-s} L${50+s*0.87},${50+s*0.5} L${50-s*0.87},${50+s*0.5} Z`, cx: 50, cy: 50, r: s, label: 'Triangle', fill: '#bfdbfe', stroke: '#3b82f6' };
-    },
-    () => {
-      const s = 24;
-      const pts = [0,-1,1,-1,1,1,0,1].map((v,i)=>i%2===0?50+v*s:50+v*s);
-      return { path: `M${pts[0]},${pts[1]} L${pts[2]},${pts[3]} L${pts[4]},${pts[5]} L${pts[6]},${pts[7]} Z`, cx: 50, cy: 50, r: s, label: 'Square', fill: '#fecaca', stroke: '#ef4444' };
-    },
-    () => {
-      const s = 24;
-      const pts = Array.from({length:6},(_,i)=>{const a=i/6*Math.PI*2-Math.PI/2;const r=i%2===0?s:s*0.55;return `${50+r*Math.cos(a)},${50+r*Math.sin(a)}`});
-      return { path: `M${pts.join(' L')} Z`, cx: 50, cy: 50, r: s, label: 'Hexagon', fill: '#d9f99d', stroke: '#65a30d' };
-    },
-    () => {
-      const s = 26;
-      const pts = Array.from({length:5},(_,i)=>{const a=i/5*Math.PI*2-Math.PI/2;return `${50+s*Math.cos(a)},${50+s*Math.sin(a)}`});
-      return { path: `M${pts.join(' L')} Z`, cx: 50, cy: 50, r: s, label: 'Pentagon', fill: '#e9d5ff', stroke: '#a855f7' };
-    },
+/** Shoelace formula: signed polygon area */
+function polygonArea(pts: Point[]): number {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const j = (i + 1) % pts.length;
+    a += pts[i].x * pts[j].y;
+    a -= pts[j].x * pts[i].y;
+  }
+  return Math.abs(a) / 2;
+}
+
+/** Split a convex polygon by a line through two contour points, return areas of both halves */
+function splitAreas(shape: Point[], p1Idx: number, p2Idx: number): [number, number] {
+  const n = shape.length;
+  // Build two polygons: clockwise from p1 to p2, and p2 to p1
+  const half1: Point[] = [shape[p1Idx], shape[p2Idx]];
+  const half2: Point[] = [shape[p2Idx], shape[p1Idx]];
+  // Walk forward from p2 to p1 for half2
+  for (let i = p2Idx; i !== p1Idx; i = (i + 1) % n) {
+    half2.push(shape[i]);
+  }
+  // Walk forward from p1 to p2 for half1
+  for (let i = p1Idx; i !== p2Idx; i = (i + 1) % n) {
+    half1.push(shape[i]);
+  }
+  const a1 = polygonArea(half1);
+  const a2 = polygonArea(half2);
+  return [a1, a2];
+}
+
+/** Find closest vertex index on shape contour to a given point */
+function closestVertexIndex(shape: Point[], px: number, py: number): number {
+  let bestIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < shape.length; i++) {
+    const d = Math.hypot(shape[i].x - px, shape[i].y - py);
+    if (d < bestDist) { bestDist = d; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+/** Build a regular polygon centered at (cx,cy) with radius r and n sides */
+function regularPoly(cx: number, cy: number, r: number, n: number, phase = -Math.PI / 2): Point[] {
+  return Array.from({ length: n }, (_, i) => {
+    const a = phase + (i / n) * Math.PI * 2;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  });
+}
+
+/** Build a star polygon */
+function starShape(cx: number, cy: number, rOuter: number, rInner: number, points: number): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i < points * 2; i++) {
+    const a = -Math.PI / 2 + (i / (points * 2)) * Math.PI * 2;
+    const r = i % 2 === 0 ? rOuter : rInner;
+    pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  return pts;
+}
+
+/** Build a heart shape */
+function heartShape(): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i < 48; i++) {
+    const a = (i / 48) * Math.PI * 2;
+    const x = 50 + 16 * Math.sin(a) * Math.sin(a) * Math.sin(a);
+    const y = 50 - (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+    pts.push({ x, y });
+  }
+  return pts;
+}
+
+/** Build an arrow shape */
+function arrowShape(): Point[] {
+  return [
+    {x:50,y:18},{x:82,y:50},{x:50,y:56},{x:50,y:46},{x:18,y:46},{x:18,y:54},{x:50,y:54},{x:50,y:82},
+    {x:82,y:50},{x:50,y:18}
   ];
-  return shapes[Math.floor(Math.random()*shapes.length)]();
+}
+
+/** Build a diamond shape */
+function diamondShape(): Point[] {
+  return regularPoly(50, 50, 28, 4, -Math.PI / 4);
+}
+
+/** Build a crescent shape */
+function crescentShape(): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i < 32; i++) {
+    const a = (i / 32) * Math.PI * 2;
+    const baseR = 26;
+    const wobble = 8 * Math.sin(a * 1.5 + 0.5);
+    const r = baseR + wobble;
+    pts.push({ x: 50 + r * Math.cos(a), y: 50 + r * Math.sin(a) * 0.85 });
+  }
+  return pts;
+}
+
+/** Build a cross shape */
+function crossShape(): Point[] {
+  const w = 8, h = 28, g = 6;
+  return [
+    {x:50-w-g,y:50-h},{x:50+g,y:50-h},{x:50+g,y:50-w-g},{x:50+h,y:50-w-g},
+    {x:50+h,y:50+g},{x:50+g,y:50+g},{x:50+g,y:50+h},{x:50-w-g,y:50+h},
+    {x:50-w-g,y:50+g},{x:50-h,y:50+g},{x:50-h,y:50-w-g},{x:50-w-g,y:50-w-g}
+  ];
+}
+
+/** Build a shield shape */
+function shieldShape(): Point[] {
+  return [
+    {x:50,y:18},{x:72,y:26},{x:72,y:50},{x:50,y:74},{x:28,y:50},{x:28,y:26}
+  ];
+}
+
+/** Build a drop/teardrop shape */
+function dropShape(): Point[] {
+  const pts: Point[] = [];
+  for (let i = 0; i < 32; i++) {
+    const a = (i / 32) * Math.PI * 2;
+    const r = 16 + 12 * Math.sin(a * 0.5 + 0.3);
+    pts.push({ x: 50 + r * Math.cos(a), y: 50 + r * Math.sin(a) });
+  }
+  return pts;
+}
+
+/** Build a lightning bolt shape */
+function boltShape(): Point[] {
+  return [
+    {x:60,y:16},{x:42,y:42},{x:56,y:42},{x:38,y:84},{x:56,y:56},{x:44,y:56}
+  ];
+}
+
+/** Build an organic/blob shape */
+function organicPts(seed: number, r: number): Point[] {
+  const pts: Point[] = [];
+  const n = 20 + (seed % 8) * 2;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const variation = 0.7 + 0.3 * Math.sin(i * 1.7 + seed) * Math.cos(i * 2.3 + seed * 0.5);
+    const rr = r * variation;
+    pts.push({ x: 50 + rr * Math.cos(a), y: 50 + rr * Math.sin(a) });
+  }
+  return pts;
+}
+
+/** Convert polygon points to SVG path string */
+function ptsToPath(pts: Point[]): string {
+  if (pts.length === 0) return '';
+  return 'M' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L') + ' Z';
+}
+
+const COLOR_WHEEL = [
+  { fill: '#fde68a', stroke: '#ca8a04' },
+  { fill: '#bfdbfe', stroke: '#3b82f6' },
+  { fill: '#fecaca', stroke: '#ef4444' },
+  { fill: '#bbf7d0', stroke: '#22c55e' },
+  { fill: '#e9d5ff', stroke: '#a855f7' },
+  { fill: '#fed7aa', stroke: '#ea580c' },
+  { fill: '#cbd5e1', stroke: '#64748b' },
+  { fill: '#fbcfe8', stroke: '#ec4899' },
+  { fill: '#cffafe', stroke: '#06b6d4' },
+];
+
+const SHAPE_BUILDERS: (() => SplitShapeDef)[] = [
+  () => { const pts = regularPoly(50, 50, 28, 32); const c = COLOR_WHEEL[0]; return { pts, label: 'Circle', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 26, 4); const c = COLOR_WHEEL[1]; return { pts, label: 'Square', path: ptsToPath(pts), ...c }; },
+  () => { const pts = [{x:28,y:32},{x:72,y:32},{x:72,y:56},{x:28,y:56}]; const c = COLOR_WHEEL[2]; return { pts, label: 'Rectangle', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 28, 3); const c = COLOR_WHEEL[3]; return { pts, label: 'Triangle', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 26, 5); const c = COLOR_WHEEL[4]; return { pts, label: 'Pentagon', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 26, 6); const c = COLOR_WHEEL[5]; return { pts, label: 'Hexagon', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 26, 8); const c = COLOR_WHEEL[6]; return { pts, label: 'Octagon', path: ptsToPath(pts), ...c }; },
+  () => { const pts = starShape(50, 50, 28, 13, 5); const c = COLOR_WHEEL[7]; return { pts, label: 'Star', path: ptsToPath(pts), ...c }; },
+  () => { const pts = heartShape(); const c = COLOR_WHEEL[8]; return { pts, label: 'Heart', path: ptsToPath(pts), ...c }; },
+  () => { const pts = diamondShape(); const c = COLOR_WHEEL[0]; return { pts, label: 'Diamond', path: ptsToPath(pts), ...c }; },
+  () => { const pts = arrowShape(); const c = COLOR_WHEEL[1]; return { pts, label: 'Arrow', path: ptsToPath(pts), ...c }; },
+  () => { const pts = crescentShape(); const c = COLOR_WHEEL[2]; return { pts, label: 'Crescent', path: ptsToPath(pts), ...c }; },
+  () => { const pts = crossShape(); const c = COLOR_WHEEL[3]; return { pts, label: 'Cross', path: ptsToPath(pts), ...c }; },
+  () => { const pts = shieldShape(); const c = COLOR_WHEEL[4]; return { pts, label: 'Shield', path: ptsToPath(pts), ...c }; },
+  () => { const pts = dropShape(); const c = COLOR_WHEEL[5]; return { pts, label: 'Drop', path: ptsToPath(pts), ...c }; },
+  () => { const pts = boltShape(); const c = COLOR_WHEEL[6]; return { pts, label: 'Lightning', path: ptsToPath(pts), ...c }; },
+  () => { const pts = starShape(50, 50, 24, 10, 7); const c = COLOR_WHEEL[7]; return { pts, label: 'Compass', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(42, 24); const c = COLOR_WHEEL[8]; return { pts, label: 'Amber', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(73, 25); const c = COLOR_WHEEL[0]; return { pts, label: 'Pebble', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(91, 23); const c = COLOR_WHEEL[1]; return { pts, label: 'Coral', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(18, 26); const c = COLOR_WHEEL[2]; return { pts, label: 'Moss', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 22, 10); const c = COLOR_WHEEL[3]; return { pts, label: 'Decagon', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 22, 12); const c = COLOR_WHEEL[4]; return { pts, label: 'Dodecagon', path: ptsToPath(pts), ...c }; },
+];
+
+function randomShape(): SplitShapeDef {
+  return SHAPE_BUILDERS[Math.floor(Math.random() * SHAPE_BUILDERS.length)]();
+}
+
+/** Score from 0-100 based on deviation from 50/50, using non-linear curve */
+function computeSplitScore(areaPctA: number, areaPctB: number): number {
+  const deviation = Math.abs(50 - areaPctA);
+  if (deviation <= 0.1) return 100;
+  // Non-linear: small deviations are penalized lightly, large ones heavily
+  const raw = 100 * Math.exp(-deviation * deviation / 60);
+  return Math.max(0, Math.round(raw));
 }
 
 function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-perfect-split');
-  const [running,setRunning]=useState(false);const [solved,setSolved]=useState(0);
-  const [balances,setBalances]=useState<number[]>([]);
-  const [leftAngle,setLeftAngle]=useState(0.15);const [rightAngle,setRightAngle]=useState(0.6);
-  const [submitted,setSubmitted]=useState<{balanceScore:number;leftPercent:number;rightPercent:number}|null>(null);
-  const [shape,setShape]=useState<SplitShape>(randomSplitShape());
-  const [dragging,setDragging]=useState<'left'|'right'|null>(null);
-  const boardRef=useRef<HTMLDivElement|null>(null);const hsrf=useRef(false);const isFinished=!running&&solved>=4;
-  const avgBalance=balances.length===0?null:Math.round(balances.reduce((a,b)=>a+b,0)/balances.length);
-  const labScore=avgBalance===null?null:avgBalance*10;
-  const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
+  const TOTAL_ROUNDS = 4;
+  const [phase, setPhase] = useState<'idle' | 'playing' | 'result' | 'finished'>('idle');
+  const [roundIdx, setRoundIdx] = useState(0);
+  const [shape, setShape] = useState<SplitShapeDef>(randomShape());
+  const [idxA, setIdxA] = useState(0);
+  const [idxB, setIdxB] = useState(4);
+  const [dragging, setDragging] = useState<0 | 1 | null>(null);
+  const [result, setResult] = useState<{ pctA: number; pctB: number; score: number } | null>(null);
+  const [scores, setScores] = useState<number[]>([]);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const hasSavedRef = useRef(false);
+  const hasAutoStarted = useRef(false);
+  const cd = useDuelCountdown(isMultiplayerSession);
 
-  useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
-  useEffect(()=>{if(!isSignedIn||!isFinished||labScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-perfect-split',score:labScore,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})},[isFinished,isMultiplayerSession,isSignedIn,labScore,goToIntermission,mm]);
+  useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
 
-  function angleFromPoint(e:React.PointerEvent<HTMLDivElement>):number{
-    const b=boardRef.current;if(!b)return 0;
-    const r=b.getBoundingClientRect();
-    const bx=r.width/2,by=r.height/2;
-    const px=e.clientX-r.left,py=e.clientY-r.top;
-    return Math.atan2(py-by,px-bx)/(Math.PI*2);
+  const avgScore = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+  const labScore = avgScore !== null ? avgScore * 10 : null;
+
+  useEffect(() => {
+    if (!isSignedIn || phase !== 'finished' || labScore === null || hasSavedRef.current) return;
+    hasSavedRef.current = true;
+    fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { if(r.ok && isMultiplayerSession) goToIntermission(); });
+  }, [phase, isSignedIn, labScore, isMultiplayerSession, goToIntermission, mm]);
+
+  function getContourIndex(e: React.PointerEvent<HTMLDivElement>): number | null {
+    const b = boardRef.current; if (!b) return null;
+    const r = b.getBoundingClientRect();
+    const px = ((e.clientX - r.left) / r.width) * 100;
+    const py = ((e.clientY - r.top) / r.height) * 100;
+    return closestVertexIndex(shape.pts, px, py);
   }
 
-  function handlePointerDown(e:React.PointerEvent<HTMLDivElement>,handle:'left'|'right'){
-    if(!running||submitted)return;
+  function startGame() {
+    const s = randomShape();
+    setShape(s);
+    setPhase('playing');
+    setRoundIdx(0);
+    setScores([]);
+    setResult(null);
+    hasSavedRef.current = false;
+    // Place point A somewhere random on contour, point B roughly opposite
+    const half = Math.floor(s.pts.length / 2);
+    const offset = Math.floor(Math.random() * s.pts.length);
+    const a = offset % s.pts.length;
+    const b = (offset + Math.floor(half * (0.8 + Math.random() * 0.4))) % s.pts.length;
+    setIdxA(a);
+    setIdxB(b);
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, handle: 0 | 1) {
+    if (phase !== 'playing') return;
     setDragging(handle);
-    const a=angleFromPoint(e);
-    if(handle==='left')setLeftAngle(a);else setRightAngle(a);
-    const target=e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
+    const idx = getContourIndex(e);
+    if (idx !== null) {
+      if (handle === 0) setIdxA(idx); else setIdxB(idx);
+    }
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
-  function handlePointerMove(e:React.PointerEvent<HTMLDivElement>){
-    if(!dragging||!running||submitted)return;
-    const a=angleFromPoint(e);
-    if(dragging==='left')setLeftAngle(a);else setRightAngle(a);
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (dragging === null || phase !== 'playing') return;
+    const idx = getContourIndex(e);
+    if (idx !== null) {
+      if (dragging === 0) setIdxA(idx); else setIdxB(idx);
+    }
   }
 
-  function handlePointerUp(){
+  function handlePointerUp() {
     setDragging(null);
   }
 
-  function startRun(){
-    hsrf.current=false;setRunning(true);setSolved(0);setBalances([]);
-    const s=randomSplitShape();setShape(s);
-    setLeftAngle(0.05+Math.random()*0.3);setRightAngle(0.55+Math.random()*0.35);
-    setSubmitted(null);
+  function submitSplit() {
+    if (phase !== 'playing') return;
+    if (idxA === idxB) return;
+    const [a1, a2] = splitAreas(shape.pts, idxA, idxB);
+    const total = a1 + a2;
+    if (total === 0) return;
+    const pctA = Math.round((a1 / total) * 100);
+    const pctB = 100 - pctA;
+    const score = computeSplitScore(pctA, pctB);
+    setResult({ pctA, pctB, score });
+    setScores(prev => [...prev, score]);
+    setPhase('result');
   }
 
-  function submitShape(){
-    if(!running||submitted)return;
-    // Ensure left is always the smaller angle
-    const l=Math.min(leftAngle,rightAngle);
-    const r=Math.max(leftAngle,rightAngle);
-    const total=r-l;
-    const leftShare=total===0?0.5:l/total;
-    const rightShare=total===0?0.5:(1-r)/total;
-    const idealSplit=0.5;
-    const balanceScore=Math.max(0,100-Math.round(Math.abs(idealSplit-leftShare)*200));
-    setSubmitted({
-      balanceScore,
-      leftPercent:Math.round((leftShare/(leftShare+rightShare))*100),
-      rightPercent:Math.round((rightShare/(leftShare+rightShare))*100),
-    });
+  function advanceRound() {
+    const nr = roundIdx + 1;
+    if (nr >= TOTAL_ROUNDS) {
+      setPhase('finished');
+      return;
+    }
+    const s = randomShape();
+    setShape(s);
+    setRoundIdx(nr);
+    setResult(null);
+    setPhase('playing');
+    const half = Math.floor(s.pts.length / 2);
+    const offset = Math.floor(Math.random() * s.pts.length);
+    const a = offset % s.pts.length;
+    const b = (offset + Math.floor(half * (0.8 + Math.random() * 0.4))) % s.pts.length;
+    setIdxA(a);
+    setIdxB(b);
   }
 
-  function advanceShape(){
-    if(!submitted)return;
-    const ns=solved+1;setBalances(c=>[...c,submitted.balanceScore]);
-    setSubmitted(null);
-    if(ns>=4){setSolved(4);setRunning(false);return}
-    setSolved(ns);
-    const s=randomSplitShape();setShape(s);
-    setLeftAngle(0.05+Math.random()*0.3);setRightAngle(0.55+Math.random()*0.35);
+  const pa = shape.pts[idxA];
+  const pb = shape.pts[idxB];
+
+  function colorClass(score: number): string {
+    if (score >= 85) return 'text-emerald-600';
+    if (score >= 60) return 'text-amber-600';
+    return 'text-rose-600';
   }
 
-  const lx=shape.cx+shape.r*Math.cos(leftAngle*Math.PI*2);
-  const ly=shape.cy+shape.r*Math.sin(leftAngle*Math.PI*2);
-  const rx=shape.cx+shape.r*Math.cos(rightAngle*Math.PI*2);
-  const ry=shape.cy+shape.r*Math.sin(rightAngle*Math.PI*2);
+  return <AimShell title="Perfect Split" kicker="Geometric precision" description="Drag two dots along the shape's edge to split it as evenly as possible." accent="border-amber-200 bg-amber-50 text-amber-900"
+    isSignedIn={isSignedIn}
+    stats={[
+      { label: 'Round', value: phase === 'idle' ? '--' : `${Math.min(roundIdx + 1, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`, detail: 'Four shapes per run.' },
+      { label: 'Shape', value: phase === 'idle' ? '--' : shape.label, detail: 'Random shape each round.' },
+      { label: 'Avg Score', value: avgScore === null ? '--' : `${avgScore}%`, detail: 'Average split accuracy.' },
+      { label: 'Lab Score', value: labScore === null ? '--' : String(labScore), detail: 'Scaled to 1000-point range.' },
+    ]}>
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+          {phase === 'idle' ? 'Press start' : phase === 'playing' ? `Split the ${shape.label}` : phase === 'result' ? `Round ${roundIdx + 1} result` : 'Run complete'}
+        </div>
+      </div>
+      <div className="relative">
+        <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-40 sm:pb-80 touch-none select-none">
+          {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
 
-  return <AimShell title="Perfect Split" kicker="Geometric precision" description="Drag the two dots around the shape to split it as evenly as possible." accent="border-amber-200 bg-amber-50 text-amber-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(4-solved,0)}`,detail:'Solve the current shape.'},{label:'Average Balance',value:avgBalance===null?'--':`${avgBalance}%`,detail:'Average across submitted shapes.'},{label:'Lab Score',value:labScore===null?'--':`${labScore}`,detail:'Average balance scaled to 1000.'},{label:'Status',value:isFinished?'Done':running?'Split':'Ready',detail:isFinished?'Four rounds complete.':submitted===null?'Drag dots around the shape.':'Read result.'}]}>
-    <div className="space-y-4"><div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-40 sm:pb-80 touch-none select-none">
-      {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
-      {(running||submitted||isFinished)&&<>
-        {submitted && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 rounded-full bg-white/90 border-2 border-slate-200 px-5 py-2 text-center shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{shape.label}</p>
+          {(phase === 'playing' || phase === 'result' || phase === 'finished') && (
+            <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
+              {/* Shape outline */}
+              <path d={shape.path} fill={shape.fill} fillOpacity="0.72" stroke={shape.stroke} strokeWidth="2.4"/>
+
+              {phase === 'result' && result && (
+                <>
+                  {/* Show split with colored fill */}
+                  {(() => {
+                    const a = idxA; const b = idxB;
+                    const n = shape.pts.length;
+                    const half1: Point[] = [shape.pts[a], shape.pts[b]];
+                    const half2: Point[] = [shape.pts[b], shape.pts[a]];
+                    for (let i = a; i !== b; i = (i + 1) % n) half2.push(shape.pts[i]);
+                    for (let i = b; i !== a; i = (i + 1) % n) half1.push(shape.pts[i]);
+                    const good = result.score >= 85;
+                    return (
+                      <>
+                        {half1.length >= 3 && <path d={ptsToPath(half1)} fill={good ? '#bbf7d0' : '#fde68a'} fillOpacity="0.72" stroke={good ? '#22c55e' : '#ca8a04'} strokeWidth="1.5"/>}
+                        {half2.length >= 3 && <path d={ptsToPath(half2)} fill={good ? '#bbf7d0' : '#fecaca'} fillOpacity="0.72" stroke={good ? '#22c55e' : '#ef4444'} strokeWidth="1.5"/>}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+
+              {/* Split line */}
+              {(phase === 'playing' || phase === 'result') && (
+                <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#0f172a" strokeDasharray={phase === 'result' ? 'none' : '4 4'} strokeWidth="2"/>
+              )}
+
+              {/* Draggable dots (only in playing) */}
+              {phase === 'playing' && (
+                <>
+                  <circle cx={pa.x} cy={pa.y} r="5.5" fill="#3b82f6" stroke="#fff" strokeWidth="2.5" style={{cursor: 'grab'}}/>
+                  <circle cx={pb.x} cy={pb.y} r="5.5" fill="#ef4444" stroke="#fff" strokeWidth="2.5" style={{cursor: 'grab'}}/>
+                </>
+              )}
+            </svg>
+          )}
+
+          {/* Invisible pointer hit zones for dragging */}
+          {phase === 'playing' && (
+            <div className="absolute inset-0" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
+              <div className="absolute"
+                style={{ left: `${pa.x}%`, top: `${pa.y}%`, width: '48px', height: '48px', transform: 'translate(-24px,-24px)', zIndex: 10 }}
+                onPointerDown={e => handlePointerDown(e, 0)}/>
+              <div className="absolute"
+                style={{ left: `${pb.x}%`, top: `${pb.y}%`, width: '48px', height: '48px', transform: 'translate(-24px,-24px)', zIndex: 10 }}
+                onPointerDown={e => handlePointerDown(e, 1)}/>
+            </div>
+          )}
+
+          {/* Result overlay */}
+          {phase === 'result' && result && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
+              <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg w-64">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{shape.label}</p>
+                <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score}%</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {result.pctA}% / {result.pctB}%
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Deviation: {Math.abs(50 - result.pctA).toFixed(1)}%
+                </p>
+                <button className="lab-button mt-4" onClick={advanceRound} type="button">
+                  {roundIdx + 1 >= TOTAL_ROUNDS ? 'See Final Score' : 'Next Shape'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Finished overlay */}
+          {phase === 'finished' && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
+              <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
+                <p className="mt-3 text-4xl font-black text-slate-800">{labScore ?? '--'}</p>
+                <p className="mt-1 text-sm text-slate-500">Avg: {avgScore}%</p>
+                <button className="lab-button mt-4" onClick={startGame} type="button">Start New Run</button>
+              </div>
+            </div>
+          )}
+
+          {/* Idle overlay */}
+          {phase === 'idle' && !isMultiplayerSession && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
+              <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Perfect Split</p>
+                <p className="mt-2 text-sm font-semibold text-slate-600">Split four shapes as evenly as possible by dragging the dots.</p>
+                <button className="lab-button mt-4" onClick={startGame} type="button">Start Split Test</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        {phase === 'playing' && (
+          <div className="mt-4 flex justify-center">
+            <button className="lab-button" onClick={submitSplit} type="button">Done</button>
           </div>
         )}
-        <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-          {submitted ? (
-            // After submit: show the split areas filled
-            <>
-              <path d={`M${shape.cx},${shape.cy} L${lx},${ly} A${shape.r},${shape.r} 0 0 1 ${rx},${ry} Z`} fill="#fde68a" fillOpacity="0.72" stroke="#ca8a04" strokeWidth="2.4"/>
-              <path d={`M${shape.cx},${shape.cy} L${lx},${ly} A${shape.r},${shape.r} 0 0 0 ${rx},${ry} Z`} fill="#bbf7d0" fillOpacity="0.72" stroke="#22c55e" strokeWidth="2.4"/>
-              <line x1={lx} y1={ly} x2={shape.cx} y2={shape.cy} stroke="#0f172a" strokeDasharray="2 3" strokeWidth="1.5"/>
-              <line x1={rx} y1={ry} x2={shape.cx} y2={shape.cy} stroke="#0f172a" strokeDasharray="2 3" strokeWidth="1.5"/>
-              <circle cx={lx} cy={ly} r="3" fill="#0f172a"/>
-              <circle cx={rx} cy={ry} r="3" fill="#0f172a"/>
-              {/* Shape outline */}
-              {shape.path && <path d={shape.path} fill="none" stroke={shape.stroke} strokeWidth="2"/>}
-              {!shape.path && <circle cx={shape.cx} cy={shape.cy} r={shape.r} fill="none" stroke={shape.stroke} strokeWidth="2"/>}
-            </>
-          ) : (
-            <>
-              {/* Shape fill + outline */}
-              {shape.path && <path d={shape.path} fill={shape.fill} fillOpacity="0.72" stroke={shape.stroke} strokeWidth="2.4"/>}
-              {!shape.path && <circle cx={shape.cx} cy={shape.cy} r={shape.r} fill={shape.fill} fillOpacity="0.72" stroke={shape.stroke} strokeWidth="2.4"/>}
-              {/* Split line between the two points */}
-              <line x1={lx} y1={ly} x2={rx} y2={ry} stroke="#0f172a" strokeDasharray="4 4" strokeWidth="2"/>
-              {/* Draggable dots */}
-              <circle cx={lx} cy={ly} r="5" fill="#3b82f6" stroke="#fff" strokeWidth="2" style={{cursor:dragging==='left'?'grabbing':'grab'}}/>
-              <circle cx={rx} cy={ry} r="5" fill="#ef4444" stroke="#fff" strokeWidth="2" style={{cursor:dragging==='right'?'grabbing':'grab'}}/>
-            </>
-          )}
-        </svg>
-        {/* Invisible overlay for pointer events on draggable dots */}
-        <div className="absolute inset-0" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
-          <div className="absolute" style={{left:`${lx}%`,top:`${ly}%`,width:'44px',height:'44px',transform:'translate(-22px,-22px)',zIndex:10}} onPointerDown={e=>handlePointerDown(e,'left')}/>
-          <div className="absolute" style={{left:`${rx}%`,top:`${ry}%`,width:'44px',height:'44px',transform:'translate(-22px,-22px)',zIndex:10}} onPointerDown={e=>handlePointerDown(e,'right')}/>
-        </div>
-      </>}
-      {submitted?<div className="absolute inset-x-4 bottom-4 z-20 flex items-end gap-3 rounded-[1.5rem] border-2 border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"><div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Balance</p><p className="mt-1 text-2xl font-black tracking-tight text-slate-800">{submitted.balanceScore}%</p></div><button className="lab-button ml-auto shrink-0" onClick={advanceShape} type="button">{solved>=4?'Done':'Next'}</button></div>
-      :running?<div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-3 rounded-[1.5rem] border-2 border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Drag the dots to split the shape</p></div><button className="lab-button shrink-0" onClick={submitShape} type="button">Done</button></div>
-      :isFinished?<div className="absolute inset-0 flex items-center justify-center"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Done</p><p className="mt-2 text-xl font-black tracking-tight text-slate-800">Four rounds complete</p><button className="mt-4 lab-button" onClick={startRun} type="button">Run again</button></div></div>
-      :!isMultiplayerSession && !running && !isFinished ?<div className="absolute inset-0 flex items-center justify-center"><button className="lab-button" onClick={startRun} type="button">Start Split Test</button></div>
-      :null}
-    </div></div>
+      </div>
+    </div>
   </AimShell>
 }
 
