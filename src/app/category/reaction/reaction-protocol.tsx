@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { useDuelCountdown } from '@/components/use-duel-countdown';
 
 type ReactionProtocolProps = {
   initialAttempts: number;
@@ -12,93 +13,39 @@ type ReactionProtocolProps = {
 
 type Phase = 'idle' | 'waiting' | 'ready' | 'clicked' | 'too-soon' | 'finished';
 
-/**
- * Reaction Time — fully automated in duel mode.
- * Countdown, then wait for signal, click to react.
- * Repeats 4 rounds automatically.
- */
 export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtocolProps) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('reaction-time');
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [phase, setPhase] = useState<Phase>(isMultiplayerSession ? 'idle' : 'idle');
   const [reactionMs, setReactionMs] = useState<number | null>(null);
   const [attempts, setAttempts] = useState(initialAttempts);
   const [bestScore, setBestScore] = useState<number | null>(null);
   const [roundTimes, setRoundTimes] = useState<number[]>([]);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [showGo, setShowGo] = useState(false);
+  const [runStarted, setRunStarted] = useState(false);
 
   const readyAtRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasAutoStarted = useRef(false);
 
-  // Duel countdown: 3-2-1-GO then start first round
+  // Duel countdown hook - reliable, decoupled from React lifecycle
+  const cd = useDuelCountdown(isMultiplayerSession);
+
+  // When countdown completes, start the game
   useEffect(() => {
-    if (!isMultiplayerSession || roundTimes.length > 0 || phase !== 'idle') return;
+    if (!cd.launched || hasAutoStarted.current) return;
+    hasAutoStarted.current = true;
+    startProtocol();
+  }, [cd.launched]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    let cancel = false;
-    const runCountdown = async () => {
-      for (let c = 3; c >= 1; c--) {
-        if (cancel) return;
-        setCountdown(c);
-        setShowGo(false);
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      if (cancel) return;
-      setShowGo(true);
-      setCountdown(null);
-      await new Promise((r) => setTimeout(r, 700));
-      if (cancel) return;
-      setShowGo(false);
-      startProtocol();
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-    const t = setTimeout(runCountdown, 200);
-    return () => { cancel = true; clearTimeout(t); };
-  }, [isMultiplayerSession]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Duel between-round countdown: 3-2-1-GO then start next round
-  useEffect(() => {
-    if (!isMultiplayerSession || phase !== 'clicked' || roundTimes.length >= 4) return;
-    if (!isMultiplayerSession) return;
-
-    let cancel = false;
-    const runCountdown = async () => {
-      // Wait 500ms to show the "clicked" result
-      await new Promise((r) => setTimeout(r, 500));
-      if (cancel) return;
-      for (let c = 3; c >= 1; c--) {
-        if (cancel) return;
-        setCountdown(c);
-        setShowGo(false);
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-      if (cancel) return;
-      setShowGo(true);
-      setCountdown(null);
-      await new Promise((r) => setTimeout(r, 700));
-      if (cancel) return;
-      setShowGo(false);
-      startProtocol();
-    };
-    const t = setTimeout(runCountdown, 0);
-    return () => { cancel = true; clearTimeout(t); };
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function clearPendingTimer() {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    readyAtRef.current = null;
-  }
-
-  useEffect(() => {
-    return () => clearPendingTimer();
   }, []);
 
   function startProtocol() {
-    clearPendingTimer();
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setPhase('waiting');
     setReactionMs(null);
-
     const delay = 2000 + Math.round(Math.random() * 4000);
     timeoutRef.current = setTimeout(() => {
       readyAtRef.current = performance.now();
@@ -118,17 +65,13 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       if (!response.ok || !payload?.ok || typeof payload.score !== 'number') return;
       const savedScore: number = payload.score;
       setAttempts((c) => c + 1);
-      setBestScore((prev) => {
-        if (prev === null) return savedScore;
-        return Math.max(prev, savedScore);
-      });
+      setBestScore((prev) => (prev === null ? savedScore : Math.max(prev, savedScore)));
       if (isMultiplayerSession) goToIntermission();
     })();
   }
 
   function handleArenaClick() {
-    // Block clicks during countdown overlay
-    if (countdown !== null || showGo) return;
+    if (cd.active) return;
 
     if (phase === 'idle' || phase === 'finished') {
       setRoundTimes([]);
@@ -136,18 +79,11 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       return;
     }
 
-    if (phase === 'too-soon') {
-      startProtocol();
-      return;
-    }
-
-    if (phase === 'clicked') {
-      if (!isMultiplayerSession) startProtocol();
-      return;
-    }
+    if (phase === 'too-soon') { startProtocol(); return; }
+    if (phase === 'clicked') { return; }
 
     if (phase === 'waiting') {
-      clearPendingTimer();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setPhase('too-soon');
       setReactionMs(null);
       return;
@@ -155,7 +91,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
 
     if (phase === 'ready' && readyAtRef.current !== null) {
       const ms = Math.round(performance.now() - readyAtRef.current);
-      clearPendingTimer();
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setReactionMs(ms);
 
       const newTimes = [...roundTimes, ms];
@@ -167,8 +103,9 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
         saveResult(avgMs);
       } else {
         setPhase('clicked');
-        // In solo mode: start immediately. In duel: countdown handles it.
-        if (!isMultiplayerSession) startProtocol();
+        if (isMultiplayerSession) {
+          setTimeout(() => startProtocol(), 1500);
+        }
       }
     }
   }
@@ -188,9 +125,8 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
     : phase === 'too-soon' ? 'Too soon'
     : phase === 'finished' ? `${roundAvg ?? '--'} ms avg`
     : phase === 'clicked' ? `${reactionMs ?? '--'} ms`
-    : countdown !== null ? 'Starting...'
-    : showGo ? 'GO'
-    : isMultiplayerSession ? 'Starting...' : 'Start protocol';
+    : cd.active ? cd.phase === 'go' ? 'GO' : cd.value ? String(cd.value) : '...'
+    : 'Start protocol';
 
   return (
     <section className="lab-card p-4 sm:p-6">
@@ -212,19 +148,16 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       </div>
 
       <div className="relative">
-        {/* Countdown overlay for duel mode */}
-        {(countdown !== null || showGo) && (
+        {/* Countdown overlay */}
+        {cd.active && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
-            {showGo ? (
-              <p className="text-7xl font-black tracking-tight text-emerald-600">GO</p>
-            ) : (
-              <div className="text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                  {roundTimes.length === 0 ? 'Reaction Time' : `Round ${roundTimes.length + 1}`}
-                </p>
-                <p className="text-8xl font-black tracking-tighter text-slate-800">{countdown}</p>
-              </div>
-            )}
+            <div className="text-center">
+              {cd.phase === 'go' ? (
+                <p className="text-7xl font-black tracking-tight text-emerald-600">GO</p>
+              ) : (
+                <p className="text-8xl font-black tracking-tighter text-slate-800">{cd.value}</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -240,7 +173,8 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
              phase === 'too-soon' ? 'Click to restart.' :
              phase === 'finished' ? 'Round complete.' :
              phase === 'clicked' ? `Round ${roundTimes.length} / 4` :
-             'Preparing...'}
+             cd.active ? 'Getting ready...' :
+             'Click the panel to begin.'}
           </span>
         </button>
       </div>
