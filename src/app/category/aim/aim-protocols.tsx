@@ -445,14 +445,35 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     setIdxB(b);
   }
 
+  const rafRef = useRef<number | null>(null);
+
+  function startRafLoop() {
+    if (rafRef.current !== null) return;
+    function tick() {
+      setTick(t => t + 1);
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function stopRafLoop() {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }
+
+  const [tick, setTick] = useState(0);
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, handle: 0 | 1) {
     if (phase !== 'playing') return;
     setDragging(handle);
     const pos = getSmoothPos(e);
     if (pos !== null) {
-      if (handle === 0) { posARef.current = pos; setIdxA(pos.idx); }
-      else { posBRef.current = pos; setIdxB(pos.idx); }
+      if (handle === 0) posARef.current = pos;
+      else posBRef.current = pos;
     }
+    startRafLoop();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
@@ -460,17 +481,14 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     if (dragging === null || phase !== 'playing') return;
     const pos = getSmoothPos(e);
     if (pos !== null) {
-      if (dragging === 0) { posARef.current = pos; setIdxA(pos.idx); }
-      else { posBRef.current = pos; setIdxB(pos.idx); }
+      if (dragging === 0) posARef.current = pos;
+      else posBRef.current = pos;
     }
   }
 
   function handlePointerUp() {
     setDragging(null);
-  }
-
-  function computeEdgePos(shape: Point[], state: { idx: number; frac: number }): Point {
-    return edgePoint(shape, state.idx, state.frac);
+    stopRafLoop();
   }
 
   function submitSplit() {
