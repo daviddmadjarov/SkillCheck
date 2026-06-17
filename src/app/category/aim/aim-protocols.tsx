@@ -32,8 +32,11 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
       {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
       <button key={targetSeed} className="absolute h-[88px] w-[88px] rounded-full border-0 bg-transparent transition-opacity duration-150 ease-out" onClick={click} type="button" style={{left:`clamp(18px,${target.x}%,calc(100% - 90px))`,top:`clamp(18px,${target.y}%,calc(100% - 90px))`,transform:'translate(-50%,-50%)'}}>
-        <span className="relative flex h-[88px] w-[88px] items-center justify-center rounded-full border-[8px] border-blue-600 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)]">
-          <span className="absolute h-[68px] w-[68px] rounded-full border-[8px] border-white bg-blue-600"/><span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-blue-300"/><span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-blue-700"/>
+        <span className="flex flex-col items-center">
+          <span className="relative flex h-[88px] w-[88px] items-center justify-center rounded-full border-[8px] border-blue-600 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)]">
+            <span className="absolute h-[68px] w-[68px] rounded-full border-[8px] border-white bg-blue-600"/><span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-blue-300"/><span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-blue-700"/>
+          </span>
+          {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
       </button>
       {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className="lab-button" onClick={startRun} type="button">Try again</button></div>}
@@ -62,7 +65,10 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 sm:min-h-[28rem]" onClick={()=>{}}>
       {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
       <button key={targetSeed} className="absolute h-[88px] w-[88px] rounded-full border-0 bg-transparent" onClick={e=>{e.stopPropagation();click()}} type="button" style={{left:`clamp(18px,${target.x}%,calc(100% - 90px))`,top:`clamp(18px,${target.y}%,calc(100% - 90px))`,transform:'translate(-50%,-50%)'}}>
-        <span className="relative flex h-[88px] w-[88px] items-center justify-center rounded-full border-[8px] border-emerald-600 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)]"><span className="absolute h-[68px] w-[68px] rounded-full border-[8px] border-white bg-emerald-600"/><span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-emerald-300"/><span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-emerald-700"/></span>
+        <span className="flex flex-col items-center">
+          <span className="relative flex h-[88px] w-[88px] items-center justify-center rounded-full border-[8px] border-emerald-600 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)]"><span className="absolute h-[68px] w-[68px] rounded-full border-[8px] border-white bg-emerald-600"/><span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-emerald-300"/><span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-emerald-700"/></span>
+          {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
+        </span>
       </button>
       {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className="rounded-2xl border-b-4 border-emerald-800 bg-emerald-600 px-6 py-3 font-bold text-white" onClick={startRun} type="button">Try again</button></div>}
     </div></div>
@@ -95,7 +101,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
       {submitted?<div className="absolute inset-x-4 bottom-4 z-20 flex items-end gap-3 rounded-[1.5rem] border-2 border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"><div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Balance</p><p className="mt-1 text-2xl font-black tracking-tight text-slate-800">{submitted.balanceScore}%</p></div><button className="lab-button ml-auto shrink-0" onClick={advanceShape} type="button">{solved>=4?'Done':'Next'}</button></div>
       :running?<div className="absolute inset-x-4 bottom-4 z-20 flex items-end justify-between gap-3 rounded-[1.5rem] border-2 border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Ready</p></div><button className="lab-button shrink-0" onClick={submitShape} type="button">Done</button></div>
       :isFinished?<div className="absolute inset-0 flex items-center justify-center"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Done</p><p className="mt-2 text-xl font-black tracking-tight text-slate-800">Four rounds complete</p><button className="mt-4 lab-button" onClick={startRun} type="button">Run again</button></div></div>
-      :!isMultiplayerSession?<div className="absolute inset-0 flex items-center justify-center"><button className="lab-button" onClick={startRun} type="button">Start Split Test</button></div>
+      :!isMultiplayerSession && !running && !isFinished ?<div className="absolute inset-0 flex items-center justify-center"><button className="lab-button" onClick={startRun} type="button">Start Split Test</button></div>
       :null}
     </div></div>
   </AimShell>

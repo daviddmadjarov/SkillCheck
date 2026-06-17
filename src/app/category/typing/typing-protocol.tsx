@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { useDuelCountdown } from '@/components/use-duel-countdown';
 
 type TypingProtocolProps = {
   initialDuration?: DurationSeconds;
@@ -68,6 +69,18 @@ export function TypingProtocol({
   isSignedIn,
 }: TypingProtocolProps) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('typing-speed');
+  const typeCd = useDuelCountdown(isMultiplayerSession);
+  const typeHasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!typeCd.launched || typeHasAutoStarted.current) return;
+    typeHasAutoStarted.current = true;
+    // Start timer immediately after countdown
+    setStarted(true);
+    setStartMs(performance.now());
+    setElapsedMs(0);
+  }, [typeCd.launched]); // eslint-disable-line
+
   const [language, setLanguage] = useState<LanguageKey>(initialLanguage);
   const [duration, setDuration] = useState<DurationSeconds>(initialDuration);
   const [words, setWords] = useState<string[]>(() => initialWords(initialLanguage, 220));
@@ -275,6 +288,20 @@ export function TypingProtocol({
         <button className="rounded-full border-2 border-slate-800 bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" onClick={() => resetRun()} type="button">
           New words
         </button>
+        {typeCd.active && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+            <div className="text-center">
+              {typeCd.phase === 'go' ? (
+                <p className="text-7xl font-black tracking-tight text-emerald-600">GO</p>
+              ) : (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Typing Speed Test</p>
+                  <p className="mt-2 text-8xl font-black tracking-tighter text-slate-800">{typeCd.value}</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="relative rounded-[1.7rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 sm:p-5" onClick={handlePanelClick}>
@@ -360,7 +387,7 @@ export function TypingProtocol({
         <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Status</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{finished ? 'Done' : started ? 'Live' : 'Ready'}</p>
-          <p className="mt-1 text-sm font-medium text-slate-500">{finished ? 'Press Try Again for a new run.' : started ? 'Typing session running.' : 'Start typing to begin the timer.'}</p>
+      <p className="mt-1 text-sm font-medium text-slate-500">{finished ? 'Press Try Again for a new run.' : started ? 'Typing session running.' : isMultiplayerSession && typeCd.active ? 'Preparing...' : 'Start typing to begin the timer.'}</p>
         </div>
       </div>
     </section>

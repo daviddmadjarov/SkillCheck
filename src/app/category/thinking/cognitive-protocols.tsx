@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { useDuelCountdown } from '@/components/use-duel-countdown';
 
 export type CognitiveMode = 'rotation' | 'estimation' | 'sequence';
 
@@ -363,7 +364,16 @@ function makeRotRound(lastFamilyIdx: number): RotRound {
 
 function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('mental-rotation');
-  const ROUNDS = 10;
+  const ROUNDS = 4;
+  const cd = useDuelCountdown(isMultiplayerSession);
+  const hasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!cd.launched || hasAutoStarted.current) return;
+    hasAutoStarted.current = true;
+    startRun();
+  }, [cd.launched]); // eslint-disable-line
+
   const [phase, setPhase] = useState<'idle' | 'playing' | 'reveal' | 'finished'>('idle');
   const [roundIdx, setRoundIdx] = useState(0);
   const [round, setRound] = useState<RotRound | null>(null);
@@ -480,7 +490,12 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
             </div>
           )}
 
-          {phase === 'idle' && (
+          {phase === 'idle' && isMultiplayerSession && cd.active && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
+              <div className="text-center">{cd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div>
+            </div>
+          )}
+          {phase === 'idle' && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mental Rotation</p>
@@ -798,6 +813,15 @@ function EstVisual({ dotsHidden, task }: { dotsHidden: boolean; task: EstTask })
 function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('estimation-challenge');
   const ROUNDS = 10;
+  const estCd = useDuelCountdown(isMultiplayerSession);
+  const estHasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!estCd.launched || estHasAutoStarted.current) return;
+    estHasAutoStarted.current = true;
+    startRun();
+  }, [estCd.launched]); // eslint-disable-line
+
   const [phase, setPhase] = useState<'idle' | 'estimating' | 'reveal' | 'finished'>('idle');
   const [roundIdx, setRoundIdx] = useState(0);
   const [task, setTask] = useState<EstTask | null>(null);
@@ -913,7 +937,12 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
             </div>
           )}
 
-          {phase === 'idle' && (
+          {phase === 'idle' && isMultiplayerSession && estCd.active && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
+              <div className="text-center">{estCd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{estCd.value}</p>}</div>
+            </div>
+          )}
+          {phase === 'idle' && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Estimation Challenge</p>

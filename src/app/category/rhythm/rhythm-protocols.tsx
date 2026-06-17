@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { BetweenRoundCountdown } from '@/components/between-round-countdown';
-import { DuelCountdown } from '@/components/duel-countdown';
+import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { ResponseTimer } from '@/components/response-timer';
 
 type RhythmMode = 'sync' | 'timer';
@@ -193,6 +193,14 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
   const BPM_MAX = 200;
   const TOTAL_ROUNDS = 4;
   const BEATS_PER_ROUND = 8;
+  const syncCd = useDuelCountdown(isMultiplayerSession);
+  const syncHasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!syncCd.launched || syncHasAutoStarted.current) return;
+    syncHasAutoStarted.current = true;
+    void startRun();
+  }, [syncCd.launched]); // eslint-disable-line
 
   const [phase, setPhase] = useState<'idle' | 'listening' | 'guess' | 'reveal' | 'finished'>('idle');
   const [lastGuess, setLastGuess] = useState<number | null>(null);
@@ -422,7 +430,12 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
             </div>
           </div>
 
-          {phase === 'idle' && (
+          {phase === 'idle' && isMultiplayerSession && syncCd.active && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
+              <div className="text-center">{syncCd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{syncCd.value}</p>}</div>
+            </div>
+          )}
+          {phase === 'idle' && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Sync Test</p>
@@ -497,6 +510,14 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
 function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('stop-timer');
   const TOTAL_ROUNDS = 4;
+  const cd = useDuelCountdown(isMultiplayerSession);
+  const hasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (!cd.launched || hasAutoStarted.current) return;
+    hasAutoStarted.current = true;
+    void startRun();
+  }, [cd.launched]); // eslint-disable-line
 
   const [phase, setPhase] = useState<'idle' | 'running' | 'reveal' | 'finished'>('idle');
   const [roundIndex, setRoundIndex] = useState(0);
@@ -682,11 +703,11 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(217,70,239,0.18), transparent 34%), radial-gradient(circle at 78% 72%, rgba(79,70,229,0.16), transparent 36%)' }} />
 
           <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
-            <DuelCountdown
-              gameSlug="Stop Timer"
-              isMultiplayer={isMultiplayerSession}
-              onLaunch={() => void startRun()}
-            />
+            {cd.active && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
+                <div className="text-center">{cd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div>
+              </div>
+            )}
             <BetweenRoundCountdown
               active={isMultiplayerSession && phase === 'reveal' && roundIndex + 1 < TOTAL_ROUNDS}
               label={`Round ${roundIndex + 2}`}
