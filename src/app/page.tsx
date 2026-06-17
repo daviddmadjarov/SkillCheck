@@ -542,7 +542,7 @@ export default async function Home({
                   <GameModeCard
                     key={cat.id}
                     href={`/category/${cat.id}`}
-                    icon={cat.icon}
+                    iconName={cat.icon.name}
                     title={cat.title}
                     desc={cat.desc}
                     color={cat.color}
