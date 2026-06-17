@@ -23,7 +23,7 @@ export type CountdownState = {
 export function useDuelCountdown(isMultiplayer: boolean) {
   const [value, setValue] = useState<number | null>(isMultiplayer ? 3 : null);
   const [phase, setPhase] = useState<'counting' | 'go' | null>(isMultiplayer ? 'counting' : null);
-  const [launched, setLaunched] = useState(!isMultiplayer);
+  const [launched, setLaunched] = useState(false);
   const launchedOnce = useRef(false);
 
   useEffect(() => {
