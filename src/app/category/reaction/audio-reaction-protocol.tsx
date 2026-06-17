@@ -74,7 +74,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
     if (cd.active) return;
     if (phase === 'idle' || phase === 'finished') { setRoundTimes([]); startProtocol(); return; }
     if (phase === 'too-soon') { startProtocol(); return; }
-    if (phase === 'clicked') return;
+    if (phase === 'clicked') { if (!isMultiplayerSession) { startProtocol(); return; } return; }
     if (phase === 'waiting') { if (timeoutRef.current) clearTimeout(timeoutRef.current); setPhase('too-soon'); setReactionMs(null); return; }
     if (phase === 'ready') {
       const ms = Math.round(performance.now() - readyAtRef.current);
@@ -101,7 +101,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <button className={`flex min-h-[18rem] w-full cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-7 text-center transition sm:min-h-[20rem] sm:px-6 sm:py-8 ${phase==='too-soon'?'border-rose-300 bg-rose-100 text-rose-900':phase==='clicked'?'border-cyan-300 bg-cyan-100 text-slate-900':'border-indigo-200 bg-indigo-50 text-slate-800'}`} onClick={handleArenaClick} type="button">
           <span className="text-4xl font-black tracking-tight sm:text-6xl">{phase==='too-soon'?'Too soon':phase==='finished'?`${roundAvg??'--'} ms avg`:phase==='clicked'?`${reactionMs??'--'} ms`:phase==='waiting'||phase==='ready'?'Listen':cd.active?cd.phase==='go'?'GO':cd.value:'Start protocol'}</span>
-          <span className="mt-4 max-w-md text-sm font-bold uppercase tracking-[0.18em] sm:text-base">{phase==='too-soon'?'Click to restart.':phase==='finished'?'Round complete.':phase==='clicked'?`Round ${roundTimes.length} / 4`:phase==='waiting'||phase==='ready'?'Wait for the beep and react as fast as possible.':cd.active?'Getting ready...':'Click the panel to begin.'}</span>
+          <span className="mt-4 max-w-md text-sm font-bold uppercase tracking-[0.18em] sm:text-base">{phase==='too-soon'?'Click to restart.':phase==='finished'?'Round complete.':phase==='clicked' && !isMultiplayerSession?`Round ${roundTimes.length} / 4 · CLICK TO CONTINUE`:phase==='clicked'?`Round ${roundTimes.length} / 4`:phase==='waiting'||phase==='ready'?'Wait for the beep and react as fast as possible.':cd.active?'Getting ready...':'Click the panel to begin.'}</span>
         </button>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

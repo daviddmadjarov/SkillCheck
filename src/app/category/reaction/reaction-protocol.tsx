@@ -80,7 +80,10 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
     }
 
     if (phase === 'too-soon') { startProtocol(); return; }
-    if (phase === 'clicked') { return; }
+    if (phase === 'clicked') {
+      if (!isMultiplayerSession) { startProtocol(); return; }
+      return;
+    }
 
     if (phase === 'waiting') {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -172,6 +175,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
              phase === 'waiting' ? 'Hold steady until the panel changes.' :
              phase === 'too-soon' ? 'Click to restart.' :
              phase === 'finished' ? 'Round complete.' :
+             phase === 'clicked' && !isMultiplayerSession ? `Round ${roundTimes.length} / 4 · CLICK TO CONTINUE` :
              phase === 'clicked' ? `Round ${roundTimes.length} / 4` :
              cd.active ? 'Getting ready...' :
              isMultiplayerSession ? 'Preparing...' :

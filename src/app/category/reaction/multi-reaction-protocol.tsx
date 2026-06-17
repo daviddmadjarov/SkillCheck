@@ -59,6 +59,14 @@ export function MultiReactionProtocol({ initialAttempts, isSignedIn }: { initial
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reaction Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">Multi-Reaction</h2></div><div className="flex flex-wrap items-center gap-2">{!isIdle && phase!=='too-soon' && <div className="rounded-full border-2 border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">Round {Math.min(curRound+1,NUM_BUTTONS)} / {NUM_BUTTONS}</div>}<div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div></div></div>
     <div className="relative">
       {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
+      {phase === 'too-soon' && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-[2rem]">
+          <div className="text-center">
+            <p className="text-5xl font-black tracking-tight text-rose-600 sm:text-6xl">Too soon</p>
+            <p className="mt-3 text-sm font-bold uppercase tracking-[0.2em] text-rose-400">CLICK TO RESTART</p>
+          </div>
+        </div>
+      )}
       <div className={`grid grid-cols-2 gap-4 ${phase==='too-soon'?'opacity-60':''}`}>{LABELS.map((l,i)=>{const a=phase==='active'&&activeBtn===i; return <button key={i} className={`flex min-h-[10rem] cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-6 text-center transition-all duration-75 sm:min-h-[12rem] ${a?ACTIVE_STY[i]:IDLE_STY[i]}`} onClick={()=>click(i)} type="button"><span className="text-5xl font-black tracking-tight sm:text-6xl">{l}</span>{isIdle && <span className="mt-2 text-xs font-bold uppercase tracking-[0.18em] opacity-60">{phase==='idle'?'Click to start':'Click to restart'}</span>}</button>})}</div>
     </div>
     <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
