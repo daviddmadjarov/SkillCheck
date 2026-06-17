@@ -10,7 +10,6 @@ import {
   Timer,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useAudioFeedback } from '@/components/use-audio-feedback';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   reaction: Activity,
@@ -31,16 +30,10 @@ type GameModeCardProps = {
 };
 
 export function GameModeCard({ href, iconKey, title, desc, color, bg }: GameModeCardProps) {
-  const { playHoverSound, playClickSound } = useAudioFeedback();
   const Icon = ICON_MAP[iconKey];
 
   return (
-    <Link
-      href={href}
-      className="lab-card-interactive min-h-[126px] p-5"
-      onMouseEnter={playHoverSound}
-      onClick={playClickSound}
-    >
+    <Link href={href} className="lab-card-interactive min-h-[126px] p-5">
       <div className="flex items-start gap-4">
         <div className={`rounded-2xl border-2 border-white p-3 shadow-sm ${bg}`}>
           {Icon && <Icon className={`h-7 w-7 ${color}`} strokeWidth={2.5} />}

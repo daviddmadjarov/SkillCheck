@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 import { GameModeCard } from '@/components/game-mode-card';
+import { InteractiveSounds } from '@/components/interactive-sounds';
 
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
@@ -403,7 +404,9 @@ export default async function Home({
   const profileMessage = getProfileMessage(resolvedSearchParams);
 
   return (
-    <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
+    <>
+      <InteractiveSounds />
+      <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">
         <header className="flex min-h-[104px] flex-wrap items-center justify-between gap-4 rounded-[2rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:px-6 sm:py-5">
           <Link href="/" className="flex shrink-0 items-center gap-4 cursor-pointer transition-transform hover:scale-105">
@@ -419,7 +422,7 @@ export default async function Home({
 
           <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto sm:justify-start">
             <Link
-              className="flex cursor-pointer list-none items-center gap-3 rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white"
+              className="flex cursor-pointer list-none items-center gap-3 rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 transition-all duration-150 hover:-translate-y-1 hover:bg-white hover:shadow-[0_6px_0_rgba(226,232,240,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(226,232,240,1)]"
               href="/lab-results"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 text-white shadow-[0_3px_0_rgba(14,116,144,1)]">
@@ -429,7 +432,7 @@ export default async function Home({
             </Link>
 
             <details className="group relative">
-            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white">
+            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600 transition-all duration-150 hover:-translate-y-1 hover:bg-white hover:shadow-[0_6px_0_rgba(226,232,240,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(226,232,240,1)]">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 text-sm font-black text-white shadow-[0_3px_0_rgba(14,116,144,1)]">
                 {initials || 'SC'}
               </div>
@@ -732,5 +735,6 @@ export default async function Home({
         </section>
       </div>
     </main>
+    </>
   );
 }
