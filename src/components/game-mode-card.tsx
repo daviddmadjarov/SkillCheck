@@ -13,26 +13,26 @@ import type { LucideIcon } from 'lucide-react';
 import { useAudioFeedback } from '@/components/use-audio-feedback';
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  Activity,
-  BrainCircuit,
-  Crosshair,
-  Keyboard,
-  MousePointer2,
-  Timer,
+  reaction: Activity,
+  aim: Crosshair,
+  typing: Keyboard,
+  mouse: MousePointer2,
+  rhythm: Timer,
+  thinking: BrainCircuit,
 };
 
 type GameModeCardProps = {
   href: string;
-  iconName: string;
+  iconKey: string;
   title: string;
   desc: string;
   color: string;
   bg: string;
 };
 
-export function GameModeCard({ href, iconName, title, desc, color, bg }: GameModeCardProps) {
+export function GameModeCard({ href, iconKey, title, desc, color, bg }: GameModeCardProps) {
   const { playHoverSound, playClickSound } = useAudioFeedback();
-  const Icon = ICON_MAP[iconName];
+  const Icon = ICON_MAP[iconKey];
 
   return (
     <Link

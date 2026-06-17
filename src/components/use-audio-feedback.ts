@@ -19,81 +19,92 @@ function getCtx(ref: CtxRef) {
 export function useAudioFeedback() {
   const ctxRef = useRef<AudioContext | null>(null);
 
-  /** Rapid crisp electronic "click" – a short bright blip */
+  /** Soft melancholic hover — a gentle warm bell-like "ping" */
   const playHoverSound = useCallback(() => {
     const ctx = getCtx(ctxRef);
     if (!ctx) return;
 
     const now = ctx.currentTime;
 
-    // Short bright blip
+    // Main tone — soft, mellow sine
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(1800, now);
-    osc.frequency.exponentialRampToValueAtTime(600, now + 0.04);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(660, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.12);
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    gain.gain.linearRampToValueAtTime(0.07, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.07);
+    osc.stop(now + 0.22);
+
+    // Gentle overtone for warmth
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(990, now);
+    osc2.frequency.exponentialRampToValueAtTime(660, now + 0.1);
+    gain2.gain.setValueAtTime(0.001, now);
+    gain2.gain.linearRampToValueAtTime(0.025, now + 0.01);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.17);
   }, []);
 
-  /** Punchy pressurized "thud" + rising digital accent */
+  /** Softer, deeper click — a rounded warm "thump" with a subtle harmonic tail */
   const playClickSound = useCallback(() => {
     const ctx = getCtx(ctxRef);
     if (!ctx) return;
 
     const now = ctx.currentTime;
 
-    // — Low thud —
+    // Low thump — warm and round
     const thudOsc = ctx.createOscillator();
     const thudGain = ctx.createGain();
     thudOsc.type = 'sine';
-    thudOsc.frequency.setValueAtTime(150, now);
-    thudOsc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+    thudOsc.frequency.setValueAtTime(120, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(55, now + 0.18);
     thudGain.gain.setValueAtTime(0.001, now);
-    thudGain.gain.linearRampToValueAtTime(0.5, now + 0.004);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    thudGain.gain.linearRampToValueAtTime(0.3, now + 0.005);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
     thudOsc.connect(thudGain);
     thudGain.connect(ctx.destination);
     thudOsc.start(now);
-    thudOsc.stop(now + 0.15);
+    thudOsc.stop(now + 0.24);
 
-    // — Noise burst for pressurised texture —
-    const bufSize = ctx.sampleRate * 0.08;
-    const noiseBuf = ctx.createBuffer(1, Math.ceil(bufSize), ctx.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
-    }
-    const noise = ctx.createBufferSource();
-    noise.buffer = noiseBuf;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.001, now);
-    noiseGain.gain.linearRampToValueAtTime(0.15, now + 0.003);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-    noise.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-    noise.start(now);
-    noise.stop(now + 0.08);
+    // Soft resonant "ping" tail — melancholic, musical
+    const tailOsc = ctx.createOscillator();
+    const tailGain = ctx.createGain();
+    tailOsc.type = 'sine';
+    tailOsc.frequency.setValueAtTime(520, now + 0.02);
+    tailOsc.frequency.exponentialRampToValueAtTime(390, now + 0.25);
+    tailGain.gain.setValueAtTime(0.001, now + 0.02);
+    tailGain.gain.linearRampToValueAtTime(0.06, now + 0.03);
+    tailGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    tailOsc.connect(tailGain);
+    tailGain.connect(ctx.destination);
+    tailOsc.start(now + 0.02);
+    tailOsc.stop(now + 0.38);
 
-    // — Rising digital accent (pitch sweep) —
-    const accOsc = ctx.createOscillator();
-    const accGain = ctx.createGain();
-    accOsc.type = 'sawtooth';
-    accOsc.frequency.setValueAtTime(400, now + 0.03);
-    accOsc.frequency.exponentialRampToValueAtTime(2800, now + 0.18);
-    accGain.gain.setValueAtTime(0.001, now + 0.03);
-    accGain.gain.linearRampToValueAtTime(0.08, now + 0.04);
-    accGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-    accOsc.connect(accGain);
-    accGain.connect(ctx.destination);
-    accOsc.start(now + 0.03);
-    accOsc.stop(now + 0.22);
+    // A second higher overtone for that soft Fortnite-like resonance
+    const tailOsc2 = ctx.createOscillator();
+    const tailGain2 = ctx.createGain();
+    tailOsc2.type = 'sine';
+    tailOsc2.frequency.setValueAtTime(780, now + 0.04);
+    tailOsc2.frequency.exponentialRampToValueAtTime(520, now + 0.2);
+    tailGain2.gain.setValueAtTime(0.001, now + 0.04);
+    tailGain2.gain.linearRampToValueAtTime(0.02, now + 0.05);
+    tailGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    tailOsc2.connect(tailGain2);
+    tailGain2.connect(ctx.destination);
+    tailOsc2.start(now + 0.04);
+    tailOsc2.stop(now + 0.32);
   }, []);
 
   return { playHoverSound, playClickSound };
