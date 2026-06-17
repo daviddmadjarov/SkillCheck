@@ -394,27 +394,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
               {/* Shape outline */}
               <path d={shape.path} fill={shape.fill} fillOpacity="0.72" stroke={shape.stroke} strokeWidth="2.4"/>
 
-              {phase === 'result' && result && (
-                <>
-                  {/* Show split with colored fill */}
-                  {(() => {
-                    const a = idxA; const b = idxB;
-                    const n = shape.pts.length;
-                    const half1: Point[] = [shape.pts[a], shape.pts[b]];
-                    const half2: Point[] = [shape.pts[b], shape.pts[a]];
-                    for (let i = a; i !== b; i = (i + 1) % n) half2.push(shape.pts[i]);
-                    for (let i = b; i !== a; i = (i + 1) % n) half1.push(shape.pts[i]);
-                    const good = result.score >= 85;
-                    return (
-                      <>
-                        {half1.length >= 3 && <path d={ptsToPath(half1)} fill={good ? '#bbf7d0' : '#fde68a'} fillOpacity="0.72" stroke={good ? '#22c55e' : '#ca8a04'} strokeWidth="1.5"/>}
-                        {half2.length >= 3 && <path d={ptsToPath(half2)} fill={good ? '#bbf7d0' : '#fecaca'} fillOpacity="0.72" stroke={good ? '#22c55e' : '#ef4444'} strokeWidth="1.5"/>}
-                      </>
-                    );
-                  })()}
-                </>
-              )}
-
               {/* Split line */}
               {(phase === 'playing' || phase === 'result') && (
                 <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#0f172a" strokeDasharray={phase === 'result' ? 'none' : '4 4'} strokeWidth="2"/>
@@ -447,7 +426,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg w-64">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{shape.label}</p>
-                <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score}%</p>
+                <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score * 10}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {result.pctA}% / {result.pctB}%
                 </p>
