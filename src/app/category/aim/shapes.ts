@@ -68,7 +68,7 @@ function make(label: string, p: Point[]): SplitShapeDef {
  * Each [x,y] pair in anchors defines where the shape should pass through.
  * The output is a dense polygon (~48 pts) that traces smooth arcs between anchors.
  */
-function blob(anchors: number[], k = 0.15): Point[] {
+function blob(anchors: number[]): Point[] {
   const n = anchors.length / 2;
   const pts: { x: number; y: number }[] = [];
   for (let i = 0; i < n; i++) {
@@ -76,8 +76,8 @@ function blob(anchors: number[], k = 0.15): Point[] {
   }
 
   // Interpolate through anchors with a Catmull-Rom like curve
-  const result: Point[] = [];
-  const steps = 6; // points per segment
+  const raw: Point[] = [];
+  const steps = 5;
   for (let i = 0; i < n; i++) {
     const p0 = pts[(i - 1 + n) % n];
     const p1 = pts[i];
@@ -86,24 +86,35 @@ function blob(anchors: number[], k = 0.15): Point[] {
 
     for (let t = 0; t <= steps; t++) {
       const s = t / steps;
-      // Catmull-Rom interpolation
       const s2 = s * s;
       const s3 = s2 * s;
       const x = 0.5 * (
-        (2 * p1.x) +
-        (-p0.x + p2.x) * s +
+        (2 * p1.x) + (-p0.x + p2.x) * s +
         (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * s2 +
         (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * s3
       );
       const y = 0.5 * (
-        (2 * p1.y) +
-        (-p0.y + p2.y) * s +
+        (2 * p1.y) + (-p0.y + p2.y) * s +
         (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * s2 +
         (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * s3
       );
-      result.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
+      raw.push({ x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 });
     }
   }
+
+  // Remove consecutive points that are too close (line stacking prevention)
+  const MIN_DIST = 0.8;
+  const result: Point[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const p = raw[i];
+    const prev = result.length > 0 ? result[result.length - 1] : raw[raw.length - 1];
+    const dx = p.x - prev.x;
+    const dy = p.y - prev.y;
+    if (dx * dx + dy * dy >= MIN_DIST * MIN_DIST) {
+      result.push(p);
+    }
+  }
+
   return result;
 }
 
