@@ -104,7 +104,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
       {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
       <button key={targetSeed} className="absolute h-[88px] w-[88px] rounded-full border-0 bg-transparent" onClick={e=>{e.stopPropagation();click()}} type="button" style={{left:`clamp(18px,${target.x}%,calc(100% - 90px))`,top:`clamp(18px,${target.y}%,calc(100% - 90px))`,transform:'translate(-50%,-50%)'}}>
-        <span className="flex flex-col items-center">
+          <span className="flex flex-col items-center">
           <span className="relative flex h-[88px] w-[88px] items-center justify-center rounded-full border-[8px] border-emerald-600 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.12)]"><span className="absolute h-[68px] w-[68px] rounded-full border-[8px] border-white bg-emerald-600"/><span className="absolute h-[42px] w-[42px] rounded-full border-[7px] border-white bg-emerald-300"/><span className="absolute h-[18px] w-[18px] rounded-full border-4 border-white bg-emerald-700"/></span>
           {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
@@ -158,15 +158,81 @@ function splitAreas(shape: Point[], p1Idx: number, p2Idx: number): [number, numb
   return [a1, a2];
 }
 
-/** Find closest vertex index on shape contour to a given point */
-function closestVertexIndex(shape: Point[], px: number, py: number): number {
-  let bestIdx = 0;
+/** Project a point onto the nearest edge of the polygon contour, returning the interpolated vertex index (smooth) */
+function projectOntoContour(shape: Point[], px: number, py: number): { idx: number; frac: number } {
+  let bestSegStart = 0;
+  let bestFrac = 0;
   let bestDist = Infinity;
   for (let i = 0; i < shape.length; i++) {
-    const d = Math.hypot(shape[i].x - px, shape[i].y - py);
-    if (d < bestDist) { bestDist = d; bestIdx = i; }
+    const a = shape[i];
+    const b = shape[(i + 1) % shape.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    let t = 0;
+    if (len2 > 0) {
+      t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / len2));
+    }
+    const cx = a.x + t * dx;
+    const cy = a.y + t * dy;
+    const d = Math.hypot(px - cx, py - cy);
+    if (d < bestDist) {
+      bestDist = d;
+      bestSegStart = i;
+      bestFrac = t;
+    }
   }
-  return bestIdx;
+  return { idx: bestSegStart, frac: bestFrac };
+}
+
+/** Compute the interpolated point from a segment index + fraction */
+function edgePoint(shape: Point[], segIdx: number, frac: number): Point {
+  const a = shape[segIdx];
+  const b = shape[(segIdx + 1) % shape.length];
+  return { x: a.x + (b.x - a.x) * frac, y: a.y + (b.y - a.y) * frac };
+}
+
+/** Split a polygon by a line through two interpolated edge points, return areas.
+ *  Tries both contour directions and picks the split closer to 50/50. */
+function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: number, fracB: number): [number, number] {
+  const n = shape.length;
+  const pA = edgePoint(shape, idxA, fracA);
+  const pB = edgePoint(shape, idxB, fracB);
+
+  function walkForward(fromIdx: number, toIdx: number): Point[] {
+    const pts: Point[] = [];
+    for (let i = (fromIdx + 1) % n; ; i = (i + 1) % n) {
+      pts.push(shape[i]);
+      if (i === toIdx) break;
+    }
+    return pts;
+  }
+
+  // Try both ways: A→B and B→A collecting contour vertices
+  const betweenAB = walkForward(idxA, idxB);
+  const betweenBA = walkForward(idxB, idxA);
+
+  const poly1AB: Point[] = [pA, pB, ...betweenAB];
+  const poly2AB: Point[] = [pB, pA, ...betweenBA];
+  const a1AB = polygonArea(poly1AB);
+  const a2AB = polygonArea(poly2AB);
+
+  // Swap to try the other orientation
+  const poly1BA: Point[] = [pA, pB, ...betweenBA];
+  const poly2BA: Point[] = [pB, pA, ...betweenAB];
+  const a1BA = polygonArea(poly1BA);
+  const a2BA = polygonArea(poly2BA);
+
+  const totalAB = a1AB + a2AB;
+  const totalBA = a1BA + a2BA;
+  const balAB = totalAB > 0 ? Math.abs(a1AB / totalAB - 0.5) : Infinity;
+  const balBA = totalBA > 0 ? Math.abs(a1BA / totalBA - 0.5) : Infinity;
+
+  // Pick the split closer to 50/50 (that's the one the user intended)
+  if (balBA < balAB && totalBA > 0) {
+    return [a1BA, a2BA];
+  }
+  return [a1AB, a2AB];
 }
 
 /** Build a regular polygon centered at (cx,cy) with radius r and n sides */
@@ -293,29 +359,20 @@ const COLOR_WHEEL = [
 ];
 
 const SHAPE_BUILDERS: (() => SplitShapeDef)[] = [
-  () => { const pts = regularPoly(50, 50, 28, 32); const c = COLOR_WHEEL[0]; return { pts, label: 'Circle', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 26, 4); const c = COLOR_WHEEL[1]; return { pts, label: 'Square', path: ptsToPath(pts), ...c }; },
-  () => { const pts = [{x:28,y:32},{x:72,y:32},{x:72,y:56},{x:28,y:56}]; const c = COLOR_WHEEL[2]; return { pts, label: 'Rectangle', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 28, 3); const c = COLOR_WHEEL[3]; return { pts, label: 'Triangle', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 26, 5); const c = COLOR_WHEEL[4]; return { pts, label: 'Pentagon', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 26, 6); const c = COLOR_WHEEL[5]; return { pts, label: 'Hexagon', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 26, 8); const c = COLOR_WHEEL[6]; return { pts, label: 'Octagon', path: ptsToPath(pts), ...c }; },
-  () => { const pts = starShape(50, 50, 28, 13, 5); const c = COLOR_WHEEL[7]; return { pts, label: 'Star', path: ptsToPath(pts), ...c }; },
+  () => { const pts = regularPoly(50, 50, 34, 40); const c = COLOR_WHEEL[0]; return { pts, label: 'Circle', path: ptsToPath(pts), ...c }; },
+  () => { const pts = starShape(50, 50, 35, 16, 5); const c = COLOR_WHEEL[7]; return { pts, label: 'Star', path: ptsToPath(pts), ...c }; },
   () => { const pts = heartShape(); const c = COLOR_WHEEL[8]; return { pts, label: 'Heart', path: ptsToPath(pts), ...c }; },
-  () => { const pts = diamondShape(); const c = COLOR_WHEEL[0]; return { pts, label: 'Diamond', path: ptsToPath(pts), ...c }; },
   () => { const pts = arrowShape(); const c = COLOR_WHEEL[1]; return { pts, label: 'Arrow', path: ptsToPath(pts), ...c }; },
   () => { const pts = crescentShape(); const c = COLOR_WHEEL[2]; return { pts, label: 'Crescent', path: ptsToPath(pts), ...c }; },
   () => { const pts = crossShape(); const c = COLOR_WHEEL[3]; return { pts, label: 'Cross', path: ptsToPath(pts), ...c }; },
   () => { const pts = shieldShape(); const c = COLOR_WHEEL[4]; return { pts, label: 'Shield', path: ptsToPath(pts), ...c }; },
   () => { const pts = dropShape(); const c = COLOR_WHEEL[5]; return { pts, label: 'Drop', path: ptsToPath(pts), ...c }; },
   () => { const pts = boltShape(); const c = COLOR_WHEEL[6]; return { pts, label: 'Lightning', path: ptsToPath(pts), ...c }; },
-  () => { const pts = starShape(50, 50, 24, 10, 7); const c = COLOR_WHEEL[7]; return { pts, label: 'Compass', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(42, 24); const c = COLOR_WHEEL[8]; return { pts, label: 'Amber', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(73, 25); const c = COLOR_WHEEL[0]; return { pts, label: 'Pebble', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(91, 23); const c = COLOR_WHEEL[1]; return { pts, label: 'Coral', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(18, 26); const c = COLOR_WHEEL[2]; return { pts, label: 'Moss', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 22, 10); const c = COLOR_WHEEL[3]; return { pts, label: 'Decagon', path: ptsToPath(pts), ...c }; },
-  () => { const pts = regularPoly(50, 50, 22, 12); const c = COLOR_WHEEL[4]; return { pts, label: 'Dodecagon', path: ptsToPath(pts), ...c }; },
+  () => { const pts = starShape(50, 50, 30, 14, 7); const c = COLOR_WHEEL[7]; return { pts, label: 'Compass', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(42, 30); const c = COLOR_WHEEL[8]; return { pts, label: 'Amber', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(73, 32); const c = COLOR_WHEEL[0]; return { pts, label: 'Pebble', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(91, 30); const c = COLOR_WHEEL[1]; return { pts, label: 'Coral', path: ptsToPath(pts), ...c }; },
+  () => { const pts = organicPts(18, 32); const c = COLOR_WHEEL[2]; return { pts, label: 'Moss', path: ptsToPath(pts), ...c }; },
 ];
 
 function randomShape(): SplitShapeDef {
@@ -358,12 +415,15 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { if(r.ok && isMultiplayerSession) goToIntermission(); });
   }, [phase, isSignedIn, labScore, isMultiplayerSession, goToIntermission, mm]);
 
-  function getContourIndex(e: React.PointerEvent<HTMLDivElement>): number | null {
+  const posARef = useRef({ idx: 0, frac: 0 });
+  const posBRef = useRef({ idx: 4, frac: 0 });
+
+  function getSmoothPos(e: React.PointerEvent<HTMLDivElement>): { idx: number; frac: number } | null {
     const b = boardRef.current; if (!b) return null;
     const r = b.getBoundingClientRect();
     const px = ((e.clientX - r.left) / r.width) * 100;
     const py = ((e.clientY - r.top) / r.height) * 100;
-    return closestVertexIndex(shape.pts, px, py);
+    return projectOntoContour(shape.pts, px, py);
   }
 
   function startGame() {
@@ -379,6 +439,8 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     const offset = Math.floor(Math.random() * s.pts.length);
     const a = offset % s.pts.length;
     const b = (offset + Math.floor(half * (0.8 + Math.random() * 0.4))) % s.pts.length;
+    posARef.current = { idx: a, frac: 0 };
+    posBRef.current = { idx: b, frac: 0 };
     setIdxA(a);
     setIdxB(b);
   }
@@ -386,18 +448,20 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, handle: 0 | 1) {
     if (phase !== 'playing') return;
     setDragging(handle);
-    const idx = getContourIndex(e);
-    if (idx !== null) {
-      if (handle === 0) setIdxA(idx); else setIdxB(idx);
+    const pos = getSmoothPos(e);
+    if (pos !== null) {
+      if (handle === 0) { posARef.current = pos; setIdxA(pos.idx); }
+      else { posBRef.current = pos; setIdxB(pos.idx); }
     }
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (dragging === null || phase !== 'playing') return;
-    const idx = getContourIndex(e);
-    if (idx !== null) {
-      if (dragging === 0) setIdxA(idx); else setIdxB(idx);
+    const pos = getSmoothPos(e);
+    if (pos !== null) {
+      if (dragging === 0) { posARef.current = pos; setIdxA(pos.idx); }
+      else { posBRef.current = pos; setIdxB(pos.idx); }
     }
   }
 
@@ -405,10 +469,16 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     setDragging(null);
   }
 
+  function computeEdgePos(shape: Point[], state: { idx: number; frac: number }): Point {
+    return edgePoint(shape, state.idx, state.frac);
+  }
+
   function submitSplit() {
     if (phase !== 'playing') return;
-    if (idxA === idxB) return;
-    const [a1, a2] = splitAreas(shape.pts, idxA, idxB);
+    const pa = posARef.current;
+    const pb = posBRef.current;
+    if (pa.idx === pb.idx) return;
+    const [a1, a2] = splitAreasSmooth(shape.pts, pa.idx, pa.frac, pb.idx, pb.frac);
     const total = a1 + a2;
     if (total === 0) return;
     const pctA = Math.round((a1 / total) * 100);
@@ -434,12 +504,14 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     const offset = Math.floor(Math.random() * s.pts.length);
     const a = offset % s.pts.length;
     const b = (offset + Math.floor(half * (0.8 + Math.random() * 0.4))) % s.pts.length;
+    posARef.current = { idx: a, frac: 0 };
+    posBRef.current = { idx: b, frac: 0 };
     setIdxA(a);
     setIdxB(b);
   }
 
-  const pa = shape.pts[idxA];
-  const pb = shape.pts[idxB];
+  const pa = edgePoint(shape.pts, posARef.current.idx, posARef.current.frac);
+  const pb = edgePoint(shape.pts, posBRef.current.idx, posBRef.current.frac);
 
   function colorClass(score: number): string {
     if (score >= 85) return 'text-emerald-600';
