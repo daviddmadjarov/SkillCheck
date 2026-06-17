@@ -19,119 +19,98 @@ function getCtx(ref: CtxRef) {
 export function useAudioFeedback() {
   const ctxRef = useRef<AudioContext | null>(null);
 
-  /** Clean, satisfying lab scanner "ping" — precise, metallic, with a warm reverb-like tail */
+  /** Single brief "tick" — like a fingernail tapping a crystal glass or a tiny static spark */
   const playHoverSound = useCallback(() => {
     const ctx = getCtx(ctxRef);
     if (!ctx) return;
 
     const now = ctx.currentTime;
 
-    // Core tone — clear and precise (A5 ~880Hz)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(880, now);
-    osc1.frequency.exponentialRampToValueAtTime(440, now + 0.15);
-    gain1.gain.setValueAtTime(0.001, now);
-    gain1.gain.linearRampToValueAtTime(0.10, now + 0.004);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.28);
+    // Glassy ping — very quick, high frequency, crystal-like
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(4200, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.012);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.045, now + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.028);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.03);
 
-    // Fifth overtone (perfect fifth above — E6 ~1320Hz) for resonance
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1320, now);
-    osc2.frequency.exponentialRampToValueAtTime(660, now + 0.12);
-    gain2.gain.setValueAtTime(0.001, now);
-    gain2.gain.linearRampToValueAtTime(0.04, now + 0.005);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + 0.2);
-
-    // Sub overtone (octave below 440Hz) for satisfying weight
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = 'sine';
-    osc3.frequency.setValueAtTime(440, now + 0.01);
-    osc3.frequency.exponentialRampToValueAtTime(220, now + 0.1);
-    gain3.gain.setValueAtTime(0.001, now + 0.01);
-    gain3.gain.linearRampToValueAtTime(0.03, now + 0.015);
-    gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-    osc3.connect(gain3);
-    gain3.connect(ctx.destination);
-    osc3.start(now + 0.01);
-    osc3.stop(now + 0.17);
+    // Tiny static spark — brief noise burst for that static-electricity feel
+    const bufSize = Math.ceil(ctx.sampleRate * 0.008);
+    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.04, now + 0.0005);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+    noise.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.018);
   }, []);
 
-  /** Satisfying lab equipment "activation" — a warm, deep thump with a clean, rising harmonic sweep */
+  /** Sharp dual-layered "cl-tick" / digital snap — two microscopic elements magnetically colliding at hyper-speed */
   const playClickSound = useCallback(() => {
     const ctx = getCtx(ctxRef);
     if (!ctx) return;
 
     const now = ctx.currentTime;
 
-    // Deep impact — the satisfying weight
-    const thudOsc = ctx.createOscillator();
-    const thudGain = ctx.createGain();
-    thudOsc.type = 'sine';
-    thudOsc.frequency.setValueAtTime(160, now);
-    thudOsc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-    thudGain.gain.setValueAtTime(0.001, now);
-    thudGain.gain.linearRampToValueAtTime(0.45, now + 0.005);
-    thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    thudOsc.connect(thudGain);
-    thudGain.connect(ctx.destination);
-    thudOsc.start(now);
-    thudOsc.stop(now + 0.28);
+    // — Layer 1: the "cl" — a tight, bright percussive hit (magnetic impact) —
+    const clOsc = ctx.createOscillator();
+    const clGain = ctx.createGain();
+    clOsc.type = 'sine';
+    clOsc.frequency.setValueAtTime(3200, now);
+    clOsc.frequency.exponentialRampToValueAtTime(900, now + 0.008);
+    clGain.gain.setValueAtTime(0.001, now);
+    clGain.gain.linearRampToValueAtTime(0.12, now + 0.0008);
+    clGain.gain.exponentialRampToValueAtTime(0.001, now + 0.018);
+    clOsc.connect(clGain);
+    clGain.connect(ctx.destination);
+    clOsc.start(now);
+    clOsc.stop(now + 0.022);
 
-    // Clean metallic attack transient (for tactile feedback)
-    const attOsc = ctx.createOscillator();
-    const attGain = ctx.createGain();
-    attOsc.type = 'sine';
-    attOsc.frequency.setValueAtTime(2400, now);
-    attOsc.frequency.exponentialRampToValueAtTime(600, now + 0.04);
-    attGain.gain.setValueAtTime(0.001, now);
-    attGain.gain.linearRampToValueAtTime(0.08, now + 0.002);
-    attGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-    attOsc.connect(attGain);
-    attGain.connect(ctx.destination);
-    attOsc.start(now);
-    attOsc.stop(now + 0.07);
+    // — Layer 2: the "tick" — a sharper, slightly lower snap (second micro-collision) —
+    const tickOsc = ctx.createOscillator();
+    const tickGain = ctx.createGain();
+    tickOsc.type = 'sine';
+    tickOsc.frequency.setValueAtTime(2400, now + 0.006);
+    tickOsc.frequency.exponentialRampToValueAtTime(600, now + 0.012);
+    tickGain.gain.setValueAtTime(0.001, now + 0.006);
+    tickGain.gain.linearRampToValueAtTime(0.08, now + 0.007);
+    tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+    tickOsc.connect(tickGain);
+    tickGain.connect(ctx.destination);
+    tickOsc.start(now + 0.006);
+    tickOsc.stop(now + 0.026);
 
-    // Rising power-up sweep (satisfying "whoosh" upward)
-    const sweepOsc = ctx.createOscillator();
-    const sweepGain = ctx.createGain();
-    sweepOsc.type = 'sine';
-    sweepOsc.frequency.setValueAtTime(220, now + 0.03);
-    sweepOsc.frequency.exponentialRampToValueAtTime(1100, now + 0.22);
-    sweepGain.gain.setValueAtTime(0.001, now + 0.03);
-    sweepGain.gain.linearRampToValueAtTime(0.06, now + 0.04);
-    sweepGain.gain.linearRampToValueAtTime(0.04, now + 0.12);
-    sweepGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    sweepOsc.connect(sweepGain);
-    sweepGain.connect(ctx.destination);
-    sweepOsc.start(now + 0.03);
-    sweepOsc.stop(now + 0.3);
-
-    // Resonant harmonic for that lab-equipment hum satisfaction
-    const harmOsc = ctx.createOscillator();
-    const harmGain = ctx.createGain();
-    harmOsc.type = 'sine';
-    harmOsc.frequency.setValueAtTime(660, now + 0.04);
-    harmOsc.frequency.exponentialRampToValueAtTime(440, now + 0.28);
-    harmGain.gain.setValueAtTime(0.001, now + 0.04);
-    harmGain.gain.linearRampToValueAtTime(0.035, now + 0.05);
-    harmGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
-    harmOsc.connect(harmGain);
-    harmGain.connect(ctx.destination);
-    harmOsc.start(now + 0.04);
-    harmOsc.stop(now + 0.35);
+    // — Noise burst for magnetic snap texture —
+    const bufSize = Math.ceil(ctx.sampleRate * 0.015);
+    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.09, now + 0.0006);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+    noise.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.018);
   }, []);
 
   return { playHoverSound, playClickSound };
