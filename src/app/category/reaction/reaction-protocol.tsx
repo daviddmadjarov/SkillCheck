@@ -126,7 +126,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
     : phase === 'finished' ? `${roundAvg ?? '--'} ms avg`
     : phase === 'clicked' ? `${reactionMs ?? '--'} ms`
     : cd.active ? cd.phase === 'go' ? 'GO' : cd.value ? String(cd.value) : '...'
-    : 'Start protocol';
+    : isMultiplayerSession ? 'Starting...' : 'Start protocol';
 
   return (
     <section className="lab-card p-4 sm:p-6">
@@ -174,6 +174,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
              phase === 'finished' ? 'Round complete.' :
              phase === 'clicked' ? `Round ${roundTimes.length} / 4` :
              cd.active ? 'Getting ready...' :
+             isMultiplayerSession ? 'Preparing...' :
              'Click the panel to begin.'}
           </span>
         </button>
