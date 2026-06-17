@@ -213,12 +213,12 @@ function ptsToPath(pts: Point[]): string {
   return 'M' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L') + ' Z';
 }
 
-/** Score from 0-100 based on deviation from 50/50, using non-linear curve */
+/** Score from 0-1000 based on deviation from 50/50, using gentle non-linear curve */
 function computeSplitScore(areaPctA: number, areaPctB: number): number {
   const deviation = Math.abs(50 - areaPctA);
-  if (deviation <= 0.1) return 100;
-  // Non-linear: small deviations are penalized lightly, large ones heavily
-  const raw = 100 * Math.exp(-deviation * deviation / 60);
+  if (deviation <= 0.1) return 1000;
+  // Gentle non-linear curve: small deviations get high scores, large ones penalized gradually
+  const raw = 1000 * Math.exp(-deviation * deviation / 200);
   return Math.max(0, Math.round(raw));
 }
 
@@ -241,7 +241,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
 
   const avgScore = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-  const labScore = avgScore !== null ? avgScore * 10 : null;
+  const labScore = avgScore;
 
   useEffect(() => {
     if (!isSignedIn || phase !== 'finished' || labScore === null || hasSavedRef.current) return;
@@ -366,8 +366,8 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   const pb = edgePoint(shape.pts, posBRef.current.idx, posBRef.current.frac);
 
   function colorClass(score: number): string {
-    if (score >= 85) return 'text-emerald-600';
-    if (score >= 60) return 'text-amber-600';
+    if (score >= 850) return 'text-emerald-600';
+    if (score >= 600) return 'text-amber-600';
     return 'text-rose-600';
   }
 
@@ -376,8 +376,8 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     stats={[
       { label: 'Round', value: phase === 'idle' ? '--' : `${Math.min(roundIdx + 1, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`, detail: 'Four shapes per run.' },
       { label: 'Shape', value: phase === 'idle' ? '--' : shape.label, detail: 'Random shape each round.' },
-      { label: 'Avg Score', value: avgScore === null ? '--' : `${avgScore}%`, detail: 'Average split accuracy.' },
-      { label: 'Lab Score', value: labScore === null ? '--' : String(labScore), detail: 'Scaled to 1000-point range.' },
+      { label: 'Avg Lab Score', value: avgScore === null ? '--' : String(avgScore), detail: 'Average across all rounds.' },
+      { label: 'Total Lab Score', value: labScore === null ? '--' : String(scores.reduce((a,b)=>a+b,0)), detail: 'Sum of all round scores.' },
     ]}>
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -426,7 +426,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg w-64">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{shape.label}</p>
-                <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score * 10}</p>
+                <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {result.pctA}% / {result.pctB}%
                 </p>
@@ -446,7 +446,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
                 <p className="mt-3 text-4xl font-black text-slate-800">{labScore ?? '--'}</p>
-                <p className="mt-1 text-sm text-slate-500">Avg: {avgScore}%</p>
+                <p className="mt-1 text-sm text-slate-500">Avg: {avgScore} · Total: {scores.reduce((a,b)=>a+b,0)}</p>
                 <button className="lab-button mt-4" onClick={startGame} type="button">Start New Run</button>
               </div>
             </div>
