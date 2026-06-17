@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { reactionMsToLeaderboardScore } from '@/lib/scoring/reaction';
+import { randomShape, type SplitShapeDef } from './shapes';
 
 function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
-type Point = { x: number; y: number };
+export type Point = { x: number; y: number };
 
 function AimShell({title,kicker,description,accent,isSignedIn,stats,children}:{title:string;kicker:string;description:string;accent:string;isSignedIn:boolean;stats:{label:string;value:string;detail:string}[],children:React.ReactNode}){
   return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div><div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div></div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
@@ -118,16 +119,6 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
 // PERFECT SPLIT — proper contour-based shape splitting with area scoring
 // ─────────────────────────────────────────────────────────────────────
 
-type SplitShapeDef = {
-  /** Polygon vertices in 0-100 coordinate space */
-  pts: Point[];
-  label: string;
-  fill: string;
-  stroke: string;
-  /** SVG path string for rendering */
-  path: string;
-};
-
 /** Shoelace formula: signed polygon area */
 function polygonArea(pts: Point[]): number {
   let a = 0;
@@ -137,25 +128,6 @@ function polygonArea(pts: Point[]): number {
     a -= pts[j].x * pts[i].y;
   }
   return Math.abs(a) / 2;
-}
-
-/** Split a convex polygon by a line through two contour points, return areas of both halves */
-function splitAreas(shape: Point[], p1Idx: number, p2Idx: number): [number, number] {
-  const n = shape.length;
-  // Build two polygons: clockwise from p1 to p2, and p2 to p1
-  const half1: Point[] = [shape[p1Idx], shape[p2Idx]];
-  const half2: Point[] = [shape[p2Idx], shape[p1Idx]];
-  // Walk forward from p2 to p1 for half2
-  for (let i = p2Idx; i !== p1Idx; i = (i + 1) % n) {
-    half2.push(shape[i]);
-  }
-  // Walk forward from p1 to p2 for half1
-  for (let i = p1Idx; i !== p2Idx; i = (i + 1) % n) {
-    half1.push(shape[i]);
-  }
-  const a1 = polygonArea(half1);
-  const a2 = polygonArea(half2);
-  return [a1, a2];
 }
 
 /** Project a point onto the nearest edge of the polygon contour, returning the interpolated vertex index (smooth) */
@@ -235,148 +207,10 @@ function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: num
   return [a1AB, a2AB];
 }
 
-/** Build a regular polygon centered at (cx,cy) with radius r and n sides */
-function regularPoly(cx: number, cy: number, r: number, n: number, phase = -Math.PI / 2): Point[] {
-  return Array.from({ length: n }, (_, i) => {
-    const a = phase + (i / n) * Math.PI * 2;
-    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-  });
-}
-
-/** Build a star polygon */
-function starShape(cx: number, cy: number, rOuter: number, rInner: number, points: number): Point[] {
-  const pts: Point[] = [];
-  for (let i = 0; i < points * 2; i++) {
-    const a = -Math.PI / 2 + (i / (points * 2)) * Math.PI * 2;
-    const r = i % 2 === 0 ? rOuter : rInner;
-    pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
-  }
-  return pts;
-}
-
-/** Build a heart shape */
-function heartShape(): Point[] {
-  const pts: Point[] = [];
-  for (let i = 0; i < 48; i++) {
-    const a = (i / 48) * Math.PI * 2;
-    const x = 50 + 16 * Math.sin(a) * Math.sin(a) * Math.sin(a);
-    const y = 50 - (13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
-    pts.push({ x, y });
-  }
-  return pts;
-}
-
-/** Build an arrow shape */
-function arrowShape(): Point[] {
-  return [
-    {x:50,y:18},{x:82,y:50},{x:50,y:56},{x:50,y:46},{x:18,y:46},{x:18,y:54},{x:50,y:54},{x:50,y:82},
-    {x:82,y:50},{x:50,y:18}
-  ];
-}
-
-/** Build a diamond shape */
-function diamondShape(): Point[] {
-  return regularPoly(50, 50, 28, 4, -Math.PI / 4);
-}
-
-/** Build a crescent shape */
-function crescentShape(): Point[] {
-  const pts: Point[] = [];
-  for (let i = 0; i < 32; i++) {
-    const a = (i / 32) * Math.PI * 2;
-    const baseR = 26;
-    const wobble = 8 * Math.sin(a * 1.5 + 0.5);
-    const r = baseR + wobble;
-    pts.push({ x: 50 + r * Math.cos(a), y: 50 + r * Math.sin(a) * 0.85 });
-  }
-  return pts;
-}
-
-/** Build a cross shape */
-function crossShape(): Point[] {
-  const w = 8, h = 28, g = 6;
-  return [
-    {x:50-w-g,y:50-h},{x:50+g,y:50-h},{x:50+g,y:50-w-g},{x:50+h,y:50-w-g},
-    {x:50+h,y:50+g},{x:50+g,y:50+g},{x:50+g,y:50+h},{x:50-w-g,y:50+h},
-    {x:50-w-g,y:50+g},{x:50-h,y:50+g},{x:50-h,y:50-w-g},{x:50-w-g,y:50-w-g}
-  ];
-}
-
-/** Build a shield shape */
-function shieldShape(): Point[] {
-  return [
-    {x:50,y:18},{x:72,y:26},{x:72,y:50},{x:50,y:74},{x:28,y:50},{x:28,y:26}
-  ];
-}
-
-/** Build a drop/teardrop shape */
-function dropShape(): Point[] {
-  const pts: Point[] = [];
-  for (let i = 0; i < 32; i++) {
-    const a = (i / 32) * Math.PI * 2;
-    const r = 16 + 12 * Math.sin(a * 0.5 + 0.3);
-    pts.push({ x: 50 + r * Math.cos(a), y: 50 + r * Math.sin(a) });
-  }
-  return pts;
-}
-
-/** Build a lightning bolt shape */
-function boltShape(): Point[] {
-  return [
-    {x:60,y:16},{x:42,y:42},{x:56,y:42},{x:38,y:84},{x:56,y:56},{x:44,y:56}
-  ];
-}
-
-/** Build an organic/blob shape */
-function organicPts(seed: number, r: number): Point[] {
-  const pts: Point[] = [];
-  const n = 20 + (seed % 8) * 2;
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2;
-    const variation = 0.7 + 0.3 * Math.sin(i * 1.7 + seed) * Math.cos(i * 2.3 + seed * 0.5);
-    const rr = r * variation;
-    pts.push({ x: 50 + rr * Math.cos(a), y: 50 + rr * Math.sin(a) });
-  }
-  return pts;
-}
-
 /** Convert polygon points to SVG path string */
 function ptsToPath(pts: Point[]): string {
   if (pts.length === 0) return '';
   return 'M' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L') + ' Z';
-}
-
-const COLOR_WHEEL = [
-  { fill: '#fde68a', stroke: '#ca8a04' },
-  { fill: '#bfdbfe', stroke: '#3b82f6' },
-  { fill: '#fecaca', stroke: '#ef4444' },
-  { fill: '#bbf7d0', stroke: '#22c55e' },
-  { fill: '#e9d5ff', stroke: '#a855f7' },
-  { fill: '#fed7aa', stroke: '#ea580c' },
-  { fill: '#cbd5e1', stroke: '#64748b' },
-  { fill: '#fbcfe8', stroke: '#ec4899' },
-  { fill: '#cffafe', stroke: '#06b6d4' },
-];
-
-const SHAPE_BUILDERS: (() => SplitShapeDef)[] = [
-  () => { const pts = regularPoly(50, 50, 34, 40); const c = COLOR_WHEEL[0]; return { pts, label: 'Circle', path: ptsToPath(pts), ...c }; },
-  () => { const pts = starShape(50, 50, 35, 16, 5); const c = COLOR_WHEEL[7]; return { pts, label: 'Star', path: ptsToPath(pts), ...c }; },
-  () => { const pts = heartShape(); const c = COLOR_WHEEL[8]; return { pts, label: 'Heart', path: ptsToPath(pts), ...c }; },
-  () => { const pts = arrowShape(); const c = COLOR_WHEEL[1]; return { pts, label: 'Arrow', path: ptsToPath(pts), ...c }; },
-  () => { const pts = crescentShape(); const c = COLOR_WHEEL[2]; return { pts, label: 'Crescent', path: ptsToPath(pts), ...c }; },
-  () => { const pts = crossShape(); const c = COLOR_WHEEL[3]; return { pts, label: 'Cross', path: ptsToPath(pts), ...c }; },
-  () => { const pts = shieldShape(); const c = COLOR_WHEEL[4]; return { pts, label: 'Shield', path: ptsToPath(pts), ...c }; },
-  () => { const pts = dropShape(); const c = COLOR_WHEEL[5]; return { pts, label: 'Drop', path: ptsToPath(pts), ...c }; },
-  () => { const pts = boltShape(); const c = COLOR_WHEEL[6]; return { pts, label: 'Lightning', path: ptsToPath(pts), ...c }; },
-  () => { const pts = starShape(50, 50, 30, 14, 7); const c = COLOR_WHEEL[7]; return { pts, label: 'Compass', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(42, 30); const c = COLOR_WHEEL[8]; return { pts, label: 'Amber', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(73, 32); const c = COLOR_WHEEL[0]; return { pts, label: 'Pebble', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(91, 30); const c = COLOR_WHEEL[1]; return { pts, label: 'Coral', path: ptsToPath(pts), ...c }; },
-  () => { const pts = organicPts(18, 32); const c = COLOR_WHEEL[2]; return { pts, label: 'Moss', path: ptsToPath(pts), ...c }; },
-];
-
-function randomShape(): SplitShapeDef {
-  return SHAPE_BUILDERS[Math.floor(Math.random() * SHAPE_BUILDERS.length)]();
 }
 
 /** Score from 0-100 based on deviation from 50/50, using non-linear curve */
