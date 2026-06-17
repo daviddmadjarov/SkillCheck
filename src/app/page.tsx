@@ -17,6 +17,7 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
+import { GameModeCard } from '@/components/game-mode-card';
 
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
@@ -538,19 +539,15 @@ export default async function Home({
 
               <div className="grid gap-4 sm:grid-cols-2">
                 {categories.map((cat) => (
-                  <Link href={`/category/${cat.id}`} key={cat.id} className="lab-card-interactive min-h-[126px] p-5">
-                    <div className="flex items-start gap-4">
-                      <div className={`rounded-2xl border-2 border-white p-3 shadow-sm ${cat.bg}`}>
-                        <cat.icon className={`h-7 w-7 ${cat.color}`} strokeWidth={2.5} />
-                      </div>
-                      <div>
-                        <h2 className="protocol-title">{cat.title}</h2>
-                        <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
-                          {cat.desc}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+                  <GameModeCard
+                    key={cat.id}
+                    href={`/category/${cat.id}`}
+                    icon={cat.icon}
+                    title={cat.title}
+                    desc={cat.desc}
+                    color={cat.color}
+                    bg={cat.bg}
+                  />
                 ))}
               </div>
             </section>
