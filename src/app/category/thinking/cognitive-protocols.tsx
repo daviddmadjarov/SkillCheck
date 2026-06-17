@@ -812,7 +812,7 @@ function EstVisual({ dotsHidden, task }: { dotsHidden: boolean; task: EstTask })
 
 function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('estimation-challenge');
-  const ROUNDS = 10;
+  const ROUNDS = 4;
   const estCd = useDuelCountdown(isMultiplayerSession);
   const estHasAutoStarted = useRef(false);
 
@@ -946,7 +946,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Estimation Challenge</p>
-                <p className="mt-2 text-sm font-semibold text-slate-600">Estimate lengths, fill percentages, angles and dot counts. 10 randomised rounds.</p>
+                <p className="mt-2 text-sm font-semibold text-slate-600">Estimate lengths, fill percentages, angles and dot counts. 4 randomised rounds.</p>
                 <button className="lab-button mt-4" onClick={startRun} type="button">Start</button>
               </div>
             </div>
