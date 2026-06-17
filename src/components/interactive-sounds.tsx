@@ -113,25 +113,15 @@ function playClickSound(ctxRef: CtxRef) {
  */
 export function InteractiveSounds() {
   const ctxRef = useRef<AudioContext | null>(null);
-  const hoveredRef = useRef<WeakSet<Element>>(new WeakSet());
 
   useEffect(() => {
     const ctx = ctxRef;
 
-    function isInteractive(el: EventTarget | null): boolean {
-      if (!(el instanceof Element)) return false;
-      const tag = el.tagName.toLowerCase();
-      if (tag === 'a' || tag === 'button') return true;
-      if (el.closest('a, button, [role="button"]')) return true;
-      return false;
-    }
-
-    function handleMouseOver(e: MouseEvent) {
+    function handleMouseEnter(e: MouseEvent) {
       const target = e.target instanceof Element ? e.target : null;
       if (!target) return;
       const interactive = target.closest('a, button, [role="button"]');
-      if (!interactive || hoveredRef.current.has(interactive)) return;
-      hoveredRef.current.add(interactive);
+      if (!interactive) return;
       playHoverSound(ctx);
     }
 
@@ -143,11 +133,11 @@ export function InteractiveSounds() {
       playClickSound(ctx);
     }
 
-    document.addEventListener('mouseover', handleMouseOver, { passive: true });
+    document.addEventListener('mouseenter', handleMouseEnter, { passive: true });
     document.addEventListener('click', handleClick, { passive: true });
 
     return () => {
-      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseenter', handleMouseEnter);
       document.removeEventListener('click', handleClick);
     };
   }, []);
