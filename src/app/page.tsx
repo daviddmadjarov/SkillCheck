@@ -18,8 +18,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 import { GameModeCard } from '@/components/game-mode-card';
-import { InteractiveSounds } from '@/components/interactive-sounds';
-
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
   { id: 'aim', title: 'Aim Assessment', icon: Crosshair, desc: 'Targeting and precision drills', color: 'text-blue-500', bg: 'bg-blue-100' },
@@ -404,9 +402,7 @@ export default async function Home({
   const profileMessage = getProfileMessage(resolvedSearchParams);
 
   return (
-    <>
-      <InteractiveSounds />
-      <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
+    <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">
         <header className="flex min-h-[104px] flex-wrap items-center justify-between gap-4 rounded-[2rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:px-6 sm:py-5">
           <Link href="/" className="flex shrink-0 items-center gap-4 cursor-pointer transition-transform hover:scale-105">
@@ -735,6 +731,5 @@ export default async function Home({
         </section>
       </div>
     </main>
-    </>
   );
 }

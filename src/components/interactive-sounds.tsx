@@ -113,16 +113,28 @@ function playClickSound(ctxRef: CtxRef) {
  */
 export function InteractiveSounds() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const currentHoveredRef = useRef<Element | null>(null);
 
   useEffect(() => {
     const ctx = ctxRef;
+    const currentHovered = currentHoveredRef;
 
-    function handleMouseEnter(e: MouseEvent) {
+    function handleMouseOver(e: MouseEvent) {
       const target = e.target instanceof Element ? e.target : null;
       if (!target) return;
       const interactive = target.closest('a, button, [role="button"]');
-      if (!interactive) return;
+      if (!interactive || interactive === currentHovered.current) return;
+      currentHovered.current = interactive;
       playHoverSound(ctx);
+    }
+
+    function handleMouseOut(e: MouseEvent) {
+      const target = e.target instanceof Element ? e.target : null;
+      if (!target) return;
+      // Clear hovered if we're leaving the interactive element entirely
+      if (currentHovered.current && !currentHovered.current.contains(e.relatedTarget as Node | null)) {
+        currentHovered.current = null;
+      }
     }
 
     function handleClick(e: MouseEvent) {
@@ -133,11 +145,13 @@ export function InteractiveSounds() {
       playClickSound(ctx);
     }
 
-    document.addEventListener('mouseenter', handleMouseEnter, { passive: true });
+    document.addEventListener('mouseover', handleMouseOver, { passive: true });
+    document.addEventListener('mouseout', handleMouseOut, { passive: true });
     document.addEventListener('click', handleClick, { passive: true });
 
     return () => {
-      document.removeEventListener('mouseenter', handleMouseEnter);
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('mouseout', handleMouseOut);
       document.removeEventListener('click', handleClick);
     };
   }, []);

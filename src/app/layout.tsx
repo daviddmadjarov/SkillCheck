@@ -3,6 +3,7 @@ import './globals.css';
 import { SiteFooter } from './site-footer';
 import { ThemeProvider } from './theme-provider';
 import { CookieConsent } from '@/components/cookie-consent';
+import { InteractiveSounds } from '@/components/interactive-sounds';
 
 export const metadata: Metadata = {
   title: 'SkillCheck | Human Performance Laboratory',
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="bg-dots min-h-screen">
         <ThemeProvider>
+          <InteractiveSounds />
           <div className="flex min-h-screen flex-col">
             <div className="flex-1">{children}</div>
             <SiteFooter />
