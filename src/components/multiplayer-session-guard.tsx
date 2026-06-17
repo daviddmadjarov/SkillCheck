@@ -6,16 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 /**
  * This component mounts inside game pages during multiplayer sessions.
  *
- * It does two things:
- * 1. Polls session-status to detect when the round has advanced on the server
- *    (meaning the opponent finished or the timer ran out), and automatically
- *    redirects to the intermission/scoreboard.
- * 2. Sends a heartbeat every 10 seconds to track the player's presence.
- *    If the opponent stops sending heartbeats for >30 seconds, the server
- *    will declare a forfeit and the next poll will detect it.
+ * It polls session-status to detect when the round has advanced on the server
+ * (meaning the opponent finished or the timer ran out), and automatically
+ * redirects to the intermission/scoreboard.
  *
- * Without this, an idle player who never submits a score would stay stuck
- * on the game page forever while the other player advances.
+ * When unmounting (player navigates away), it signals the server for an
+ * instant forfeit so the opponent gets the win immediately.
  */
 export function MultiplayerSessionGuard() {
   const router = useRouter();
@@ -30,17 +26,15 @@ export function MultiplayerSessionGuard() {
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
   const mountedRef = useRef(true);
-  const forfeitDetectedRef = useRef(false);
 
   useEffect(() => {
     if (!isMultiplayer || !lobbyCode) return;
 
     mountedRef.current = true;
-    forfeitDetectedRef.current = false;
 
     // ── Poll session status every 2s (round advancement + forfeit detection) ──
     const statusInterval = window.setInterval(async () => {
-      if (!mountedRef.current || forfeitDetectedRef.current) return;
+      if (!mountedRef.current) return;
 
       try {
         const response = await fetch(
@@ -58,11 +52,8 @@ export function MultiplayerSessionGuard() {
 
         if (!payload) return;
 
-        // ── Forfeit detected ──
+        // ── Forfeit detected (opponent left) ──
         if (payload.forfeited) {
-          forfeitDetectedRef.current = true;
-
-          // Redirect to intermission with forfeit info
           const params = new URLSearchParams();
           if (gameSlug) params.set('game', gameSlug);
           if (playerId) params.set('player', playerId);
@@ -90,63 +81,9 @@ export function MultiplayerSessionGuard() {
       }
     }, 2000);
 
-    // ── Send heartbeat every 3s for fast forfeit detection ──
-    const heartbeatInterval = window.setInterval(async () => {
-      if (!mountedRef.current || forfeitDetectedRef.current) return;
-
-      try {
-        const response = await fetch('/api/multiplayer/heartbeat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lobbyCode }),
-        });
-
-        if (!response.ok) return;
-
-        const payload = (await response.json().catch(() => null)) as {
-          action?: string;
-          forfeited?: boolean;
-          winnerUserId?: string;
-          winnerDisplayName?: string;
-          loserDisplayName?: string;
-        } | null;
-
-        // If the heartbeat endpoint detected a forfeit, redirect
-        if (payload?.forfeited) {
-          forfeitDetectedRef.current = true;
-
-          const params = new URLSearchParams();
-          if (gameSlug) params.set('game', gameSlug);
-          if (playerId) params.set('player', playerId);
-          params.set('round', String(round));
-          params.set('forfeited', '1');
-
-          if (payload.winnerUserId === playerId) {
-            // We won by forfeit
-            params.set('message', `Opponent has left the match. You win!`);
-          } else {
-            // We lost by forfeit (opponent saw it first)
-            params.set('message', `Your opponent has left.`);
-          }
-
-          router.push(`/party/${lobbyCode}/intermission?${params.toString()}`);
-        }
-      } catch {
-        // keep trying
-      }
-    }, 3000);
-
-    // Send an immediate first heartbeat
-    fetch('/api/multiplayer/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lobbyCode }),
-    }).catch(() => {});
-
     return () => {
       mountedRef.current = false;
       window.clearInterval(statusInterval);
-      window.clearInterval(heartbeatInterval);
 
       // Signal the server that we're leaving so the opponent gets instant forfeit
       fetch('/api/multiplayer/heartbeat', {

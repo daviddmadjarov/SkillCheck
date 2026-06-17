@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { BetweenRoundCountdown } from '@/components/between-round-countdown';
+import { DuelCountdown } from '@/components/duel-countdown';
+import { ResponseTimer } from '@/components/response-timer';
 
 type RhythmMode = 'sync' | 'timer';
 
@@ -522,6 +525,17 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
     return clamp(Math.round(1000 - Math.max(0, averageErrorMs - 50) * 0.25), 0, 1000);
   }, [averageErrorMs]);
 
+  // Auto-advance in duel mode
+  useEffect(() => {
+    if (!isMultiplayerSession || phase !== 'reveal') return;
+    if (roundIndex + 1 >= TOTAL_ROUNDS) {
+      const t = setTimeout(() => setPhase('finished'), 2000);
+      return () => clearTimeout(t);
+    }
+    const t = setTimeout(() => void advanceRound(), 2000);
+    return () => clearTimeout(t);
+  }, [isMultiplayerSession, phase, roundIndex]);
+
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -667,23 +681,34 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
         <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(217,70,239,0.18), transparent 34%), radial-gradient(circle at 78% 72%, rgba(79,70,229,0.16), transparent 36%)' }} />
 
-          <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
-            {phase === 'running' && (
-              <>
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Stop at</p>
-                  <p className="mt-2 text-6xl font-black tracking-tight text-slate-800">{targetSeconds}s</p>
-                </div>
-                <div className={`transition-opacity duration-700 ${timerVisible ? 'opacity-100' : 'opacity-0'}`}>
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Timer</p>
-                  <p className="mt-1 text-5xl font-black tracking-tight text-slate-800">{visibleSeconds}s</p>
-                </div>
-                <button className="lab-button" onClick={stopRound} type="button">Stop Now</button>
-              </>
-            )}
-          </div>
+          <DuelCountdown
+            gameSlug="Stop Timer"
+            isMultiplayer={isMultiplayerSession}
+            onLaunch={() => void startRun()}
+          >
+            <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
+              <BetweenRoundCountdown
+                active={isMultiplayerSession && phase === 'reveal' && roundIndex + 1 < TOTAL_ROUNDS}
+                label={`Round ${roundIndex + 2}`}
+                onLaunch={() => void advanceRound()}
+              />
+              {phase === 'running' && (
+                <>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Stop at</p>
+                    <p className="mt-2 text-6xl font-black tracking-tight text-slate-800">{targetSeconds}s</p>
+                  </div>
+                  <div className={`transition-opacity duration-700 ${timerVisible ? 'opacity-100' : 'opacity-0'}`}>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Timer</p>
+                    <p className="mt-1 text-5xl font-black tracking-tight text-slate-800">{visibleSeconds}s</p>
+                  </div>
+                  <button className="lab-button" onClick={stopRound} type="button">Stop Now</button>
+                </>
+              )}
+            </div>
+          </DuelCountdown>
 
-          {phase === 'idle' && (
+          {phase === 'idle' && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Stop the Timer</p>

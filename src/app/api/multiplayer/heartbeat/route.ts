@@ -6,13 +6,14 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * POST /api/multiplayer/heartbeat
  *
- * Called by MultiplayerSessionGuard every 3 seconds during a duel.
- * Updates the player's last_heartbeat_at timestamp and checks for
- * forfeits from the opponent.
+ * Now simplified: only handles explicit player leave/disconnect.
+ * Does NOT perform periodic AFK detection or forfeit checks.
  *
- * Supports a `leave: true` flag for instant forfeit when a player
- * navigates away — sets the leaver's heartbeat to epoch so the
- * forfeit detection picks it up immediately.
+ * When a player leaves (close tab, navigate away, sign out):
+ *   { lobbyCode: "...", leave: true }
+ *
+ * Sets the leaver as forfeited and awards victory to the opponent.
+ * Idle players who are still on the page are NEVER forfeited.
  */
 export async function POST(request: NextRequest) {
   if (!hasSupabaseEnv()) {
@@ -34,28 +35,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing lobby code.' }, { status: 400 });
   }
 
-  // ── Player is leaving — mark their heartbeat as expired instantly ──
+  // ── Player is leaving — trigger instant forfeit ──
   if (body?.leave) {
-    // Look up lobby id
-    const { data: lobbyRow } = await supabase
-      .from('multiplayer_lobbies')
-      .select('id')
-      .eq('code', lobbyCode)
-      .maybeSingle();
-
-    if (lobbyRow) {
-      // Set heartbeat to epoch so process_duel_forfeit detects absence immediately
-      // Cast to bypass TS since generated types may not include last_heartbeat_at
-      await (supabase.from('multiplayer_lobby_players') as any)
-        .update({ last_heartbeat_at: new Date(0).toISOString() })
-        .eq('lobby_id', lobbyRow.id)
-        .eq('user_id', user.id);
-    }
-
-    // Call forfeit check with null checking_user so it doesn't re-set our heartbeat
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: leaveResult, error: leaveError } = await (supabase.rpc as any)('process_duel_forfeit', {
       p_lobby_code: lobbyCode,
       p_checking_user_id: null,
+      p_leave_user_id: user.id,
     });
 
     if (leaveError) {
@@ -65,35 +51,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(leaveResult, { status: 200 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: result, error } = await (supabase.rpc as any)('process_duel_forfeit', {
-    p_lobby_code: lobbyCode,
-    p_checking_user_id: user.id,
-  });
-
-  if (error) {
-    // Function might not exist yet — silently succeed
-    if (error.message?.includes('Could not find the function')) {
-      return NextResponse.json({ action: 'heartbeat_ok' }, { status: 200 });
-    }
-    return NextResponse.json({ error: 'Heartbeat failed.' }, { status: 500 });
-  }
-
-  const data = result as {
-    action?: string;
-    winner_user_id?: string;
-    winner_display_name?: string;
-    loser_display_name?: string;
-    elo_result?: { winner_new_elo?: number; loser_new_elo?: number; elo_delta?: number };
-  };
-
-  return NextResponse.json({
-    action: data.action ?? 'heartbeat_ok',
-    eloDelta: data.elo_result?.elo_delta,
-    eloResult: data.elo_result,
-    forfeited: data.action === 'forfeited',
-    loserDisplayName: data.loser_display_name,
-    winnerDisplayName: data.winner_display_name,
-    winnerUserId: data.winner_user_id,
-  }, { status: 200 });
+  // ── Normal heartbeat keepalive (no forfeit checking) ──
+  // Just confirm the player is still present. Never auto-forfeit.
+  return NextResponse.json({ action: 'heartbeat_ok' }, { status: 200 });
 }

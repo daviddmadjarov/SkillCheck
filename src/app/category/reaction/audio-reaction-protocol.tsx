@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
+import { BetweenRoundCountdown } from '@/components/between-round-countdown';
 
 type AudioReactionProtocolProps = {
   initialAttempts: number;
@@ -115,15 +116,26 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
     });
   }
 
+  function startNextProtocol() {
+    startProtocol();
+  }
+
   function handleArenaClick() {
-    if (phase === 'idle' || phase === 'too-soon' || phase === 'finished') {
+    if (phase === 'idle' || phase === 'finished') {
       setRoundTimes([]);
       startProtocol();
       return;
     }
 
-    if (phase === 'clicked') {
+    if (phase === 'too-soon') {
       startProtocol();
+      return;
+    }
+
+    if (phase === 'clicked') {
+      if (!isMultiplayerSession) {
+        startProtocol();
+      }
       return;
     }
 
@@ -208,16 +220,23 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
         </div>
       </div>
 
-      <button
-        className={`flex min-h-[18rem] w-full cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-7 text-center transition sm:min-h-[20rem] sm:px-6 sm:py-8 ${arenaTone}`}
-        onClick={handleArenaClick}
-        type="button"
-      >
+      <div className="relative">
+        <BetweenRoundCountdown
+          active={isMultiplayerSession && phase === 'clicked'}
+          label={`Round ${roundTimes.length + 1}`}
+          onLaunch={startNextProtocol}
+        />
+        <button
+          className={`flex min-h-[18rem] w-full cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-7 text-center transition sm:min-h-[20rem] sm:px-6 sm:py-8 ${arenaTone}`}
+          onClick={handleArenaClick}
+          type="button"
+        >
         <span className="text-4xl font-black tracking-tight sm:text-6xl">{arenaTitle}</span>
         <span className="mt-4 max-w-md text-sm font-bold uppercase tracking-[0.18em] sm:text-base">
           {arenaSubtitle}
         </span>
-      </button>
+        </button>
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
