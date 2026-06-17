@@ -213,12 +213,12 @@ function ptsToPath(pts: Point[]): string {
   return 'M' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L') + ' Z';
 }
 
-/** Score from 0-1000 based on deviation from 50/50, using gentle non-linear curve */
+/** Score from 0-1000 based on deviation from 50/50, using exponential curve.
+ *  1% deviation → ~982, 3% → ~850, 5% → ~635, 10% → ~162 */
 function computeSplitScore(areaPctA: number, areaPctB: number): number {
   const deviation = Math.abs(50 - areaPctA);
-  if (deviation <= 0.1) return 1000;
-  // Gentle non-linear curve: small deviations get high scores, large ones penalized gradually
-  const raw = 1000 * Math.exp(-deviation * deviation / 200);
+  if (deviation <= 0.5) return 1000;
+  const raw = 1000 * Math.exp(-deviation * deviation / 55);
   return Math.max(0, Math.round(raw));
 }
 
