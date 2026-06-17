@@ -119,10 +119,12 @@ export function InteractiveSounds() {
     const ctx = ctxRef;
     const currentHovered = currentHoveredRef;
 
+    const selector = 'a, button, [role="button"], summary';
+
     function handleMouseOver(e: MouseEvent) {
       const target = e.target instanceof Element ? e.target : null;
       if (!target) return;
-      const interactive = target.closest('a, button, [role="button"]');
+      const interactive = target.closest(selector);
       if (!interactive || interactive === currentHovered.current) return;
       currentHovered.current = interactive;
       playHoverSound(ctx);
@@ -140,7 +142,7 @@ export function InteractiveSounds() {
     function handleClick(e: MouseEvent) {
       const target = e.target instanceof Element ? e.target : null;
       if (!target) return;
-      const interactive = target.closest('a, button, [role="button"]');
+      const interactive = target.closest(selector);
       if (!interactive) return;
       playClickSound(ctx);
     }
