@@ -10,8 +10,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
  * (meaning the opponent finished or the timer ran out), and automatically
  * redirects to the intermission/scoreboard.
  *
- * When unmounting (player navigates away), it signals the server for an
- * instant forfeit so the opponent gets the win immediately.
+ * CRITICAL: Only sends the leave/forfeit signal on actual tab/window close
+ * (beforeunload event), NOT on React unmount from normal navigation.
+ * This prevents false forfeits when a player finishes a game and routes
+ * to the intermission page.
  */
 export function MultiplayerSessionGuard() {
   const router = useRouter();
@@ -26,13 +28,21 @@ export function MultiplayerSessionGuard() {
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
   const mountedRef = useRef(true);
+  const tabClosingRef = useRef(false);
 
   useEffect(() => {
-    if (!isMultiplayer || !lobbyCode) return;
+    if (!isMultiplayer || !lobbyCode || !playerId || !gameSlug) return;
 
     mountedRef.current = true;
+    tabClosingRef.current = false;
 
-    // ── Poll session status every 2s (round advancement + forfeit detection) ──
+    // Track tab/window close via beforeunload
+    const handleBeforeUnload = () => {
+      tabClosingRef.current = true;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // ── Poll session status every 2s (round advancement) ──
     const statusInterval = window.setInterval(async () => {
       if (!mountedRef.current) return;
 
@@ -68,7 +78,7 @@ export function MultiplayerSessionGuard() {
         }
 
         // ── Round advance (normal) ──
-        if (payload.readyToAdvance && lobbyCode && playerId && gameSlug) {
+        if (payload.readyToAdvance) {
           const params = new URLSearchParams();
           params.set('game', gameSlug);
           params.set('player', playerId);
@@ -83,18 +93,21 @@ export function MultiplayerSessionGuard() {
 
     return () => {
       mountedRef.current = false;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.clearInterval(statusInterval);
 
-      // Signal the server that we're leaving so the opponent gets instant forfeit
-      fetch('/api/multiplayer/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lobbyCode, leave: true }),
-        keepalive: true,
-      }).catch(() => {});
+      // Only signal leave if the tab/window is actually closing,
+      // NOT during normal app navigation (e.g., routing to intermission).
+      if (tabClosingRef.current && lobbyCode) {
+        fetch('/api/multiplayer/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lobbyCode, leave: true }),
+          keepalive: true,
+        }).catch(() => {});
+      }
     };
   }, [isMultiplayer, lobbyCode, playerId, gameSlug, round, router]);
 
-  // This component doesn't render anything visible
   return null;
 }
