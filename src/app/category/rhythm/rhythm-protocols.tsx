@@ -265,7 +265,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
   }, [beatIntervalMs, bpm, phase]);
 
   async function startRun() {
-    await audio.unlock();
+    audio.unlock().catch(() => {});
 
     const nextBpm = Math.floor(BPM_MIN + Math.random() * (BPM_MAX - BPM_MIN + 1));
     const patternPool = ['Prism Groove', 'Neon Bounce', 'Pulse Drift', 'Circuit Swing', 'Static Drop'];
@@ -287,7 +287,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
       return;
     }
 
-    await audio.unlock();
+    audio.unlock().catch(() => {});
     setBeatIndex(-1);
     setPhase('listening');
   }
@@ -303,7 +303,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
       return;
     }
 
-    await audio.unlock();
+    audio.unlock().catch(() => {});
     const patternPool = ['Prism Groove', 'Neon Bounce', 'Pulse Drift', 'Circuit Swing', 'Static Drop'];
     const nextBpm = Math.floor(BPM_MIN + Math.random() * (BPM_MAX - BPM_MIN + 1));
     setPatternName(patternPool[Math.floor(Math.random() * patternPool.length)]);
@@ -566,7 +566,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
   }
 
   async function startRound() {
-    await audio.unlock();
+    audio.unlock().catch(() => {});
 
     if (hideTimeoutRef.current !== null) {
       clearTimeout(hideTimeoutRef.current);
@@ -646,7 +646,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
     }
 
     setRoundIndex((current) => current + 1);
-    await startRound();
+    startRound().catch(() => {});
   }
 
   const roundScore = lastErrorMs === null ? null : clamp(Math.round(1000 - Math.max(0, lastErrorMs - 50) * 0.25), 0, 1000);

@@ -1070,7 +1070,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
   }, [phase]);
 
   async function startRun() {
-    await audio.unlock();
+    audio.unlock().catch(() => {});
     const first = Math.floor(Math.random() * 9);
     seqRef.current = [first];
     setSequence([first]);
