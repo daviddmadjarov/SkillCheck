@@ -87,10 +87,15 @@ export function resetColorIdx() { colorIdx = 0; }
 // Shapes must be single continuous non-self-intersecting polygons.
 
 const ALL_SHAPES: (() => SplitShapeDef)[] = [
-  // Example shape — Apple
+  // 1. ASYMMETRICAL CARTOON APPLE
+  // Features a distinct top stem, a stylized leaf jutting out to the left, 
+  // and a heavily distorted, organic bottom dip skewed to one side.
   () => make('Apple', pts(
-    54,6, 60,12, 64,22, 66,34, 64,46, 60,56, 54,64, 48,70, 40,72, 34,68, 28,62, 24,54, 22,44, 24,34, 28,26, 34,20, 40,14, 48,10
+    50,30, 48,15, 52,15, 53,28, // The Stem
+    45,18, 32,15, 25,22, 35,28, 47,29, // The Leaf (weighted heavily to the left)
+    55,30, 68,31, 82,38, 88,52, 85,68, 75,82, 62,88, // Right side curve
+    53,84, 44,88, // The asymmetrical bottom indent
+    24,82, 12,68, 10,50, 18,36, 32,31 // Left side curve
   )),
-];
 
 export function getShapeCount() { return ALL_SHAPES.length; }
