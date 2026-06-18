@@ -83,19 +83,20 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
   const isIdle=phase==='idle';
   return <MouseShell title="Symbol Tracing" kicker="Path precision" description="Trace each target shape as precisely as possible." accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
     <div className="space-y-4">
-      {phase==='finished'&&<button className="lab-button" onClick={startTraceRun} type="button">Start New Run</button>}
+      <div className="flex flex-wrap gap-2">
+        {phase==='tracing'&&<button className="lab-button" onClick={finishTraceRound} type="button">Done Trace</button>}
+        {phase==='finished'&&<button className="lab-button" onClick={startTraceRun} type="button">Start New Run</button>}
+      </div>
       <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;setDrawing(true);setUp([p]);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setUp(c=>c.length===0?[p]:dist(c[c.length-1],p)<0.25?c:[...c,p])}} onPointerUp={()=>setDrawing(false)} ref={boardRef}>
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-          {phase==='tracing'&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" style={{filter:'blur(1.8px)',opacity:0.45}}/>}
+          {phase==='tracing'&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6"/>}
           <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
         </svg>
 
-        {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/35 backdrop-blur-sm"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
+        {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
 
         {phase==='tracing'&&<div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-slate-200 bg-white/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-slate-500 shadow-sm uppercase">{symbol.label}</span></div>}
-
-        {phase==='tracing'&&!isMultiplayerSession&&<div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2"><button className="lab-button" onClick={finishTraceRound} type="button">Done Trace</button></div>}
 
         {phase==='reveal'&&result&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{symbol.label}</p><p className={`mt-3 text-2xl font-black ${result.accuracy>=70?'text-emerald-600':'text-amber-600'}`}>{result.accuracy}% Accuracy</p><p className="mt-1 text-sm text-slate-500">Score: {result.labScore}</p><button className="mt-3 lab-button" onClick={advanceRound} type="button">{roundIdx+1>=ROUNDS?'See Final Score':'Next Symbol'}</button></div></div>}
 
