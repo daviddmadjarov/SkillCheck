@@ -17,6 +17,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-trainer');
   const [target,setTarget]=useState<Point>({x:50,y:50});const [times,setTimes]=useState<number[]>([]);const [best,setBest]=useState<number|null>(null);
   const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);const [targetSeed,setTargetSeed]=useState(0);
+  const [canRetry,setCanRetry]=useState(false);
   const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
@@ -24,6 +25,8 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
   const hitsLeft=Math.max(25-times.length,0);const isFinished=times.length>=25;
   const avg=times.length>0?Math.round(times.reduce((a,b)=>a+b,0)/times.length):null;
   const labScore=best===null?avg===null?null:reactionMsToLeaderboardScore(avg):reactionMsToLeaderboardScore(best);
+
+  useEffect(()=>{if(!isFinished){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[isFinished]);
 
   function startRun(){setTimes([]);setRunning(true);setStartedAt(performance.now());spawnTarget()}
   function spawnTarget(){setTarget({x:Math.random()*64+18,y:Math.random()*64+18});setTargetSeed(c=>c+1)}
@@ -40,7 +43,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
           {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
       </button>
-      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className="lab-button" onClick={startRun} type="button">Try again</button></div>}
+      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className={`lab-button ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
     </div></div>
   </AimShell>
 }
@@ -49,13 +52,16 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-moving-targets');
   const [target,setTarget]=useState<Point>({x:50,y:50});const [hits,setHits]=useState(0);const [times,setTimes]=useState<number[]>([]);
   const [best,setBest]=useState<number|null>(null);const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);
-  const [targetSeed,setTargetSeed]=useState(0);const velocity=useRef({x:0,y:0});const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
+  const [targetSeed,setTargetSeed]=useState(0);const [canRetry,setCanRetry]=useState(false);
+  const velocity=useRef({x:0,y:0});const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
 
   const hitsLeft=Math.max(25-hits,0);const isFinished=hits>=25;
   const avg=times.length>0?Math.round(times.reduce((a,b)=>a+b,0)/times.length):null;
   const labScore=best===null?avg===null?null:reactionMsToLeaderboardScore(avg):reactionMsToLeaderboardScore(best);
+
+  useEffect(()=>{if(!isFinished){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[isFinished]);
 
   // Each target drifts gently in its own random direction
   useEffect(()=>{
@@ -75,7 +81,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
 
   function spawnTarget(){
     const angle=Math.random()*Math.PI*2;
-    const speed=0.15+Math.random()*0.2; // gentle, varied speed
+    const speed=0.25+Math.random()*0.3; // faster, varied speed
     velocity.current={x:Math.cos(angle)*speed,y:Math.sin(angle)*speed};
     setTarget({x:18+Math.random()*64,y:18+Math.random()*64});
     setTargetSeed(c=>c+1)
@@ -110,7 +116,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
           {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
       </button>
-      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className="rounded-2xl border-b-4 border-emerald-800 bg-emerald-600 px-6 py-3 font-bold text-white" onClick={startRun} type="button">Try again</button></div>}
+      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className={`rounded-2xl border-b-4 border-emerald-800 bg-emerald-600 px-6 py-3 font-bold text-white ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
     </div></div>
   </AimShell>
 }
@@ -236,6 +242,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   const boardRef = useRef<HTMLDivElement>(null);
   const hasSavedRef = useRef(false);
   const hasAutoStarted = useRef(false);
+  const usedLabels = useRef<Set<string>>(new Set());
   const cd = useDuelCountdown(isMultiplayerSession);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
@@ -260,8 +267,20 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     return projectOntoContour(shape.pts, px, py);
   }
 
+  function getUniqueShape(): SplitShapeDef {
+    let s = randomShape();
+    let attempts = 0;
+    while (usedLabels.current.has(s.label) && attempts < 50) {
+      s = randomShape();
+      attempts++;
+    }
+    usedLabels.current.add(s.label);
+    return s;
+  }
+
   function startGame() {
-    const s = randomShape();
+    usedLabels.current = new Set();
+    const s = getUniqueShape();
     setShape(s);
     setPhase('playing');
     setRoundIdx(0);
@@ -347,7 +366,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
       setPhase('finished');
       return;
     }
-    const s = randomShape();
+    const s = getUniqueShape();
     setShape(s);
     setRoundIdx(nr);
     setResult(null);
