@@ -22,41 +22,86 @@ function evaluateTrace(up:Point[],tp:Point[]){if(up.length<4)return{accuracy:0,d
 
 function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('mouse-symbol-tracing');
-  const [traceMode]=useState<TraceMode>('assist');
-  const [so,setSo]=useState([0,1,2,3]);const [ri,setRi]=useState(0);const [running,setRunning]=useState(false);
-  const [sf,setSf]=useState(false);const [drawing,setDrawing]=useState(false);const [sg,setSg]=useState(true);
-  const [up,setUp]=useState<Point[]>([]);const [rs,setRs]=useState<number[]>([]);const [result,setResult]=useState<ReturnType<typeof evaluateTrace>|null>(null);
-  const boardRef=useRef<HTMLDivElement|null>(null);const hsrf=useRef(false);const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
+  const ROUNDS=4;
+  const cd=useDuelCountdown(isMultiplayerSession);
+  const hasAutoStarted=useRef(false);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startTraceRun()},[cd.launched]);//eslint-disable-line
 
-  const symbol=TRACE_SYMBOLS[so[ri]??0];const avgScore=rs.length===0?null:Math.round(rs.reduce((a,b)=>a+b,0)/rs.length);
+  const [phase,setPhase]=useState<'idle'|'tracing'|'reveal'|'finished'>('idle');
+  const [roundIdx,setRoundIdx]=useState(0);
+  const [order,setOrder]=useState<number[]>([]);
+  const [up,setUp]=useState<Point[]>([]);
+  const [drawing,setDrawing]=useState(false);
+  const [scores,setScores]=useState<number[]>([]);
+  const [result,setResult]=useState<ReturnType<typeof evaluateTrace>|null>(null);
+  const boardRef=useRef<HTMLDivElement|null>(null);
+  const hsrf=useRef(false);
 
-  useEffect(()=>{if(!isSignedIn||!sf||avgScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToIntermission,isMultiplayerSession,isSignedIn,sf,mm]);
+  const symbolIdx=order[roundIdx]??0;
+  const symbol=TRACE_SYMBOLS[symbolIdx];
+  const avgScore=scores.length===0?null:Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+
+  useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToIntermission,isMultiplayerSession,isSignedIn,phase,mm]);
 
   function getBP(cx:number,cy:number){const b=boardRef.current;if(!b)return null;const r=b.getBoundingClientRect();return{x:clamp(((cx-r.left)/r.width)*100,0,100),y:clamp(((cy-r.top)/r.height)*100,0,100)}}
-  function startTraceRun(){const o=[...Array(TRACE_SYMBOLS.length).keys()];for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]]}setSo(o.slice(0,4));setRs([]);setSf(false);hsrf.current=false;prepareRound(0)}
-  function prepareRound(n:number){setRi(n);setRunning(true);setDrawing(false);setUp([]);setResult(null);setSg(true)}
-  function finishTraceRound(){if(!running)return;setRunning(false);setDrawing(false);setSg(false);const r=evaluateTrace(up,symbol.points);setResult(r)}
-  function advanceRound(){if(!result)return;const ns=[...rs,result.labScore];setRs(ns);const nr=ri+1;if(nr>=4){setSf(true);setResult(null);setRunning(false);return}prepareRound(nr)}
 
-  const isIdle=!running&&!sf&&result===null&&rs.length===0;
-  return <MouseShell title="Symbol Tracing" kicker="Path precision" description="Trace each target shape as precisely as possible." accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(4-rs.length-(result===null?0:1),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(ri+1,4)} / 4`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:sf?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:sf?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
-    <div className="space-y-4"><div className="flex flex-wrap gap-2">
-      {running&&<button className="lab-button" onClick={finishTraceRound} type="button">Done Trace</button>}
-      {!running&&result!==null&&!sf&&<button className="lab-button" onClick={advanceRound} type="button">Next Symbol</button>}
-      {sf&&<button className="lab-button" onClick={startTraceRun} type="button">Start New Run</button>}
+  function startTraceRun(){
+    const o=[...Array(TRACE_SYMBOLS.length).keys()];
+    for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]]}
+    setOrder(o.slice(0,ROUNDS));
+    setScores([]);
+    setResult(null);
+    hsrf.current=false;
+    setRoundIdx(0);
+    setPhase('tracing');
+    setUp([]);
+    setDrawing(false);
+  }
+
+  function finishTraceRound(){
+    if(phase!=='tracing')return;
+    setDrawing(false);
+    const r=evaluateTrace(up,symbol.points);
+    setResult(r);
+    setPhase('reveal');
+  }
+
+  function advanceRound(){
+    if(!result)return;
+    const ns=[...scores,result.labScore];
+    setScores(ns);
+    const nr=roundIdx+1;
+    if(nr>=ROUNDS){setResult(null);setPhase('finished');return}
+    setResult(null);
+    setRoundIdx(nr);
+    setPhase('tracing');
+    setUp([]);
+    setDrawing(false);
+  }
+
+  const isIdle=phase==='idle';
+  return <MouseShell title="Symbol Tracing" kicker="Path precision" description="Trace each target shape as precisely as possible." accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
+    <div className="space-y-4">
+      {phase==='finished'&&<button className="lab-button" onClick={startTraceRun} type="button">Start New Run</button>}
+      <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;setDrawing(true);setUp([p]);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setUp(c=>c.length===0?[p]:dist(c[c.length-1],p)<0.25?c:[...c,p])}} onPointerUp={()=>setDrawing(false)} ref={boardRef}>
+        {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+          {phase==='tracing'&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" style={{filter:'blur(1.8px)',opacity:0.45}}/>}
+          <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
+        </svg>
+
+        {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/35 backdrop-blur-sm"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
+
+        {phase==='tracing'&&<div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-slate-200 bg-white/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-slate-500 shadow-sm uppercase">{symbol.label}</span></div>}
+
+        {phase==='tracing'&&!isMultiplayerSession&&<div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2"><button className="lab-button" onClick={finishTraceRound} type="button">Done Trace</button></div>}
+
+        {phase==='reveal'&&result&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{symbol.label}</p><p className={`mt-3 text-2xl font-black ${result.accuracy>=70?'text-emerald-600':'text-amber-600'}`}>{result.accuracy}% Accuracy</p><p className="mt-1 text-sm text-slate-500">Score: {result.labScore}</p><button className="mt-3 lab-button" onClick={advanceRound} type="button">{roundIdx+1>=ROUNDS?'See Final Score':'Next Symbol'}</button></div></div>}
+
+        {phase==='finished'&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p><p className="mt-2 text-xl font-black tracking-tight text-slate-800">Avg Lab Score: {avgScore??0}</p><button className="mt-4 lab-button" onClick={startTraceRun} type="button">Start New Run</button></div></div>}
+      </div>
     </div>
-    <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(!running)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setDrawing(true);setUp([p]);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(!running||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setUp(c=>c.length===0?[p]:dist(c[c.length-1],p)<0.25?c:[...c,p])}} onPointerUp={()=>setDrawing(false)} ref={boardRef}>
-      {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-        {sg&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" style={isIdle?{filter:'blur(1.8px)',opacity:0.45}:undefined}/>}
-        <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
-      </svg>
-      {!running&&result!==null&&!sf&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{symbol.label}</p><p className={`mt-3 text-2xl font-black ${result.accuracy>=70?'text-emerald-600':'text-amber-600'}`}>{result.accuracy}% Accuracy</p><p className="mt-1 text-sm text-slate-500">Score: {result.labScore}</p></div></div>}
-      {isIdle&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/35 backdrop-blur-sm"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
-      {sf&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p><p className="mt-2 text-xl font-black tracking-tight text-slate-800">Avg Lab Score: {avgScore??0}</p><button className="mt-4 lab-button" onClick={startTraceRun} type="button">Start New Run</button></div></div>}
-    </div></div>
   </MouseShell>
 }
 
