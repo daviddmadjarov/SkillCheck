@@ -20,33 +20,17 @@ const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},
 
 function evaluateTrace(userPts:Point[],tplPts:Point[]){
   if(userPts.length<4)return{accuracy:0,deviation:99,completion:0,labScore:0};
-  // Evenly resample both paths to 200 points using cumulative length
-  function resample(pts:Point[],n:number):Point[]{
-    if(pts.length<2)return pts;
-    const lens:number[]=[0];
-    for(let i=1;i<pts.length;i++)lens.push(lens[i-1]+dist(pts[i-1],pts[i]));
-    const total=lens[lens.length-1];
-    if(total<0.01)return Array.from({length:n},()=>pts[0]);
-    const step=total/(n-1);
-    const out:Point[]=[pts[0]];
-    let segIdx=0;
-    for(let s=step;s<total-step*0.5;s+=step){
-      while(segIdx<lens.length-2&&lens[segIdx+1]<=s)segIdx++;
-      const t=(s-lens[segIdx])/(lens[segIdx+1]-lens[segIdx]||1);
-      out.push({x:pts[segIdx].x+(pts[segIdx+1].x-pts[segIdx].x)*t,y:pts[segIdx].y+(pts[segIdx+1].y-pts[segIdx].y)*t});
-    }
-    out.push(pts[pts.length-1]);
-    return out;
+  // Sample every Nth user point, find nearest template point for each
+  const userStep=Math.max(1,Math.floor(userPts.length/100));
+  let totalDist=0;let count=0;
+  for(let ui=0;ui<userPts.length;ui+=userStep){
+    let best=Infinity;
+    for(let ti=0;ti<tplPts.length;ti++){const d=dist(userPts[ui],tplPts[ti]);if(d<best)best=d}
+    totalDist+=best;count++;
   }
-  const N=200;
-  const usamp=resample(userPts,N);
-  const tsamp=resample(tplPts,N);
-  let total=0;
-  for(let i=0;i<N;i++)total+=dist(usamp[i],tsamp[i]);
-  const avgDev=total/N;
-  // Board is 100x100 units; scale accuracy relative to max possible deviation (~70 on diagonal)
-  const accuracy=clamp(Math.round(100-avgDev*0.6),0,100);
-  const labScore=clamp(Math.round(1000-avgDev*6),0,1000);
+  const avgDev=totalDist/count;
+  const accuracy=clamp(Math.round(100-avgDev*0.5),0,100);
+  const labScore=clamp(Math.round(1000-avgDev*5),0,1000);
   return{accuracy,deviation:Number(avgDev.toFixed(2)),completion:accuracy,labScore};
 }
 
