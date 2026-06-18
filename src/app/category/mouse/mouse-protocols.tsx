@@ -20,17 +20,24 @@ const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},
 
 function evaluateTrace(userPts:Point[],tplPts:Point[]){
   if(userPts.length<4)return{accuracy:0,deviation:99,completion:0,labScore:0};
-  // Sample every Nth user point, find nearest template point for each
-  const userStep=Math.max(1,Math.floor(userPts.length/100));
+  function pathLen(pts:Point[]){let s=0;for(let i=1;i<pts.length;i++)s+=dist(pts[i-1],pts[i]);return s}
+  const tplLen=pathLen(tplPts);
+  const userLen=pathLen(userPts);
+  const coverage=Math.min(1,userLen/tplLen);
+  if(coverage<0.4)return{accuracy:0,deviation:99,completion:0,labScore:0};
+
+  const step=Math.max(1,Math.floor(userPts.length/80));
   let totalDist=0;let count=0;
-  for(let ui=0;ui<userPts.length;ui+=userStep){
+  for(let ui=0;ui<userPts.length;ui+=step){
     let best=Infinity;
     for(let ti=0;ti<tplPts.length;ti++){const d=dist(userPts[ui],tplPts[ti]);if(d<best)best=d}
     totalDist+=best;count++;
   }
   const avgDev=totalDist/count;
-  const accuracy=clamp(Math.round(100-avgDev*0.5),0,100);
-  const labScore=clamp(Math.round(1000-avgDev*5),0,1000);
+  // Score = coverage * distance-penalty  (multiply, not just distance)
+  const raw=clamp(Math.round(100-avgDev*3),0,100);
+  const accuracy=Math.round(raw*coverage);
+  const labScore=clamp(Math.round(1000-avgDev*30),0,1000);
   return{accuracy,deviation:Number(avgDev.toFixed(2)),completion:accuracy,labScore};
 }
 
