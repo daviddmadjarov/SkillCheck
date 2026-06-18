@@ -24,20 +24,45 @@ function evaluateTrace(userPts:Point[],tplPts:Point[]){
   const tplLen=pathLen(tplPts);
   const userLen=pathLen(userPts);
   const coverage=Math.min(1,userLen/tplLen);
-  if(coverage<0.4)return{accuracy:0,deviation:99,completion:0,labScore:0};
+  if(coverage<0.5)return{accuracy:0,deviation:99,completion:0,labScore:0};
 
-  const step=Math.max(1,Math.floor(userPts.length/80));
-  let totalDist=0;let count=0;
-  for(let ui=0;ui<userPts.length;ui+=step){
-    let best=Infinity;
-    for(let ti=0;ti<tplPts.length;ti++){const d=dist(userPts[ui],tplPts[ti]);if(d<best)best=d}
-    totalDist+=best;count++;
+  // Evenly resample both paths to 200 points for fair comparison
+  function resample(pts:Point[],n:number):Point[]{
+    if(pts.length<2)return pts;
+    const lens:number[]=[0];
+    for(let i=1;i<pts.length;i++)lens.push(lens[i-1]+dist(pts[i-1],pts[i]));
+    const total=lens[lens.length-1];
+    const step=total/(n-1);
+    const out:Point[]=[pts[0]];
+    let segIdx=0;
+    for(let s=step;s<total-step*0.5;s+=step){
+      while(segIdx<lens.length-2&&lens[segIdx+1]<=s)segIdx++;
+      const t=(s-lens[segIdx])/(lens[segIdx+1]-lens[segIdx]||1);
+      out.push({x:pts[segIdx].x+(pts[segIdx+1].x-pts[segIdx].x)*t,y:pts[segIdx].y+(pts[segIdx+1].y-pts[segIdx].y)*t});
+    }
+    out.push(pts[pts.length-1]);
+    return out;
   }
-  const avgDev=totalDist/count;
-  // Score = coverage * distance-penalty  (multiply, not just distance)
-  const raw=clamp(Math.round(100-avgDev*3),0,100);
-  const accuracy=Math.round(raw*coverage);
-  const labScore=clamp(Math.round(1000-avgDev*30),0,1000);
+  const N=200;
+  const usamp=resample(userPts,N);
+  const tsamp=resample(tplPts,N);
+
+  // For each resampled user point, find nearest template point.
+  // Count how many are within the THRESHOLD distance (= "on target").
+  const THRESH=8;
+  let onTarget=0;
+  let avgDev=0;
+  for(let i=0;i<N;i++){
+    let best=Infinity;
+    for(let ti=0;ti<tsamp.length;ti++){const d=dist(usamp[i],tsamp[ti]);if(d<best)best=d}
+    avgDev+=best;
+    if(best<=THRESH)onTarget++;
+  }
+  avgDev/=N;
+  const onTargetPct=clamp(Math.round((onTarget/N)*100),0,100);
+  // Multiply by coverage so incomplete traces score lower
+  const accuracy=Math.round(onTargetPct*coverage);
+  const labScore=clamp(Math.round(1000-avgDev*20),0,1000);
   return{accuracy,deviation:Number(avgDev.toFixed(2)),completion:accuracy,labScore};
 }
 
