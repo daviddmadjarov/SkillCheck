@@ -32,6 +32,7 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
   const [roundIdx,setRoundIdx]=useState(0);
   const [order,setOrder]=useState<number[]>([]);
   const [up,setUp]=useState<Point[]>([]);
+  const traceRef=useRef<Point[]>([]);
   const [drawing,setDrawing]=useState(false);
   const [scores,setScores]=useState<number[]>([]);
   const [result,setResult]=useState<ReturnType<typeof evaluateTrace>|null>(null);
@@ -59,14 +60,6 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     setDrawing(false);
   }
 
-  function finishTraceRound(){
-    if(phase!=='tracing')return;
-    setDrawing(false);
-    const r=evaluateTrace(up,symbol.points);
-    setResult(r);
-    setPhase('reveal');
-  }
-
   function advanceRound(){
     if(!result)return;
     const ns=[...scores,result.labScore];
@@ -80,14 +73,13 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     setDrawing(false);
   }
 
-  const isIdle=phase==='idle';
   return <MouseShell title="Symbol Tracing" kicker="Path precision" description="Trace each target shape as precisely as possible." accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {phase==='tracing'&&<button className="lab-button" onClick={finishTraceRound} type="button">Done Trace</button>}
+        {phase==='tracing'&&<button className="lab-button" onClick={()=>{const pts=traceRef.current;if(pts.length<4)return;const r=evaluateTrace(pts,symbol.points);setDrawing(false);setResult(r);setPhase('reveal');}} type="button">Done Trace</button>}
         {phase==='finished'&&<button className="lab-button" onClick={startTraceRun} type="button">Start New Run</button>}
       </div>
-      <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;setDrawing(true);setUp([p]);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setUp(c=>c.length===0?[p]:dist(c[c.length-1],p)<0.25?c:[...c,p])}} onPointerUp={()=>setDrawing(false)} ref={boardRef}>
+      <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing'||drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;setDrawing(true);traceRef.current=[p];setUp([p]);e.currentTarget.setPointerCapture(e.pointerId)}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;const cur=traceRef.current;if(cur.length===0){traceRef.current=[p];setUp([p]);return}if(dist(cur[cur.length-1],p)<0.25)return;const next=[...cur,p];traceRef.current=next;setUp(next)}} onPointerUp={e=>{setDrawing(false);try{e.currentTarget.releasePointerCapture(e.pointerId)}catch(_){}}} ref={boardRef}>
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
           {phase==='tracing'&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6"/>}
