@@ -18,7 +18,27 @@ function MouseShell({title,kicker,description,accent,isSignedIn,stats,children}:
 
 const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},{x:58,y:38},{x:82,y:38},{x:62,y:52},{x:70,y:76},{x:50,y:61},{x:30,y:76},{x:38,y:52},{x:18,y:38},{x:42,y:38},{x:50,y:16}]},{key:'arrow',label:'Arrow',points:[{x:18,y:50},{x:60,y:50},{x:60,y:36},{x:84,y:50},{x:60,y:64},{x:60,y:50},{x:18,y:50}]},{key:'heart',label:'Heart',points:[{x:50,y:78},{x:74,y:55},{x:80,y:38},{x:69,y:27},{x:56,y:30},{x:50,y:37},{x:44,y:30},{x:31,y:27},{x:20,y:38},{x:26,y:55},{x:50,y:78}]},{key:'loop',label:'Loop',points:[{x:50,y:20},{x:75,y:30},{x:82,y:50},{x:68,y:72},{x:50,y:80},{x:32,y:72},{x:18,y:50},{x:25,y:30},{x:40,y:26},{x:50,y:34},{x:32,y:55},{x:50,y:68},{x:68,y:55},{x:50,y:20}]}];
 
-function evaluateTrace(up:Point[],tp:Point[]){if(up.length<4)return{accuracy:0,deviation:99,completion:0,labScore:0};const sc=Math.min(up.length,tp.length);let s=0;for(let i=0;i<sc;i++){const d=Math.hypot(up[i].x-tp[i].x,up[i].y-tp[i].y);s+=d}const avg=s/sc;const acc=clamp(Math.round(100-avg*3.45),0,100);const score=clamp(Math.round(acc*10-avg*48),0,1000);return{accuracy:acc,deviation:Number(avg.toFixed(2)),completion:acc,labScore:score}}
+function resamplePath(pts:Point[],n:number):Point[]{
+  if(pts.length<2||n<2)return pts;
+  const totalLen=pts.reduce((s,p,i)=>i===0?0:s+dist(pts[i-1],p),0);
+  const step=totalLen/(n-1);
+  const result:Point[]=[pts[0]];
+  let cursor=0;
+  let segStart=0;
+  for(let i=1;i<pts.length;i++){
+    const segLen=dist(pts[i-1],pts[i]);
+    while(cursor+step<segStart+segLen&&result.length<n-1){
+      cursor+=step;
+      const t=(cursor-segStart)/segLen;
+      result.push({x:pts[i-1].x+(pts[i].x-pts[i-1].x)*t,y:pts[i-1].y+(pts[i].y-pts[i-1].y)*t});
+    }
+    segStart+=segLen;
+  }
+  result.push(pts[pts.length-1]);
+  return result;
+}
+
+function evaluateTrace(up:Point[],tp:Point[]){if(up.length<4)return{accuracy:0,deviation:99,completion:0,labScore:0};const SAMPLES=100;const a=resamplePath(up,SAMPLES);const b=resamplePath(tp,SAMPLES);let s=0;for(let i=0;i<SAMPLES;i++){s+=dist(a[i],b[i])}const avg=s/SAMPLES;const acc=clamp(Math.round(100-avg*3.45),0,100);const score=clamp(Math.round(acc*10-avg*48),0,1000);return{accuracy:acc,deviation:Number(avg.toFixed(2)),completion:acc,labScore:score}}
 
 function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('mouse-symbol-tracing');
@@ -54,6 +74,7 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     setScores([]);
     setResult(null);
     hsrf.current=false;
+    traceRef.current=[];
     setRoundIdx(0);
     setPhase('tracing');
     setUp([]);
@@ -67,6 +88,7 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     const nr=roundIdx+1;
     if(nr>=ROUNDS){setResult(null);setPhase('finished');return}
     setResult(null);
+    traceRef.current=[];
     setRoundIdx(nr);
     setPhase('tracing');
     setUp([]);
