@@ -203,8 +203,15 @@ export function TypingProtocol({
     setInput(clamped);
   }
 
+  // Handle keyboard input from physical keyboard (desktop)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // When the hidden input is focused (mobile keyboard active), let the input's
+      // onChange handle everything to avoid double-processing
+      if (document.activeElement === hiddenInputRef.current) {
+        return;
+      }
+
       if (event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
@@ -242,7 +249,7 @@ export function TypingProtocol({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [finished, input, resetRun]);
+  }, [finished, hiddenInputRef, input, resetRun]);
 
   const visibleWords = words.slice(0, 120);
 
@@ -309,11 +316,21 @@ export function TypingProtocol({
         <input
           ref={hiddenInputRef}
           className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
-          inputMode="none"
+          inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
           aria-label="Typing test input"
           tabIndex={0}
-          value=""
-          onChange={() => {}}
+          value={input}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onBlur={(e) => {
+            // Re-focus on blur so mobile keyboard stays open while typing
+            if (!finished) {
+              setTimeout(() => hiddenInputRef.current?.focus(), 0);
+            }
+          }}
         />
         <div className="mb-4 rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
           <div className={finished ? 'pointer-events-none blur-[2.5px]' : ''}>
@@ -355,7 +372,7 @@ export function TypingProtocol({
         </div>
 
         <p className="text-sm font-semibold text-slate-500">
-          Just start typing. Press Escape to reset.
+          Tap the words above to start typing on mobile.
         </p>
       </div>
 

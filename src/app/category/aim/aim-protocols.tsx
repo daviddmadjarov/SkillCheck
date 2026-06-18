@@ -81,7 +81,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
 
   function spawnTarget(){
     const angle=Math.random()*Math.PI*2;
-    const speed=0.25+Math.random()*0.3; // faster, varied speed
+    const speed=0.5+Math.random()*0.5; // even faster, varied speed
     velocity.current={x:Math.cos(angle)*speed,y:Math.sin(angle)*speed};
     setTarget({x:18+Math.random()*64,y:18+Math.random()*64});
     setTargetSeed(c=>c+1)
