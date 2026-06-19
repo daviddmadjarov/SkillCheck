@@ -359,8 +359,11 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
   useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);// Speed ramps from very slow at start to fast at end
-const speedMul=0.15+progress*progress*0.85;const ang=sr.phase+elapsed*sr.speedRad*speedMul;// Lemniscate-like figure-8 path with randomized parameters, scaled by speedMul for smooth ease-in
-const nx=sr.cx+Math.sin(ang)*sr.rx*speedMul;const ny=sr.cy+Math.sin(ang*2)*sr.ry*speedMul;// Apply random tilt rotation
+const speedMul=0.4+progress*progress*0.6;const ang=sr.phase+elapsed*sr.speedRad*speedMul;// Lemniscate-like figure-8 path with randomized parameters, scaled by speedMul for smooth ease-in
+// Snap starting position to center for first ~200ms, then blend to full orbit
+const orbitEase=Math.min(1,elapsed/200);
+const rawX=sr.cx+Math.sin(ang)*sr.rx*speedMul;const rawY=sr.cy+Math.sin(ang*2)*sr.ry*speedMul;
+const nx=50+(rawX-50)*orbitEase;const ny=50+(rawY-50)*orbitEase;// Apply random tilt rotation
 const cosT=Math.cos(sr.tilt);const sinT=Math.sin(sr.tilt);const rx=nx-50;const ry=ny-50;const tx=50+rx*cosT-ry*sinT;const ty=50+rx*sinT+ry*cosT;
 const fx=clamp(tx,10,90);const fy=clamp(ty,10,90);sr.targetX=fx;sr.targetY=fy;setTarget({x:fx,y:fy});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);const tx=sr.targetX;const ty=sr.targetY;inside=dist({x:cx,y:cy},{x:tx,y:ty})<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
