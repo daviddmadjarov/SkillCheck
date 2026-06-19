@@ -354,36 +354,42 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   const [timeInsideMs,setTimeInsideMs]=useState(0);const [target,setTarget]=useState({x:50,y:50});const [isInside,setIsInside]=useState(false);
   const [canRetry,setCanRetry]=useState(false);
   const arenaRef=useRef<HTMLDivElement|null>(null);const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const stateRef=useRef<{lastTimestamp:number;targetX:number;targetY:number;angle:number;curvature:number;px:number;py:number}>({lastTimestamp:0,targetX:50,targetY:50,angle:0,curvature:0,px:50,py:50});
+  const stateRef=useRef<{lastTimestamp:number;targetX:number;targetY:number;vx:number;vy:number;px:number;py:number;cursorX:number;cursorY:number}>({lastTimestamp:0,targetX:50,targetY:50,vx:0,vy:0,px:50,py:50,cursorX:50,cursorY:50});
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
-  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);const speedMul=0.3+Math.max(0,progress-0.25)*0.9;const speed=0.008+speedMul*0.035;
-// Multi-noise signal for varied wandering
-const noise=Math.sin(elapsed*0.0005)*1.2+Math.sin(elapsed*0.0011+sr.px*0.1)*0.8+Math.sin(elapsed*0.0018+sr.py*0.15)*0.5;
-sr.curvature+=noise*dt*0.000004;
-// Wider curvature range (±0.06) allows sharper turns that cover more arena
-sr.curvature=Math.max(-0.06,Math.min(0.06,sr.curvature));
-// No center pull — let walls naturally redirect
-sr.angle+=sr.curvature*dt;
-// Move in direction of angle
-sr.px+=Math.cos(sr.angle)*speed*dt;
-sr.py+=Math.sin(sr.angle)*speed*dt;
-// Hard wall bounce — reflects off edges like a ball
-if(sr.px<10){sr.px=10;sr.angle=Math.PI-sr.angle;sr.curvature*=0.5}
-if(sr.px>90){sr.px=90;sr.angle=Math.PI-sr.angle;sr.curvature*=0.5}
-if(sr.py<10){sr.py=10;sr.angle=-sr.angle;sr.curvature*=0.5}
-if(sr.py>90){sr.py=90;sr.angle=-sr.angle;sr.curvature*=0.5}
-// Ensure angle stays in [0, 2π)
-if(sr.angle<0)sr.angle+=Math.PI*2;
-if(sr.angle>=Math.PI*2)sr.angle-=Math.PI*2;
+  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);const speedMul=0.3+Math.max(0,progress-0.25)*0.9;const maxSpeed=0.01+speedMul*0.06;
+// Random acceleration nudges for erratic direction changes
+sr.vx+=(Math.random()-0.5)*0.006;
+sr.vy+=(Math.random()-0.5)*0.006;
+// Dampen slightly to prevent infinite acceleration
+sr.vx*=0.996;sr.vy*=0.996;
+// Clamp speed
+const spd=Math.hypot(sr.vx,sr.vy);
+if(spd>maxSpeed){sr.vx=(sr.vx/spd)*maxSpeed;sr.vy=(sr.vy/spd)*maxSpeed}
+if(spd<maxSpeed*0.3){sr.vx+=(Math.random()-0.5)*0.003;sr.vy+=(Math.random()-0.5)*0.003}
+// Move
+sr.px+=sr.vx*dt;sr.py+=sr.vy*dt;
+// Hard wall bounce with random push to ensure corner-to-corner chaos
+if(sr.px<10){sr.px=10;sr.vx=Math.abs(sr.vx)*0.8+(Math.random()*0.02+0.01);sr.vy+=(Math.random()-0.5)*0.02}
+if(sr.px>90){sr.px=90;sr.vx=-Math.abs(sr.vx)*0.8-(Math.random()*0.02+0.01);sr.vy+=(Math.random()-0.5)*0.02}
+if(sr.py<10){sr.py=10;sr.vy=Math.abs(sr.vy)*0.8+(Math.random()*0.02+0.01);sr.vx+=(Math.random()-0.5)*0.02}
+if(sr.py>90){sr.py=90;sr.vy=-Math.abs(sr.vy)*0.8-(Math.random()*0.02+0.01);sr.vx+=(Math.random()-0.5)*0.02}
 // Ease from center starting position
 const easeMul=Math.min(1,elapsed/300);
 const fx=clamp(50+(sr.px-50)*easeMul,10,90);const fy=clamp(50+(sr.py-50)*easeMul,10,90);
-sr.targetX=fx;sr.targetY=fy;setTarget({x:fx,y:fy});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);const tx=sr.targetX;const ty=sr.targetY;inside=dist({x:cx,y:cy},{x:tx,y:ty})<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
+sr.targetX=fx;sr.targetY=fy;setTarget({x:fx,y:fy});
+// Compute collision every frame using cursor position from ref (not pointer handler)
+const isHitNow=dist({x:sr.cursorX,y:sr.cursorY},{x:fx,y:fy})<6.5;
+setIsInside(isHitNow);
+if(isHitNow){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}
+if(elapsed>=TOTAL){setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};// Track cursor position in ref every frame via pointermove
+const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();sr.cursorX=clamp(((e.clientX-r.left)/r.width)*100,0,100);sr.cursorY=clamp(((e.clientY-r.top)/r.height)*100,0,100)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
+    // Random initial velocity in a random direction
     const angle=Math.random()*Math.PI*2;
-    stateRef.current={lastTimestamp:0,targetX:50,targetY:50,angle,curvature:0,px:50,py:50};
+    const speed=0.015+Math.random()*0.02;
+    stateRef.current={lastTimestamp:0,targetX:50,targetY:50,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,px:50,py:50,cursorX:50,cursorY:50};
     setTarget({x:50,y:50});
     setRunning(true);setRunComplete(false);setSecondsLeft(20);setTimeInsideMs(0);setIsInside(false)
   }
