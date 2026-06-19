@@ -354,25 +354,27 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   const [timeInsideMs,setTimeInsideMs]=useState(0);const [target,setTarget]=useState({x:50,y:50});const [isInside,setIsInside]=useState(false);
   const [canRetry,setCanRetry]=useState(false);
   const arenaRef=useRef<HTMLDivElement|null>(null);const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const stateRef=useRef<{vx:number;vy:number;lastTimestamp:number}>({vx:0,vy:0,lastTimestamp:0});
+  const stateRef=useRef<{vx:number;vy:number;lastTimestamp:number;targetX:number;targetY:number}>({vx:0,vy:0,lastTimestamp:0,targetX:50,targetY:50});
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
-  useEffect(()=>{if(!running)return;const s=performance.now();let inside=false;let elapsed=0;let ti=0;const sr=stateRef.current;sr.lastTimestamp=s;let px=50;let py=50;let vx=sr.vx;let vy=sr.vy;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-sr.lastTimestamp);sr.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));// Speed multiplier: starts near 0, ramps to ~20%/% over 20s, then stays
-const progress=elapsed/TOTAL;const speedScale=progress*progress*0.18+progress*0.02;
-// Apply random acceleration nudges (direction changes smoothly)
-const ax=(Math.random()-0.5)*0.4;const ay=(Math.random()-0.5)*0.4;
+  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;let px=50;let py=50;let vx=0;let vy=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);const speedScale=progress*0.12+progress*progress*0.06;
+// Gentle random acceleration — small nudges for smooth wandering
+const ax=(Math.random()-0.5)*0.04;const ay=(Math.random()-0.5)*0.04;
 vx+=ax;vy+=ay;
-// Dampen velocity toward a random wander direction to keep it from getting stuck
-const maxSpeed=0.08+speedScale*1.2;const speed=Math.hypot(vx,vy);if(speed>maxSpeed){vx=(vx/speed)*maxSpeed;vy=(vy/speed)*maxSpeed}
-// Wander toward random direction to prevent corner-clinging
-const wanderAngle=Math.sin(elapsed*0.0007+sr.vx)*0.008;vx+=Math.cos(wanderAngle)*0.002;vy+=Math.sin(wanderAngle)*0.002;
+// Apply damping so velocity doesn't explode
+vx*=0.992;vy*=0.992;
+// Clamp speed to limit based on progress
+const maxSpeed=0.015+speedScale*0.25;const speed=Math.hypot(vx,vy);if(speed>maxSpeed){vx=(vx/speed)*maxSpeed;vy=(vy/speed)*maxSpeed}
+// Gentle drift to prevent getting stuck
+const driftAngle=Math.sin(elapsed*0.0003)*0.6;vx+=Math.cos(driftAngle)*0.001;vy+=Math.sin(driftAngle)*0.001;
 px+=vx*dt;py+=vy*dt;
-// Bounce off walls (10-90 bounds)
-if(px<10){px=10;vx*=-0.7}if(px>90){px=90;vx*=-0.7}if(py<10){py=10;vy*=-0.7}if(py>90){py=90;vy*=-0.7}
-setTarget({x:clamp(px,10,90),y:clamp(py,10,90)});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);inside=dist({x:cx,y:cy},target)<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
+// Bounce off walls
+if(px<10){px=10;vx*=-0.5}if(px>90){px=90;vx*=-0.5}if(py<10){py=10;vy*=-0.5}if(py>90){py=90;vy*=-0.5}
+const nx=clamp(px,10,90);const ny=clamp(py,10,90);sr.targetX=nx;sr.targetY=ny;
+setTarget({x:nx,y:ny});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);const tx=sr.targetX;const ty=sr.targetY;inside=dist({x:cx,y:cy},{x:tx,y:ty})<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
-    stateRef.current={vx:0,vy:0,lastTimestamp:0};
+    stateRef.current={vx:0,vy:0,lastTimestamp:0,targetX:50,targetY:50};
     setTarget({x:50,y:50});
     setRunning(true);setRunComplete(false);setSecondsLeft(20);setTimeInsideMs(0);setIsInside(false)
   }
