@@ -354,45 +354,30 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   const [timeInsideMs,setTimeInsideMs]=useState(0);const [target,setTarget]=useState({x:50,y:50});const [isInside,setIsInside]=useState(false);
   const [canRetry,setCanRetry]=useState(false);
   const arenaRef=useRef<HTMLDivElement|null>(null);const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const stateRef=useRef<{lastTimestamp:number;targetX:number;targetY:number;waves:{ax:number;ay:number;fx:number;fy:number;px:number;py:number}[],tilt:number}>({lastTimestamp:0,targetX:50,targetY:50,waves:[{ax:0,ay:0,fx:0,fy:0,px:0,py:0},{ax:0,ay:0,fx:0,fy:0,px:0,py:0},{ax:0,ay:0,fx:0,fy:0,px:0,py:0}],tilt:0});
+  const stateRef=useRef<{lastTimestamp:number;targetX:number;targetY:number;cx:number;cy:number;rx:number;ry:number;speedRad:number;phase:number;tilt:number}>({lastTimestamp:0,targetX:50,targetY:50,cx:50,cy:50,rx:32,ry:28,speedRad:0.003,phase:0,tilt:0});
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
-  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);// Consistent speed ramp: starts moderate, smoothly accelerates to max
-// Same curve every run — no randomness here
-const speedMul=0.2+progress*progress*progress*1.9;
-// Cumulative time-based angle for wave progression (time in seconds)
-const t=(elapsed/1000)*speedMul;
-// Sum of 3 smooth sine waves for organic, non-repeating motion
-let rawX=50,rawY=50;
-for(let i=0;i<sr.waves.length;i++){
-  const w=sr.waves[i];
-  rawX+=Math.sin(t*w.fx+w.px)*w.ax;
-  rawY+=Math.cos(t*w.fy+w.py)*w.ay;
-}
-// Ease from center over first 200ms
+  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);// Speed ramp: stays comfortable (linear) then gets harder (quadratic) in last 5s
+// At t=0: ~0.3 orbits/s  At t=15s: ~1.0 orbits/s  At t=20s: ~1.7 orbits/s
+const speedMul=0.3+Math.max(0,progress-0.25)*0.9;
+const ang=sr.phase+elapsed*0.003*speedMul;
+// Lemniscate figure-8 centered at (50,50) — always passes through center
+const rawX=50+Math.sin(ang)*sr.rx;const rawY=50+Math.sin(ang*2)*sr.ry;
+// Ease in from center over 200ms
 const orbitEase=Math.min(1,elapsed/200);
 const blendX=50+(rawX-50)*orbitEase;const blendY=50+(rawY-50)*orbitEase;
-// Apply tilt rotation
+// Tilt rotation around center
 const cosT=Math.cos(sr.tilt);const sinT=Math.sin(sr.tilt);
 const rrx=blendX-50;const rry=blendY-50;
 const tx=50+rrx*cosT-rry*sinT;const ty=50+rrx*sinT+rry*cosT;
 const fx=clamp(tx,10,90);const fy=clamp(ty,10,90);sr.targetX=fx;sr.targetY=fy;setTarget({x:fx,y:fy});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);const tx=sr.targetX;const ty=sr.targetY;inside=dist({x:cx,y:cy},{x:tx,y:ty})<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
-    // 3 smooth sine waves with randomized amplitudes/frequencies/phases
-    // Produces organic, non-repeating motion — but always smooth
-    const waves:{ax:number;ay:number;fx:number;fy:number;px:number;py:number}[]=[];
-    for(let i=0;i<3;i++){
-      waves.push({
-        ax:2+Math.random()*8,  // X amplitude 2-10
-        ay:2+Math.random()*8,  // Y amplitude 2-10
-        fx:0.15+Math.random()*0.6, // X frequency 0.15-0.75 Hz
-        fy:0.15+Math.random()*0.6, // Y frequency 0.15-0.75 Hz
-        px:Math.random()*Math.PI*2, // X phase
-        py:Math.random()*Math.PI*2, // Y phase
-      });
-    }
-    stateRef.current={lastTimestamp:0,targetX:50,targetY:50,waves,tilt:Math.random()*Math.PI*2};
+    // Randomized figure-8 parameters — always centered, always smooth
+    const rx=15+Math.random()*25;const ry=12+Math.random()*22;
+    const phase=Math.random()*Math.PI*2;
+    const tilt=Math.random()*Math.PI*2;
+    stateRef.current={lastTimestamp:0,targetX:50,targetY:50,cx:50,cy:50,rx,ry,speedRad:0.003,phase,tilt};
     setTarget({x:50,y:50});
     setRunning(true);setRunComplete(false);setSecondsLeft(20);setTimeInsideMs(0);setIsInside(false)
   }
