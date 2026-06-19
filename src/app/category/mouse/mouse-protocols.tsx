@@ -358,28 +358,25 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
-  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);const speedMul=0.3+Math.max(0,progress-0.25)*0.9;const speed=0.008+speedMul*0.035;// Smoothly vary curvature (turn rate) — like a car steering, no sharp turns
-const noise=Math.sin(elapsed*0.0009+sr.px)*0.6+Math.sin(elapsed*0.0013+sr.py)*0.4;
-sr.curvature+=noise*dt*0.000003;
-// Clamp curvature so turns are wide and natural (±0.025 = gentle curves)
-sr.curvature=Math.max(-0.025,Math.min(0.025,sr.curvature));
-// Gentle pull toward center to keep target from hugging walls
-const distToCenter=Math.hypot(50-sr.px,50-sr.py);
-if(distToCenter>20){
-  const desiredAngle=Math.atan2(50-sr.py,50-sr.px);
-  let angleDiff=desiredAngle-sr.angle;
-  if(angleDiff>Math.PI)angleDiff-=Math.PI*2;
-  if(angleDiff<-Math.PI)angleDiff+=Math.PI*2;
-  sr.curvature+=angleDiff*dt*0.00002;
-}
-// Update angle by curvature
+  useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);const speedMul=0.3+Math.max(0,progress-0.25)*0.9;const speed=0.008+speedMul*0.035;
+// Multi-noise signal for varied wandering
+const noise=Math.sin(elapsed*0.0005)*1.2+Math.sin(elapsed*0.0011+sr.px*0.1)*0.8+Math.sin(elapsed*0.0018+sr.py*0.15)*0.5;
+sr.curvature+=noise*dt*0.000004;
+// Wider curvature range (±0.06) allows sharper turns that cover more arena
+sr.curvature=Math.max(-0.06,Math.min(0.06,sr.curvature));
+// No center pull — let walls naturally redirect
 sr.angle+=sr.curvature*dt;
 // Move in direction of angle
 sr.px+=Math.cos(sr.angle)*speed*dt;
 sr.py+=Math.sin(sr.angle)*speed*dt;
-// Soft wall push
-if(sr.px<15){sr.angle+=0.05;sr.px=15}if(sr.px>85){sr.angle-=0.05;sr.px=85}
-if(sr.py<15){sr.angle+=0.05;sr.py=15}if(sr.py>85){sr.angle-=0.05;sr.py=85}
+// Hard wall bounce — reflects off edges like a ball
+if(sr.px<10){sr.px=10;sr.angle=Math.PI-sr.angle;sr.curvature*=0.5}
+if(sr.px>90){sr.px=90;sr.angle=Math.PI-sr.angle;sr.curvature*=0.5}
+if(sr.py<10){sr.py=10;sr.angle=-sr.angle;sr.curvature*=0.5}
+if(sr.py>90){sr.py=90;sr.angle=-sr.angle;sr.curvature*=0.5}
+// Ensure angle stays in [0, 2π)
+if(sr.angle<0)sr.angle+=Math.PI*2;
+if(sr.angle>=Math.PI*2)sr.angle-=Math.PI*2;
 // Ease from center starting position
 const easeMul=Math.min(1,elapsed/300);
 const fx=clamp(50+(sr.px-50)*easeMul,10,90);const fy=clamp(50+(sr.py-50)*easeMul,10,90);
