@@ -563,8 +563,9 @@ export default async function Home({
                       Jump straight into a head-to-head lobby and race through a shared game order.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-rose-100 px-6 py-3 text-center shadow-sm sm:self-auto sm:text-center flex items-center justify-center">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-rose-600 leading-tight text-center">Fast<br />Queue</p>
+                  <div className="rounded-3xl border-2 border-white bg-rose-100 px-6 py-3 shadow-sm flex flex-col items-center justify-center min-w-[5rem]">
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-rose-600 leading-tight">Fast</span>
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-rose-600 leading-tight">Queue</span>
                   </div>
                 </div>
               </Link>
@@ -580,8 +581,9 @@ export default async function Home({
                       Build a code-based room, invite friends, and choose the games you want to play.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-cyan-100 px-6 py-3 text-center shadow-sm sm:self-auto sm:text-center flex items-center justify-center">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 leading-tight text-center">Share<br />Code</p>
+                  <div className="rounded-3xl border-2 border-white bg-cyan-100 px-6 py-3 shadow-sm flex flex-col items-center justify-center min-w-[5rem]">
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 leading-tight">Share</span>
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-cyan-600 leading-tight">Code</span>
                   </div>
                 </div>
               </Link>
@@ -596,8 +598,9 @@ export default async function Home({
                       Got a friend's lobby code? Jump into their party and play together.
                     </p>
                   </div>
-                  <div className="self-start rounded-3xl border-2 border-white bg-emerald-100 px-6 py-3 text-center shadow-sm sm:self-auto sm:text-center flex items-center justify-center">
-                    <p className="text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 leading-tight text-center">Join<br />Quick</p>
+                  <div className="rounded-3xl border-2 border-white bg-emerald-100 px-6 py-3 shadow-sm flex flex-col items-center justify-center min-w-[5rem]">
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 leading-tight">Join</span>
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-emerald-600 leading-tight">Quick</span>
                   </div>
                 </div>
               </Link>
