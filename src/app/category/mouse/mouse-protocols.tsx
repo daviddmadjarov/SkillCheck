@@ -16,7 +16,17 @@ function MouseShell({title,kicker,description,accent,isSignedIn,stats,children,m
   return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mouse Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div>{modeButtons?modeButtons:<div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>}</div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
 }
 
-const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},{x:58,y:38},{x:82,y:38},{x:62,y:52},{x:70,y:76},{x:50,y:61},{x:30,y:76},{x:38,y:52},{x:18,y:38},{x:42,y:38},{x:50,y:16}]},{key:'arrow',label:'Arrow',points:[{x:18,y:50},{x:60,y:50},{x:60,y:36},{x:84,y:50},{x:60,y:64},{x:60,y:50},{x:18,y:50}]},{key:'heart',label:'Heart',points:[{x:50,y:78},{x:74,y:55},{x:80,y:38},{x:69,y:27},{x:56,y:30},{x:50,y:37},{x:44,y:30},{x:31,y:27},{x:20,y:38},{x:26,y:55},{x:50,y:78}]},{key:'loop',label:'Loop',points:[{x:50,y:20},{x:75,y:30},{x:82,y:50},{x:68,y:72},{x:50,y:80},{x:32,y:72},{x:18,y:50},{x:25,y:30},{x:40,y:26},{x:50,y:34},{x:32,y:55},{x:50,y:68},{x:68,y:55},{x:50,y:20}]}];
+const TRACE_SYMBOLS:TraceSymbol[]=[
+  {key:'star',label:'Star',points:[{x:50,y:16},{x:58,y:38},{x:82,y:38},{x:62,y:52},{x:70,y:76},{x:50,y:61},{x:30,y:76},{x:38,y:52},{x:18,y:38},{x:42,y:38},{x:50,y:16}]},
+  {key:'arrow',label:'Arrow',points:[{x:18,y:50},{x:60,y:50},{x:60,y:36},{x:84,y:50},{x:60,y:64},{x:60,y:50},{x:18,y:50}]},
+  {key:'heart',label:'Heart',points:[{x:50,y:78},{x:74,y:55},{x:80,y:38},{x:69,y:27},{x:56,y:30},{x:50,y:37},{x:44,y:30},{x:31,y:27},{x:20,y:38},{x:26,y:55},{x:50,y:78}]},
+  {key:'loop',label:'Loop',points:[{x:50,y:20},{x:75,y:30},{x:82,y:50},{x:68,y:72},{x:50,y:80},{x:32,y:72},{x:18,y:50},{x:25,y:30},{x:40,y:26},{x:50,y:34},{x:32,y:55},{x:50,y:68},{x:68,y:55},{x:50,y:20}]},
+  {key:'lightning',label:'Lightning',points:[{x:30,y:10},{x:52,y:10},{x:35,y:45},{x:58,y:45},{x:38,y:82},{x:65,y:40},{x:45,y:40}]},
+  {key:'crescent',label:'Crescent',points:[{x:50,y:88},{x:22,y:70},{x:15,y:50},{x:22,y:30},{x:50,y:12},{x:42,y:30},{x:35,y:50},{x:42,y:70},{x:50,y:88}]},
+  {key:'spiral',label:'Spiral',points:[{x:50,y:85},{x:15,y:50},{x:50,y:15},{x:85,y:50},{x:72,y:70},{x:38,y:58},{x:50,y:35},{x:62,y:50},{x:55,y:58}]},
+  {key:'diamond',label:'Diamond',points:[{x:50,y:10},{x:90,y:50},{x:50,y:90},{x:10,y:50},{x:50,y:10}]},
+  {key:'wave',label:'Wave',points:[{x:10,y:50},{x:18,y:28},{x:26,y:50},{x:34,y:72},{x:42,y:50},{x:50,y:28},{x:58,y:50},{x:66,y:72},{x:74,y:50},{x:82,y:28},{x:90,y:50}]},
+];
 
 // ── Scoring utilities ──────────────────────────────────────────────
 function resamplePath(pts: Point[], n: number): Point[] {
@@ -216,7 +226,7 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
   return <MouseShell title={`Symbol Tracing ${traceMode==='memory'?'(Memory)':''}`} kicker={traceMode==='memory'?'Recall & draw':'Path precision'} description={traceMode==='memory'?'Study the shape, then trace it from memory after it disappears.':'Trace each target shape as precisely as possible.'} accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]} modeButtons={modeButtons}>
     <div className="space-y-4">
       {/* Memorizing countdown shown above the panel */}
-      {phase==='memorizing'&&<div className="flex justify-center"><div className="inline-flex items-center gap-3 rounded-full border-2 border-amber-200 bg-amber-50/90 px-5 py-2 shadow-sm"><span className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">Memorize</span><span className="text-2xl font-black text-amber-800">{memCountdown}</span><span className="text-xs font-medium text-amber-600">Study the shape below!</span></div></div>}
+      {phase==='memorizing'&&<div className="flex justify-center"><div className="inline-flex items-center gap-3 status-pill"><span className="text-xs font-bold uppercase tracking-[0.2em]">Memorize</span><span className="text-xl font-black">{memCountdown}</span><span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Study the shape below!</span></div></div>}
 
       <div className="flex flex-wrap gap-2">
         {phase==='tracing'&&<button className="lab-button" onClick={()=>{const r=evaluateTrace(traceRef.current,symbol.points);setDrawing(false);setResult(r);setPhase('reveal');}} type="button">Done Trace</button>}
@@ -226,7 +236,7 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
           {/* Guide shape — during memorizing (clear, no blur), assist tracing, and always on reveal for comparison */}
-          {(showGuide||showMemGuide||showRevealGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray={phase==='memorizing'?"3 4":"3 4"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.6:1}/>}
+          {(showGuide||showMemGuide||showRevealGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray={phase==='memorizing'?"3 4":"3 4"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.3:1}/>}
           <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
         </svg>
 
