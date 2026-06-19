@@ -361,8 +361,8 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);// Consistent speed ramp: starts moderate, smoothly accelerates to max
 // Same curve every run — no randomness here
 const speedMul=0.3+progress*progress*0.3;
-// Cumulative time-based angle for wave progression
-const t=elapsed*speedMul;
+// Cumulative time-based angle for wave progression (time in seconds)
+const t=(elapsed/1000)*speedMul;
 // Sum of 3 smooth sine waves for organic, non-repeating motion
 let rawX=50,rawY=50;
 for(let i=0;i<sr.waves.length;i++){
@@ -384,10 +384,10 @@ const fx=clamp(tx,10,90);const fy=clamp(ty,10,90);sr.targetX=fx;sr.targetY=fy;se
     const waves:{ax:number;ay:number;fx:number;fy:number;px:number;py:number}[]=[];
     for(let i=0;i<3;i++){
       waves.push({
-        ax:4+Math.random()*18,  // X amplitude 4-22
-        ay:4+Math.random()*18,  // Y amplitude 4-22
-        fx:0.3+Math.random()*1.2, // X frequency 0.3-1.5
-        fy:0.3+Math.random()*1.2, // Y frequency 0.3-1.5
+        ax:2+Math.random()*8,  // X amplitude 2-10
+        ay:2+Math.random()*8,  // Y amplitude 2-10
+        fx:0.15+Math.random()*0.6, // X frequency 0.15-0.75 Hz
+        fy:0.15+Math.random()*0.6, // Y frequency 0.15-0.75 Hz
         px:Math.random()*Math.PI*2, // X phase
         py:Math.random()*Math.PI*2, // Y phase
       });
