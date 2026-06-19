@@ -63,25 +63,32 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
 
   useEffect(()=>{if(!isFinished){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[isFinished]);
 
-  // Each target drifts gently in its own random direction
+  // Each target drifts smoothly using requestAnimationFrame with delta time
+  const rafRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
   useEffect(()=>{
     if(!running)return;
-    const iv=setInterval(()=>{
+    lastTimeRef.current = performance.now();
+    function tick(now: number){
+      const dt = Math.min(now - lastTimeRef.current, 50); // cap dt to avoid large jumps
+      lastTimeRef.current = now;
       setTarget(c=>{
-        let nx=c.x+velocity.current.x;
-        let ny=c.y+velocity.current.y;
+        let nx=c.x+velocity.current.x*dt;
+        let ny=c.y+velocity.current.y*dt;
         // Bounce off edges
         if(nx<=18||nx>=82)velocity.current.x*=-1;
         if(ny<=18||ny>=82)velocity.current.y*=-1;
         return{x:clamp(nx,18,82),y:clamp(ny,18,82)}
-      })
-    },50);
-    return()=>clearInterval(iv)
+      });
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(rafRef.current)
   },[running]);
 
   function spawnTarget(){
     const angle=Math.random()*Math.PI*2;
-    const speed=0.5+Math.random()*0.5; // even faster, varied speed
+    const speed=(0.5+Math.random()*0.5)*1.75; // 75% faster, varied speed
     velocity.current={x:Math.cos(angle)*speed,y:Math.sin(angle)*speed};
     setTarget({x:18+Math.random()*64,y:18+Math.random()*64});
     setTargetSeed(c=>c+1)
