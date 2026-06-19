@@ -270,13 +270,13 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
   const modeLocked = phase==='tracing' || phase==='memorizing' || phase==='reveal';
 
   // Build mode toggle buttons, disabled during active rounds
-  const localModeButtons = <div className="flex gap-2">
+  const localModeButtons = <div className="flex gap-3">
     <button
-      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+      className={`rounded-full border-2 px-6 py-2.5 text-sm font-bold uppercase tracking-[0.18em] transition-all ${
         traceMode==='assist'
-          ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-sm'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-      } ${modeLocked?'opacity-40 cursor-not-allowed':''}`}
+          ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-[0_3px_8px_rgba(16,185,129,0.25)]'
+          : 'border-slate-300 bg-white text-slate-700 shadow-sm hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-[0_2px_6px_rgba(16,185,129,0.15)]'
+      } ${modeLocked?'opacity-40 cursor-not-allowed':'cursor-pointer active:scale-[0.97]'}`}
       onClick={()=>{if(!modeLocked)onSetTraceMode('assist')}}
       disabled={modeLocked}
       type="button"
@@ -284,11 +284,11 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
       Normal
     </button>
     <button
-      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+      className={`rounded-full border-2 px-6 py-2.5 text-sm font-bold uppercase tracking-[0.18em] transition-all ${
         traceMode==='memory'
-          ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-sm'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-      } ${modeLocked?'opacity-40 cursor-not-allowed':''}`}
+          ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-[0_3px_8px_rgba(245,158,11,0.25)]'
+          : 'border-slate-300 bg-white text-slate-700 shadow-sm hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 hover:shadow-[0_2px_6px_rgba(245,158,11,0.15)]'
+      } ${modeLocked?'opacity-40 cursor-not-allowed':'cursor-pointer active:scale-[0.97]'}`}
       onClick={()=>{if(!modeLocked)onSetTraceMode('memory')}}
       disabled={modeLocked}
       type="button"
