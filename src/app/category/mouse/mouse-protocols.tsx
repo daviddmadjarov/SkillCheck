@@ -28,17 +28,20 @@ const TRACE_SYMBOLS:TraceSymbol[]=[
   {key:'butterfly',label:'Butterfly',points:[{x:50,y:50},{x:38,y:28},{x:26,y:20},{x:22,y:34},{x:26,y:50},{x:22,y:66},{x:26,y:80},{x:38,y:72},{x:50,y:50},{x:62,y:72},{x:74,y:80},{x:78,y:66},{x:74,y:50},{x:78,y:34},{x:74,y:20},{x:62,y:28},{x:50,y:50}]},
   {key:'sneke',label:'S-Curve',points:[{x:14,y:78},{x:18,y:74},{x:24,y:72},{x:32,y:74},{x:40,y:78},{x:48,y:80},{x:56,y:78},{x:64,y:74},{x:72,y:72},{x:78,y:74},{x:82,y:78},{x:84,y:82},{x:78,y:28},{x:72,y:24},{x:64,y:22},{x:56,y:24},{x:48,y:28},{x:40,y:30},{x:32,y:28},{x:24,y:24},{x:18,y:22},{x:14,y:26},{x:16,y:30}]},
   {key:'hexagon',label:'Hexagon',points:[{x:50,y:12},{x:85,y:28},{x:85,y:72},{x:50,y:88},{x:15,y:72},{x:15,y:28},{x:50,y:12}]},
-  {key:'lemniscate',label:'Lemniscate',points:[{x:50,y:50},{x:42,y:38},{x:30,y:30},{x:18,y:32},{x:12,y:42},{x:12,y:54},{x:18,y:64},{x:30,y:70},{x:42,y:66},{x:50,y:56},{x:58,y:66},{x:70,y:70},{x:82,y:64},{x:88,y:54},{x:88,y:42},{x:82,y:32},{x:70,y:30},{x:58,y:38},{x:50,y:50}]},
-  {key:'bulb',label:'Bulb',points:[{x:50,y:16},{x:40,y:20},{x:30,y:28},{x:24,y:38},{x:20,y:48},{x:20,y:56},{x:24,y:64},{x:30,y:72},{x:40,y:78},{x:46,y:84},{x:50,y:86},{x:54,y:84},{x:60,y:78},{x:70,y:72},{x:76,y:64},{x:80,y:56},{x:80,y:48},{x:76,y:38},{x:70,y:28},{x:60,y:20},{x:50,y:16},{x:50,y:86},{x:50,y:92},{x:44,y:92},{x:38,y:92},{x:38,y:96},{x:62,y:96},{x:62,y:92},{x:56,y:92},{x:50,y:92}]},
   {key:'circle',label:'Circle',points:[{x:50,y:10},{x:60,y:12},{x:70,y:18},{x:78,y:26},{x:84,y:36},{x:88,y:46},{x:88,y:54},{x:84,y:64},{x:78,y:74},{x:70,y:82},{x:60,y:88},{x:50,y:90},{x:40,y:88},{x:30,y:82},{x:22,y:74},{x:16,y:64},{x:12,y:54},{x:12,y:46},{x:16,y:36},{x:22,y:26},{x:30,y:18},{x:40,y:12},{x:50,y:10}]},
   {key:'triangle',label:'Triangle',points:[{x:50,y:14},{x:86,y:84},{x:14,y:84},{x:50,y:14}]},
-  {key:'spade',label:'Spade',points:[{x:50,y:14},{x:38,y:24},{x:28,y:34},{x:20,y:46},{x:18,y:56},{x:20,y:64},{x:26,y:72},{x:34,y:76},{x:40,y:76},{x:46,y:72},{x:50,y:66},{x:54,y:72},{x:60,y:76},{x:66,y:76},{x:74,y:72},{x:80,y:64},{x:82,y:56},{x:80,y:46},{x:72,y:34},{x:62,y:24},{x:50,y:14},{x:50,y:86},{x:46,y:88},{x:54,y:88},{x:50,y:86}]},
-  {key:'paperclip',label:'Paperclip',points:[{x:22,y:18},{x:22,y:68},{x:24,y:76},{x:30,y:80},{x:38,y:80},{x:44,y:76},{x:46,y:70},{x:46,y:26},{x:44,y:20},{x:38,y:18},{x:32,y:20},{x:32,y:66},{x:34,y:72},{x:40,y:74},{x:48,y:70},{x:50,y:64},{x:50,y:22},{x:52,y:16},{x:58,y:14},{x:64,y:16},{x:66,y:22},{x:66,y:72},{x:64,y:78},{x:58,y:82},{x:50,y:82},{x:44,y:78},{x:42,y:72},{x:42,y:20}]},
-  {key:'mug',label:'Mug',points:[{x:28,y:18},{x:32,y:16},{x:44,y:14},{x:56,y:14},{x:68,y:16},{x:72,y:18},{x:74,y:30},{x:74,y:50},{x:74,y:62},{x:72,y:72},{x:68,y:78},{x:60,y:82},{x:50,y:84},{x:40,y:82},{x:32,y:78},{x:28,y:72},{x:26,y:62},{x:26,y:30},{x:28,y:18},{x:74,y:62},{x:80,y:60},{x:84,y:54},{x:84,y:44},{x:80,y:38},{x:74,y:34}]},
-  {key:'wineglass',label:'Wine Glass',points:[{x:50,y:14},{x:38,y:20},{x:32,y:30},{x:30,y:40},{x:34,y:48},{x:42,y:50},{x:50,y:52},{x:58,y:50},{x:66,y:48},{x:70,y:40},{x:68,y:30},{x:62,y:20},{x:50,y:14},{x:50,y:52},{x:50,y:64},{x:46,y:68},{x:44,y:72},{x:46,y:76},{x:50,y:78},{x:54,y:76},{x:56,y:72},{x:54,y:68},{x:50,y:64},{x:50,y:78},{x:46,y:82},{x:54,y:82},{x:50,y:78}]},
-  {key:'dumbbell',label:'Dumbbell',points:[{x:16,y:46},{x:16,y:54},{x:20,y:58},{x:24,y:54},{x:24,y:46},{x:20,y:42},{x:16,y:46},{x:26,y:46},{x:30,y:44},{x:34,y:42},{x:40,y:40},{x:48,y:40},{x:52,y:42},{x:56,y:44},{x:60,y:46},{x:64,y:46},{x:68,y:44},{x:72,y:42},{x:78,y:40},{x:82,y:40},{x:84,y:44},{x:84,y:56},{x:82,y:60},{x:78,y:60},{x:72,y:58},{x:68,y:56},{x:64,y:54},{x:60,y:54},{x:56,y:56},{x:52,y:58},{x:48,y:60},{x:40,y:60},{x:34,y:58},{x:30,y:56},{x:26,y:54},{x:24,y:54}]},
   {key:'bottle',label:'Bottle',points:[{x:42,y:14},{x:42,y:20},{x:38,y:22},{x:36,y:26},{x:36,y:30},{x:38,y:34},{x:42,y:38},{x:42,y:44},{x:38,y:50},{x:34,y:58},{x:30,y:66},{x:28,y:74},{x:28,y:80},{x:30,y:84},{x:34,y:86},{x:42,y:88},{x:58,y:88},{x:66,y:86},{x:70,y:84},{x:72,y:80},{x:72,y:74},{x:70,y:66},{x:66,y:58},{x:62,y:50},{x:58,y:44},{x:58,y:38},{x:62,y:34},{x:64,y:30},{x:64,y:26},{x:62,y:22},{x:58,y:20},{x:58,y:14},{x:54,y:14},{x:46,y:14},{x:42,y:14}]},
   {key:'sailboat',label:'Sailboat',points:[{x:30,y:74},{x:24,y:76},{x:18,y:78},{x:14,y:82},{x:30,y:82},{x:50,y:82},{x:70,y:82},{x:86,y:82},{x:82,y:78},{x:76,y:76},{x:70,y:74},{x:56,y:74},{x:50,y:60},{x:50,y:20},{x:48,y:24},{x:42,y:34},{x:36,y:44},{x:32,y:54},{x:30,y:62},{x:30,y:74},{x:56,y:74},{x:62,y:70},{x:66,y:64},{x:68,y:58},{x:66,y:54},{x:62,y:52},{x:56,y:50},{x:50,y:48}]},
+  {key:'paperclip',label:'Paperclip',points:[{x:50,y:55},{x:50,y:35},{x:46,y:30},{x:40,y:30},{x:36,y:35},{x:36,y:65},{x:40,y:72},{x:50,y:72},{x:56,y:65},{x:56,y:25},{x:50,y:16},{x:38,y:16},{x:28,y:25},{x:28,y:67},{x:36,y:80},{x:50,y:80},{x:64,y:67},{x:64,y:25},{x:50,y:55}]},
+  {key:'bulb',label:'Lightbulb',points:[{x:50,y:15},{x:65,y:18},{x:75,y:30},{x:75,y:46},{x:66,y:60},{x:62,y:70},{x:62,y:75},{x:38,y:75},{x:38,y:70},{x:34,y:60},{x:25,y:46},{x:25,y:30},{x:35,y:18},{x:50,y:15}]},
+  {key:'wineglass',label:'Wine Glass',points:[{x:50,y:80},{x:50,y:55},{x:30,y:50},{x:26,y:36},{x:26,y:20},{x:74,y:20},{x:74,y:36},{x:70,y:50},{x:50,y:55},{x:50,y:80},{x:70,y:84},{x:30,y:84},{x:50,y:80}]},
+  {key:'spade',label:'Spade',points:[{x:50,y:15},{x:68,y:34},{x:76,y:50},{x:66,y:64},{x:50,y:56},{x:54,y:72},{x:64,y:80},{x:36,y:80},{x:46,y:72},{x:50,y:56},{x:34,y:64},{x:24,y:50},{x:32,y:34},{x:50,y:15}]},
+  {key:'dumbbell',label:'Dumbbell',points:[{x:20,y:35},{x:32,y:35},{x:32,y:46},{x:68,y:46},{x:68,y:35},{x:80,y:35},{x:80,y:65},{x:68,y:65},{x:68,y:54},{x:32,y:54},{x:32,y:65},{x:20,y:65},{x:20,y:35}]},
+  {key:'mug',label:'Mug',points:[{x:25,y:25},{x:65,y:25},{x:65,y:34},{x:76,y:36},{x:80,y:45},{x:76,y:54},{x:65,y:56},{x:65,y:75},{x:25,y:75},{x:25,y:25}]},
+  {key:'lemniscate',label:'Infinity Symbol',points:[{x:50,y:50},{x:64,y:34},{x:78,y:34},{x:86,y:50},{x:78,y:66},{x:64,y:66},{x:50,y:50},{x:36,y:34},{x:22,y:34},{x:14,y:50},{x:22,y:66},{x:36,y:66},{x:50,y:50}]},
+  {key:'fishhook',label:'Fishhook',points:[{x:50,y:20},{x:50,y:60},{x:54,y:74},{x:64,y:80},{x:74,y:74},{x:78,y:60},{x:72,y:54},{x:75,y:62},{x:70,y:70},{x:64,y:74},{x:56,y:68},{x:56,y:20},{x:50,y:20}]},
+  {key:'clubs',label:'Clubs',points:[{x:50,y:42},{x:60,y:42},{x:58,y:24},{x:50,y:20},{x:42,y:24},{x:40,y:42},{x:50,y:42},{x:58,y:46},{x:74,y:42},{x:78,y:52},{x:70,y:62},{x:56,y:58},{x:54,y:72},{x:64,y:80},{x:36,y:80},{x:46,y:72},{x:44,y:58},{x:30,y:62},{x:22,y:52},{x:26,y:46},{x:42,y:46},{x:50,y:42}]},
+  {key:'heel',label:'High Heel',points:[{x:25,y:30},{x:42,y:34},{x:52,y:46},{x:62,y:64},{x:78,y:70},{x:82,y:75},{x:64,y:75},{x:50,y:64},{x:34,y:56},{x:25,y:56},{x:25,y:75},{x:21,y:75},{x:21,y:30},{x:25,y:30}]},
 ];
 
 // ── Scoring utilities ──────────────────────────────────────────────
@@ -233,12 +236,10 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
 
   const showGuide = phase==='tracing' && traceMode==='assist';
   const showMemGuide = phase==='memorizing';
-  // In reveal phase, always show the guide alongside the user's trace for comparison
   const showRevealGuide = phase==='reveal';
 
   return <MouseShell title={`Symbol Tracing ${traceMode==='memory'?'(Memory)':''}`} kicker={traceMode==='memory'?'Recall & draw':'Path precision'} description={traceMode==='memory'?'Study the shape, then trace it from memory after it disappears.':'Trace each target shape as precisely as possible.'} accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]} modeButtons={modeButtons}>
     <div className="space-y-4">
-      {/* Memorizing countdown shown above the panel */}
       {phase==='memorizing'&&<div className="flex justify-center"><div className="inline-flex items-center gap-3 status-pill"><span className="text-xs font-bold uppercase tracking-[0.2em]">Memorize</span><span className="text-xl font-black">{memCountdown}</span><span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Study the shape below!</span></div></div>}
 
       <div className="flex flex-wrap gap-2">
@@ -248,8 +249,7 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
       <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;if(traceRef.current.length>0)return;setDrawing(true);traceRef.current=[p];setUp([p])}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;const cur=traceRef.current;if(cur.length===0){traceRef.current=[p];setUp([p]);return}if(dist(cur[cur.length-1],p)<0.25)return;const next=[...cur,p];traceRef.current=next;setUp(next)}} onPointerUp={()=>{setDrawing(false)}} ref={boardRef}>
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-          {/* Guide shape — during memorizing (clear, no blur), assist tracing, and always on reveal for comparison */}
-          {(showGuide||showMemGuide||showRevealGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray={phase==='memorizing'?"3 4":"3 4"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.3:1}/>}
+          {(showGuide||showMemGuide||showRevealGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.3:1}/>}
           <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
         </svg>
 
@@ -316,7 +316,6 @@ export function MouseProtocols({mode,isSignedIn,initialCpsDuration:_cps,initialT
   if(mode==='tracking')return <TrackingTest isSignedIn={isSignedIn}/>
   if(mode==='cps')return <CpsTester isSignedIn={isSignedIn}/>
 
-  // Mode toggle buttons — passed into MouseShell to replace the "Leaderboard sync active" text
   const modeButtons=<div className="flex gap-2">
     <button
       className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
