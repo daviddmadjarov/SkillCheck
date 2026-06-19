@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 
@@ -22,9 +22,6 @@ const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},
 // REDESIGNED SCORING SYSTEM — V2 (HARSH)
 // ─────────────────────────────────────────────────────────────────────
 
-/**
- * Resample a path to exactly n evenly-spaced points.
- */
 function resamplePath(pts: Point[], n: number): Point[] {
   if (pts.length < 2) return pts.slice();
   const lens: number[] = [0];
@@ -48,7 +45,6 @@ function resamplePath(pts: Point[], n: number): Point[] {
   return out;
 }
 
-// ── Nearest-point lookup ────────────────────────────────────────────
 function nearestPointLookup(pts: Point[]): (px: number, py: number) => number {
   return (px: number, py: number) => {
     let best = Infinity;
@@ -60,87 +56,42 @@ function nearestPointLookup(pts: Point[]): (px: number, py: number) => number {
   };
 }
 
-// ── Nonlinear penalty (steep curve) ────────────────────────────────
-//   ratio ≤ 0.15 → quadratic, tiny penalty (max 0.04)
-//   ratio > 0.15 → exponential, ramps to 1.0 at ratio=1.0
-//   This means even moderate errors hurt significantly.
 function nonlinearPenalty(d: number, maxD: number): number {
   const r = d / maxD;
   if (r <= 0) return 0;
   if (r <= 0.15) {
-    // at r=0.15 → 0.04 penalty
     return (r / 0.15) * (r / 0.15) * 0.04;
   }
-  // exponential from 0.04 to 1.0
   const t = (r - 0.15) / 0.85;
-  return 0.04 * Math.exp(t * 3.219); // ln(1/0.04) ≈ 3.219
+  return 0.04 * Math.exp(t * 3.219);
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 1. BIDIRECTIONAL PATH DEVIATION  (Weight: 50%)
-// ─────────────────────────────────────────────────────────────────────
-// Measures deviation in BOTH directions:
-//   User→Target: how far each user point is from the target
-//   Target→User: how far each target point is from the user (catches
-//                missing sections of the shape)
-// This ensures partial traces and random scribbles both score low.
-function computeDeviationScore(
-  userPath: Point[],
-  targetPath: Point[],
-  maxD: number
-): number {
+function computeDeviationScore(userPath: Point[], targetPath: Point[], maxD: number): number {
   const toTarget = nearestPointLookup(targetPath);
   const toUser = nearestPointLookup(userPath);
-
   let userPenalty = 0;
-  for (let i = 0; i < userPath.length; i++) {
-    userPenalty += nonlinearPenalty(toTarget(userPath[i].x, userPath[i].y), maxD);
-  }
-
+  for (let i = 0; i < userPath.length; i++) userPenalty += nonlinearPenalty(toTarget(userPath[i].x, userPath[i].y), maxD);
   let targetPenalty = 0;
-  for (let i = 0; i < targetPath.length; i++) {
-    targetPenalty += nonlinearPenalty(toUser(targetPath[i].x, targetPath[i].y), maxD);
-  }
-
+  for (let i = 0; i < targetPath.length; i++) targetPenalty += nonlinearPenalty(toUser(targetPath[i].x, targetPath[i].y), maxD);
   const avgPenalty = (userPenalty / userPath.length + targetPenalty / targetPath.length) / 2;
   return Math.max(0, 100 - avgPenalty * 100);
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 2. PATH COVERAGE  (Weight: 20%)
-// ─────────────────────────────────────────────────────────────────────
-// Strict threshold: a target point is only "covered" if a user point
-// is within 5 units. Scoring curve requires ~80% coverage to break even.
-function computeCoverageScore(
-  userPath: Point[],
-  targetPath: Point[]
-): number {
+function computeCoverageScore(userPath: Point[], targetPath: Point[]): number {
   const toUser = nearestPointLookup(userPath);
-  const threshold = 5; // must be very close to count
-
+  const threshold = 5;
   let covered = 0;
   for (let i = 0; i < targetPath.length; i++) {
-    const d = toUser(targetPath[i].x, targetPath[i].y);
-    if (d <= threshold) covered++;
+    if (toUser(targetPath[i].x, targetPath[i].y) <= threshold) covered++;
   }
   const pct = covered / targetPath.length;
-  // Need >80% coverage to get any positive score
-  // 80% → 0, 90% → 50, 100% → 100
   const score = Math.max(0, (pct - 0.8) * 500);
   return Math.min(100, score);
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 3. OVERSHOOTING / STRAYING  (Weight: 15%)
-// ─────────────────────────────────────────────────────────────────────
-function computeStrayScore(
-  userRaw: Point[],
-  targetPath: Point[]
-): number {
+function computeStrayScore(userRaw: Point[], targetPath: Point[]): number {
   const toTarget = nearestPointLookup(targetPath);
-  const strayThreshold = 8; // points >8 units from target = stray
-
-  // Sample up to 300 raw points
+  const strayThreshold = 8;
   const step = Math.max(1, Math.floor(userRaw.length / 300));
   let strayCount = 0;
   let total = 0;
@@ -149,141 +100,78 @@ function computeStrayScore(
     if (toTarget(userRaw[i].x, userRaw[i].y) > strayThreshold) strayCount++;
   }
   const strayPct = total > 0 ? strayCount / total : 0;
-
-  // Path length ratio penalty
   let userLen = 0;
   for (let i = 1; i < userRaw.length; i++) userLen += dist(userRaw[i - 1], userRaw[i]);
   let tplLen = 0;
   for (let i = 1; i < targetPath.length; i++) tplLen += dist(targetPath[i - 1], targetPath[i]);
-
   const lenRatio = tplLen > 0 ? userLen / tplLen : 1;
-
-  // Penalize traces that are too long (scribbles) or too short (partial)
   let lengthPenalty = 0;
-  if (lenRatio > 1.3) {
-    // at 1.5x → 0.4 penalty; at 2.5x → 1.0
-    lengthPenalty = Math.min(1, (lenRatio - 1.3) / 1.2);
-  }
-
-  // Also penalize if the user traced way too little (covered by coverage
-  // and bidirectional deviation, but add a small extra nudge)
-  if (lenRatio < 0.5) {
-    lengthPenalty = Math.max(lengthPenalty, 0.3);
-  }
-
-  const strayScore = Math.max(0, 100 - strayPct * 250); // steep
+  if (lenRatio > 1.3) lengthPenalty = Math.min(1, (lenRatio - 1.3) / 1.2);
+  if (lenRatio < 0.5) lengthPenalty = Math.max(lengthPenalty, 0.3);
+  const strayScore = Math.max(0, 100 - strayPct * 250);
   const finalScore = strayScore * (1 - lengthPenalty * 0.6);
   return Math.max(0, Math.min(100, finalScore));
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 4. TRACE SMOOTHNESS  (Weight: 10%)
-// ─────────────────────────────────────────────────────────────────────
-function computeSmoothnessScore(
-  userPath: Point[]
-): number {
+function computeSmoothnessScore(userPath: Point[]): number {
   if (userPath.length < 5) return 0;
-
   const steps: number[] = [];
   for (let i = 1; i < userPath.length; i++) steps.push(dist(userPath[i - 1], userPath[i]));
-
   const sorted = [...steps].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length / 2)];
   const deviations = steps.map(d => Math.abs(d - median));
   const devSorted = deviations.sort((a, b) => a - b);
   const mad = devSorted[Math.floor(devSorted.length / 2)] || 1;
-
-  // Use 2×MAD for jump detection (more sensitive than 3×)
   const jumpThreshold = Math.max(median + 2 * mad, 2);
   let jumps = 0;
-  for (let i = 0; i < steps.length; i++) {
-    if (steps[i] > jumpThreshold) jumps++;
-  }
+  for (let i = 0; i < steps.length; i++) if (steps[i] > jumpThreshold) jumps++;
   const jumpPct = steps.length > 0 ? jumps / steps.length : 0;
-
-  // Each jump costs 3× the point percentage
-  let score = Math.max(0, 100 - jumpPct * 300);
-  return score;
+  return Math.max(0, 100 - jumpPct * 300);
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// 5. COMPLETION BONUS  (Weight: 5%)
-// ─────────────────────────────────────────────────────────────────────
-function computeCompletionScore(
-  userRaw: Point[],
-  targetPath: Point[]
-): number {
+function computeCompletionScore(userRaw: Point[], targetPath: Point[]): number {
   if (userRaw.length < 4 || targetPath.length < 2) return 0;
-
   const startDist = dist(userRaw[0], targetPath[0]);
   const endDist = dist(userRaw[userRaw.length - 1], targetPath[targetPath.length - 1]);
-
-  // Check if last 30% of the target is traced
   const toUser = nearestPointLookup(userRaw);
   const endStart = Math.floor(targetPath.length * 0.7);
   let endCovered = 0;
   for (let i = endStart; i < targetPath.length; i++) {
     if (toUser(targetPath[i].x, targetPath[i].y) <= 8) endCovered++;
   }
-  const endCoverPct = (targetPath.length - endStart) > 0
-    ? endCovered / (targetPath.length - endStart) : 0;
-
+  const endCoverPct = (targetPath.length - endStart) > 0 ? endCovered / (targetPath.length - endStart) : 0;
   const startBonus = startDist <= 5 ? 100 : startDist <= 10 ? 50 : 0;
   const endBonus = endDist <= 5 ? 100 : endDist <= 10 ? 60 : endDist <= 20 ? 20 : 0;
   const coverBonus = endCoverPct >= 0.7 ? 100 : endCoverPct >= 0.4 ? 40 : 0;
-
   return startBonus * 0.15 + endBonus * 0.35 + coverBonus * 0.50;
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// MAIN EVALUATION FUNCTION
-// ─────────────────────────────────────────────────────────────────────
-
 function evaluateTrace(userPts: Point[], tplPts: Point[]) {
-  if (userPts.length < 4) {
-    return { accuracy: 0, deviation: 99, completion: 0, labScore: 0 };
-  }
-
+  if (userPts.length < 4) return { accuracy: 0, deviation: 99, completion: 0, labScore: 0 };
   const SAMPLE_COUNT = 600;
   const usamp = resamplePath(userPts, SAMPLE_COUNT);
   const tsamp = resamplePath(tplPts, SAMPLE_COUNT);
-  const MAX_D = 10; // severe penalty beyond 10 units
-
+  const MAX_D = 10;
   const deviationScore = computeDeviationScore(usamp, tsamp, MAX_D);
   const coverageScore = computeCoverageScore(usamp, tsamp);
   const strayScore = computeStrayScore(userPts, tsamp);
   const smoothnessScore = computeSmoothnessScore(usamp);
   const completionScore = computeCompletionScore(userPts, tsamp);
-
-  const weighted =
-    deviationScore  * 0.50 +
-    coverageScore   * 0.20 +
-    strayScore      * 0.15 +
-    smoothnessScore * 0.10 +
-    completionScore * 0.05;
-
+  const weighted = deviationScore * 0.50 + coverageScore * 0.20 + strayScore * 0.15 + smoothnessScore * 0.10 + completionScore * 0.05;
   const accuracy = clamp(Math.round(weighted), 0, 100);
   const labScore = clamp(Math.round(weighted * 10), 0, 1000);
-
-  // Average deviation (for display)
   const toTarget = nearestPointLookup(tsamp);
   let totalDev = 0;
   for (let i = 0; i < usamp.length; i++) totalDev += toTarget(usamp[i].x, usamp[i].y);
   const avgDev = totalDev / usamp.length;
-
-  return {
-    accuracy,
-    deviation: Number(avgDev.toFixed(2)),
-    completion: accuracy,
-    labScore,
-  };
+  return { accuracy, deviation: Number(avgDev.toFixed(2)), completion: accuracy, labScore };
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// COMPONENT
+// SYMBOL TRACING COMPONENT — supports Normal (assist) and Memory mode
 // ─────────────────────────────────────────────────────────────────────
 
-function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:boolean}){
+function SymbolTracing({traceMode,isSignedIn}:{traceMode:TraceMode;isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('mouse-symbol-tracing');
   const ROUNDS=4;
   const cd=useDuelCountdown(isMultiplayerSession);
@@ -291,7 +179,8 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startTraceRun()},[cd.launched]);//eslint-disable-line
 
-  const [phase,setPhase]=useState<'idle'|'tracing'|'reveal'|'finished'>('idle');
+  const [phase,setPhase]=useState<'idle'|'memorizing'|'tracing'|'reveal'|'finished'>('idle');
+  const [memCountdown,setMemCountdown]=useState(4);
   const [roundIdx,setRoundIdx]=useState(0);
   const [order,setOrder]=useState<number[]>([]);
   const [up,setUp]=useState<Point[]>([]);
@@ -301,6 +190,7 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
   const [result,setResult]=useState<ReturnType<typeof evaluateTrace>|null>(null);
   const boardRef=useRef<HTMLDivElement|null>(null);
   const hsrf=useRef(false);
+  const memTimerRef=useRef<ReturnType<typeof setInterval>|null>(null);
 
   const symbolIdx=order[roundIdx]??0;
   const symbol=TRACE_SYMBOLS[symbolIdx];
@@ -308,7 +198,26 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
 
   useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToIntermission,isMultiplayerSession,isSignedIn,phase,mm]);
 
+  // Cleanup memory timer on unmount
+  useEffect(()=>{return()=>{if(memTimerRef.current)clearInterval(memTimerRef.current)}},[]);
+
   function getBP(cx:number,cy:number){const b=boardRef.current;if(!b)return null;const r=b.getBoundingClientRect();return{x:clamp(((cx-r.left)/r.width)*100,0,100),y:clamp(((cy-r.top)/r.height)*100,0,100)}}
+
+  function startMemorizePhase(){
+    setMemCountdown(4);
+    setPhase('memorizing');
+    memTimerRef.current=setInterval(()=>{
+      setMemCountdown(c=>{
+        if(c<=1){
+          if(memTimerRef.current)clearInterval(memTimerRef.current);
+          memTimerRef.current=null;
+          setPhase('tracing');
+          return 0;
+        }
+        return c-1;
+      });
+    },1000);
+  }
 
   function startTraceRun(){
     const o=[...Array(TRACE_SYMBOLS.length).keys()];
@@ -319,9 +228,13 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     hsrf.current=false;
     traceRef.current=[];
     setRoundIdx(0);
-    setPhase('tracing');
     setUp([]);
     setDrawing(false);
+    if(traceMode==='memory'){
+      startMemorizePhase();
+    }else{
+      setPhase('tracing');
+    }
   }
 
   function advanceRound(){
@@ -333,12 +246,20 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
     setResult(null);
     traceRef.current=[];
     setRoundIdx(nr);
-    setPhase('tracing');
     setUp([]);
     setDrawing(false);
+    if(traceMode==='memory'){
+      startMemorizePhase();
+    }else{
+      setPhase('tracing');
+    }
   }
 
-  return <MouseShell title="Symbol Tracing" kicker="Path precision" description="Trace each target shape as precisely as possible." accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
+  // Determine if we should show the guide outline
+  const showGuide = phase==='tracing' && traceMode==='assist';
+  const showMemGuide = phase==='memorizing';
+
+  return <MouseShell title={`Symbol Tracing ${traceMode==='memory'?'(Memory)':''}`} kicker={traceMode==='memory'?'Recall & draw':'Path precision'} description={traceMode==='memory'?'Study the shape, then trace it from memory after it disappears.':'Trace each target shape as precisely as possible.'} accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]}>
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         {phase==='tracing'&&<button className="lab-button" onClick={()=>{const r=evaluateTrace(traceRef.current,symbol.points);setDrawing(false);setResult(r);setPhase('reveal');}} type="button">Done Trace</button>}
@@ -347,16 +268,27 @@ function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:bool
       <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;if(traceRef.current.length>0)return;setDrawing(true);traceRef.current=[p];setUp([p])}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;const cur=traceRef.current;if(cur.length===0){traceRef.current=[p];setUp([p]);return}if(dist(cur[cur.length-1],p)<0.25)return;const next=[...cur,p];traceRef.current=next;setUp(next)}} onPointerUp={()=>{setDrawing(false)}} ref={boardRef}>
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-          {phase==='tracing'&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6"/>}
+          {/* Guide shape — shown in assist mode during tracing, and in memory mode during memorization phase */}
+          {(showGuide||showMemGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6"/>}
           <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
         </svg>
 
+        {/* Idle overlay */}
         {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
 
+        {/* Memorizing overlay */}
+        {phase==='memorizing'&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/30 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Memorize</p><p className="mt-2 text-5xl font-black text-slate-800">{memCountdown}</p><p className="mt-1 text-sm text-slate-500">Study the shape carefully!</p></div></div>}
+
+        {/* Shape label during tracing */}
         {phase==='tracing'&&<div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-slate-200 bg-white/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-slate-500 shadow-sm uppercase">{symbol.label}</span></div>}
 
+        {/* Memory hint during tracing */}
+        {phase==='tracing'&&traceMode==='memory'&&<div className="absolute left-1/2 bottom-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-amber-200 bg-amber-50/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-amber-700 shadow-sm uppercase">Draw from memory</span></div>}
+
+        {/* Reveal overlay */}
         {phase==='reveal'&&result&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{symbol.label}</p><p className={`mt-3 text-2xl font-black ${result.accuracy>=70?'text-emerald-600':'text-amber-600'}`}>{result.accuracy}% Accuracy</p><p className="mt-1 text-sm text-slate-500">Score: {result.labScore}</p><button className="mt-3 lab-button" onClick={advanceRound} type="button">{roundIdx+1>=ROUNDS?'See Final Score':'Next Symbol'}</button></div></div>}
 
+        {/* Finished overlay */}
         {phase==='finished'&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-5 py-4 text-center shadow-lg"><p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p><p className="mt-2 text-xl font-black tracking-tight text-slate-800">Avg Lab Score: {avgScore??0}</p><button className="mt-4 lab-button" onClick={startTraceRun} type="button">Start New Run</button></div></div>}
       </div>
     </div>
@@ -417,8 +349,38 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   </MouseShell>
 }
 
-export function MouseProtocols({mode,isSignedIn}:{initialCpsDuration?:5|10|15;initialTraceMode?:TraceMode;mode:string;isSignedIn:boolean}){
+export function MouseProtocols({mode,isSignedIn,initialCpsDuration:_cps,initialTraceMode:_tm}:{mode:string;isSignedIn:boolean;initialCpsDuration?:number;initialTraceMode?:string}){
+  const [traceMode,setTraceMode]=useState<TraceMode>('assist');
+
   if(mode==='tracking')return <TrackingTest isSignedIn={isSignedIn}/>
   if(mode==='cps')return <CpsTester isSignedIn={isSignedIn}/>
-  return <SymbolTracing isSignedIn={isSignedIn}/>
+
+  return <div className="space-y-4">
+    {/* Mode selector */}
+    <div className="flex justify-center gap-2">
+      <button
+        className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+          traceMode==='assist'
+            ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+        }`}
+        onClick={()=>setTraceMode('assist')}
+        type="button"
+      >
+        Normal Trace
+      </button>
+      <button
+        className={`rounded-full border-2 px-5 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+          traceMode==='memory'
+            ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+        }`}
+        onClick={()=>setTraceMode('memory')}
+        type="button"
+      >
+        Memory Trace
+      </button>
+    </div>
+    <SymbolTracing traceMode={traceMode} isSignedIn={isSignedIn}/>
+  </div>
 }
