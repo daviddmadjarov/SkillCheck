@@ -360,7 +360,7 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   const labScore=Math.round((timeInsideMs/20000)*1000);
   useEffect(()=>{if(!running)return;const s=performance.now();const sr=stateRef.current;let inside=false;let elapsed=0;let ti=0;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-(stateRef.current.lastTimestamp||ts));stateRef.current.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));const progress=Math.min(1,elapsed/TOTAL);// Consistent speed ramp: starts moderate, smoothly accelerates to max
 // Same curve every run — no randomness here
-const speedMul=0.3+progress*progress*0.7;
+const speedMul=0.3+progress*progress*0.3;
 // Cumulative time-based angle for wave progression
 const t=elapsed*speedMul;
 // Sum of 3 smooth sine waves for organic, non-repeating motion
