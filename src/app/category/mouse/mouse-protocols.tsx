@@ -189,7 +189,7 @@ function evaluateTrace(userPts: Point[], tplPts: Point[]) {
 // SYMBOL TRACING COMPONENT — Normal + Memory mode
 // ─────────────────────────────────────────────────────────────────────
 
-function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;isSignedIn:boolean;modeButtons?:ReactNode}){
+function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMode;onSetTraceMode:(m:TraceMode)=>void;isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('mouse-symbol-tracing');
   const ROUNDS=4;
   const cd=useDuelCountdown(isMultiplayerSession);
@@ -267,8 +267,37 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
   const showGuide = phase==='tracing' && traceMode==='assist';
   const showMemGuide = phase==='memorizing';
   const showRevealGuide = phase==='reveal';
+  const modeLocked = phase==='tracing' || phase==='memorizing' || phase==='reveal';
 
-  return <MouseShell title={`Symbol Tracing ${traceMode==='memory'?'(Memory)':''}`} kicker={traceMode==='memory'?'Recall & draw':'Path precision'} description={traceMode==='memory'?'Study the shape, then trace it from memory after it disappears.':'Trace each target shape as precisely as possible.'} accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]} modeButtons={modeButtons}>
+  // Build mode toggle buttons, disabled during active rounds
+  const localModeButtons = <div className="flex gap-2">
+    <button
+      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+        traceMode==='assist'
+          ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+      } ${modeLocked?'opacity-40 cursor-not-allowed':''}`}
+      onClick={()=>{if(!modeLocked)onSetTraceMode('assist')}}
+      disabled={modeLocked}
+      type="button"
+    >
+      Normal
+    </button>
+    <button
+      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+        traceMode==='memory'
+          ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+      } ${modeLocked?'opacity-40 cursor-not-allowed':''}`}
+      onClick={()=>{if(!modeLocked)onSetTraceMode('memory')}}
+      disabled={modeLocked}
+      type="button"
+    >
+      Memory
+    </button>
+  </div>;
+
+  return <MouseShell title={`Symbol Tracing ${traceMode==='memory'?'(Memory)':''}`} kicker={traceMode==='memory'?'Recall & draw':'Path precision'} description={traceMode==='memory'?'Study the shape, then trace it from memory after it disappears.':'Trace each target shape as precisely as possible.'} accent="border-emerald-200 bg-emerald-50 text-emerald-900" isSignedIn={isSignedIn} stats={[{label:'Rounds left',value:`${Math.max(ROUNDS-scores.length-(phase==='reveal'?1:0),0)}`,detail:'Complete four symbols.'},{label:'Shape',value:symbol.label,detail:`Round ${Math.min(roundIdx+1,ROUNDS)} / ${ROUNDS}`},{label:'Last Accuracy',value:result===null?'--':`${result.accuracy}%`,detail:'How closely your line matched.'},{label:'Lab score',value:phase==='finished'?`${avgScore??0}`:result===null?'--':`${result.labScore}`,detail:phase==='finished'?'Average lab score over 4 rounds.':'Trace performance score.'}]} modeButtons={localModeButtons}>
     <div className="space-y-4">
       {phase==='memorizing'&&<div className="flex justify-center"><div className="inline-flex items-center gap-3 status-pill"><span className="text-xs font-bold uppercase tracking-[0.2em]">Memorize</span><span className="text-xl font-black">{memCountdown}</span><span className="text-[11px] font-semibold uppercase tracking-[0.15em]">Study the shape below!</span></div></div>}
 
@@ -346,30 +375,5 @@ export function MouseProtocols({mode,isSignedIn,initialCpsDuration:_cps,initialT
   if(mode==='tracking')return <TrackingTest isSignedIn={isSignedIn}/>
   if(mode==='cps')return <CpsTester isSignedIn={isSignedIn}/>
 
-  const modeButtons=<div className="flex gap-2">
-    <button
-      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
-        traceMode==='assist'
-          ? 'border-emerald-400 bg-emerald-100 text-emerald-900 shadow-sm'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-      }`}
-      onClick={()=>setTraceMode('assist')}
-      type="button"
-    >
-      Normal
-    </button>
-    <button
-      className={`rounded-full border-2 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
-        traceMode==='memory'
-          ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-sm'
-          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-      }`}
-      onClick={()=>setTraceMode('memory')}
-      type="button"
-    >
-      Memory
-    </button>
-  </div>;
-
-  return <SymbolTracing traceMode={traceMode} isSignedIn={isSignedIn} modeButtons={modeButtons}/>;
+  return <SymbolTracing traceMode={traceMode} onSetTraceMode={setTraceMode} isSignedIn={isSignedIn}/>;
 }
