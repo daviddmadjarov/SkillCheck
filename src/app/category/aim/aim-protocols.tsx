@@ -73,8 +73,8 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
       const dt = Math.min(now - lastTimeRef.current, 50); // cap dt to avoid large jumps
       lastTimeRef.current = now;
       setTarget(c=>{
-        let nx=c.x+velocity.current.x*dt;
-        let ny=c.y+velocity.current.y*dt;
+        let nx=c.x+velocity.current.x*dt/50;
+        let ny=c.y+velocity.current.y*dt/50;
         // Bounce off edges
         if(nx<=18||nx>=82)velocity.current.x*=-1;
         if(ny<=18||ny>=82)velocity.current.y*=-1;
