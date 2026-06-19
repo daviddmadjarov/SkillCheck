@@ -354,34 +354,26 @@ function TrackingTest({isSignedIn}:{isSignedIn:boolean}){
   const [timeInsideMs,setTimeInsideMs]=useState(0);const [target,setTarget]=useState({x:50,y:50});const [isInside,setIsInside]=useState(false);
   const [canRetry,setCanRetry]=useState(false);
   const arenaRef=useRef<HTMLDivElement|null>(null);const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const runParams=useRef<{waypoints:{x:number;y:number}[];totalTime:number}>({waypoints:[{x:50,y:50}],totalTime:20000});
+  const stateRef=useRef<{vx:number;vy:number;lastTimestamp:number}>({vx:0,vy:0,lastTimestamp:0});
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
   useEffect(()=>{if(!runComplete){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1000);return()=>clearTimeout(t)},[runComplete]);
   const labScore=Math.round((timeInsideMs/20000)*1000);
-  useEffect(()=>{if(!running)return;const s=performance.now();let inside=false;let elapsed=0;let ti=0;const rp=runParams.current;const wp=rp.waypoints;const totalMs=rp.totalTime;const easeIn=5000;const up=(ts:number)=>{elapsed=ts-s;const rem=Math.max(0,totalMs-elapsed);setSecondsLeft(Math.ceil(rem/1000));const speedMul=Math.min(1,elapsed/easeIn);const t=speedMul*(elapsed/totalMs);const segCount=wp.length-1;const totalT=segCount;const scrollT=t*totalT;const segIdx=Math.min(Math.floor(scrollT),segCount-1);const frac=scrollT-segIdx;const p0=wp[segIdx];const p1=wp[Math.min(segIdx+1,segCount)];// Catmull-Rom centripetal interpolation for smooth path
-let px:number;let py:number;
-if(segIdx===0){px=p0.x+(p1.x-p0.x)*frac;py=p0.y+(p1.y-p0.y)*frac}else{
-const p_1=wp[segIdx-1];const p2=wp[Math.min(segIdx+2,segCount)];
-const t1=0;const t2=t1+Math.pow(Math.hypot(p1.x-p_1.x,p1.y-p_1.y),0.5)+1e-6;const t3=t2+Math.pow(Math.hypot(p2.x-p1.x,p2.y-p1.y),0.5)+1e-6;const t4=t3+Math.pow(Math.hypot(p2.x-p_1.x,p2.y-p_1.y),0.5)+1e-6;
-const lfrac=t2+(t3-t2)*frac;
-const a1=(t2-lfrac)/(t2-t1);const b1=(lfrac-t1)/(t2-t1);
-const a2=(t3-lfrac)/(t3-t2);const b2=(lfrac-t2)/(t3-t2);
-const a3=(t4-lfrac)/(t4-t3);const b3=(lfrac-t3)/(t4-t3);
-px=p_1.x*a1+p1.x*b1;py=p_1.y*a1+p1.y*b1;
-const mx=p1.x*a2+p2.x*b2;const my=p1.y*a2+p2.y*b2;
-const nx=p2.x*a3+p_1.x*b3;const ny=p2.y*a3+p_1.y*b3;
-px=(px+mx*4+nx)/6;py=(py+my*4+ny)/6}
-setTarget({x:clamp(px,10,90),y:clamp(py,10,90)});if(inside){ti=Math.min(totalMs,ti+16);setTimeInsideMs(ti)}if(elapsed>=totalMs){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/totalMs)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const px=clamp(((e.clientX-r.left)/r.width)*100,0,100);const py=clamp(((e.clientY-r.top)/r.height)*100,0,100);inside=dist({x:px,y:py},target)<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
+  useEffect(()=>{if(!running)return;const s=performance.now();let inside=false;let elapsed=0;let ti=0;const sr=stateRef.current;sr.lastTimestamp=s;let px=50;let py=50;let vx=sr.vx;let vy=sr.vy;const TOTAL=20000;const up=(ts:number)=>{const dt=Math.min(32,ts-sr.lastTimestamp);sr.lastTimestamp=ts;elapsed=ts-s;const rem=Math.max(0,TOTAL-elapsed);setSecondsLeft(Math.ceil(rem/1000));// Speed multiplier: starts near 0, ramps to ~20%/% over 20s, then stays
+const progress=elapsed/TOTAL;const speedScale=progress*progress*0.18+progress*0.02;
+// Apply random acceleration nudges (direction changes smoothly)
+const ax=(Math.random()-0.5)*0.4;const ay=(Math.random()-0.5)*0.4;
+vx+=ax;vy+=ay;
+// Dampen velocity toward a random wander direction to keep it from getting stuck
+const maxSpeed=0.08+speedScale*1.2;const speed=Math.hypot(vx,vy);if(speed>maxSpeed){vx=(vx/speed)*maxSpeed;vy=(vy/speed)*maxSpeed}
+// Wander toward random direction to prevent corner-clinging
+const wanderAngle=Math.sin(elapsed*0.0007+sr.vx)*0.008;vx+=Math.cos(wanderAngle)*0.002;vy+=Math.sin(wanderAngle)*0.002;
+px+=vx*dt;py+=vy*dt;
+// Bounce off walls (10-90 bounds)
+if(px<10){px=10;vx*=-0.7}if(px>90){px=90;vx*=-0.7}if(py<10){py=10;vy*=-0.7}if(py>90){py=90;vy*=-0.7}
+setTarget({x:clamp(px,10,90),y:clamp(py,10,90)});if(inside){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}if(elapsed>=TOTAL){setIsInside(false);setRunning(false);setRunComplete(true);if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();const cx=clamp(((e.clientX-r.left)/r.width)*100,0,100);const cy=clamp(((e.clientY-r.top)/r.height)*100,0,100);inside=dist({x:cx,y:cy},target)<6.5;setIsInside(inside)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
-    // Generate random waypoints for a completely unique path each run
-    const count=8+Math.floor(Math.random()*5); // 8-12 waypoints
-    const wps:{x:number;y:number}[]=[];
-    for(let i=0;i<count;i++){wps.push({x:15+Math.random()*70,y:15+Math.random()*70})}
-    // Ensure first waypoint is near center so it starts centered
-    wps[0]={x:45+Math.random()*10,y:45+Math.random()*10};
-    // Shuffle the middle waypoints to add more chaos
-    for(let i=1;i<wps.length-1;i++){const j=1+Math.floor(Math.random()*(wps.length-2));[wps[i],wps[j]]=[wps[j],wps[i]]}
-    runParams.current={waypoints:wps,totalTime:20000};
+    stateRef.current={vx:0,vy:0,lastTimestamp:0};
+    setTarget({x:50,y:50});
     setRunning(true);setRunComplete(false);setSecondsLeft(20);setTimeInsideMs(0);setIsInside(false)
   }
   return <MouseShell title="Tracking Test" kicker="Cursor control" description="Keep your pointer inside the moving target for the full run." accent="border-indigo-200 bg-indigo-50 text-indigo-900" isSignedIn={isSignedIn} stats={[{label:'Seconds left',value:`${secondsLeft}s`,detail:'The tracking window lasts 20 seconds.'},{label:'Time on target',value:`${(timeInsideMs/1000).toFixed(2)}s`,detail:'Total time inside the target.'},{label:'Accuracy',value:`${Math.round((timeInsideMs/20000)*100)}%`,detail:'Percentage of 20s window.'},{label:'Lab score',value:String(labScore),detail:'0-1000 scale.'},{label:'Status',value:running?'Live':runComplete?'Done':'Ready',detail:running?'Stay inside the target.':runComplete?'Run complete.':'Getting ready.'}]}>
