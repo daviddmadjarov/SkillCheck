@@ -615,13 +615,13 @@ function estActualStr(t: EstTask) {
 }
 
 function estRoundScore(t: EstTask, guess: number): number {
-  if (t.type === 'line') return clamp(Math.round(100 - (Math.abs(guess - t.actualCm) / t.actualCm) * 100 * 1.5), 0, 100);
-  if (t.type === 'percent') return clamp(Math.round(100 - Math.abs(guess - t.actual) * 2), 0, 100);
-  if (t.type === 'angle') return clamp(Math.round(100 - Math.abs(guess - t.actual) * 1.2), 0, 100);
+  if (t.type === 'line') return clamp(Math.round(250 - (Math.abs(guess - t.actualCm) / t.actualCm) * 375), 0, 250);
+  if (t.type === 'percent') return clamp(Math.round(250 - Math.abs(guess - t.actual) * 5), 0, 250);
+  if (t.type === 'angle') return clamp(Math.round(250 - Math.abs(guess - t.actual) * 3), 0, 250);
   if (t.type === 'fireflies' || t.type === 'dots') {
-    return clamp(Math.round(100 - (Math.abs(guess - t.actual) / t.actual) * 100 * 1.8), 0, 100);
+    return clamp(Math.round(250 - (Math.abs(guess - t.actual) / t.actual) * 450), 0, 250);
   }
-  return clamp(Math.round(100 - (Math.abs(guess - (t as any).actual) / (t as any).actual) * 100 * 1.5), 0, 100);
+  return clamp(Math.round(250 - (Math.abs(guess - (t as any).actual) / (t as any).actual) * 375), 0, 250);
 }
 
 function estLabel(t: EstTask) {
@@ -837,7 +837,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
     if (dotsTimerRef.current) clearTimeout(dotsTimerRef.current);
   }, []);
 
-  const labScore = phase === 'finished' ? Math.round((scoreSum / ROUNDS) * 10) : null;
+  const labScore = phase === 'finished' ? scoreSum : null;
 
   useEffect(() => {
     if (!isSignedIn || phase !== 'finished' || labScore === null || hasSavedRunRef.current) {
@@ -901,7 +901,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
       stats={[
         { label: 'Round', value: phase === 'idle' ? '--' : `${Math.min(roundIdx + 1, ROUNDS)} / ${ROUNDS}`, detail: `${ROUNDS} estimation tasks per run.` },
         { label: 'Task', value: task ? estLabel(task) : '--', detail: 'Type randomises each round.' },
-        { label: 'Last score', value: lastScore === null ? '--' : String(lastScore), detail: 'Points earned on the previous round (0–100).' },
+        { label: 'Last score', value: lastScore === null ? '--' : String(lastScore), detail: 'Points earned on the previous round (0–250).' },
         { label: 'Lab score', value: labScore === null ? '--' : String(labScore), detail: 'Average accuracy across all rounds, scaled to 1000.' },
       ]}
       title={MODE_META.estimation.title}
@@ -975,7 +975,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
                 <p className="mt-3 text-4xl font-black text-slate-800">{labScore}</p>
-                <p className="mt-1 text-sm text-slate-500">Avg round score: {Math.round(scoreSum / ROUNDS)} / 100</p>
+                <p className="mt-1 text-sm text-slate-500">Avg round score: {Math.round(scoreSum / ROUNDS)} / 250</p>
                 <button className="lab-button mt-4" onClick={startRun} type="button">Start New Run</button>
               </div>
             </div>
