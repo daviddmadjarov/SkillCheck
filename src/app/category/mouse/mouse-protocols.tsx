@@ -12,6 +12,33 @@ type TraceSymbol = { key: string; label: string; points: Point[] };
 function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
 function dist(a:Point,b:Point){return Math.hypot(a.x-b.x,a.y-b.y)}
 
+/** Convert an array of points to a smooth SVG path using Catmull-Rom spline interpolation.
+ *  Produces cubic bezier curves between each pair of points for smooth rendering. */
+function smoothPath(pts: Point[]): string {
+  if (pts.length === 0) return '';
+  if (pts.length === 1) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  if (pts.length === 2) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+
+  // For each segment from p1→p2, use p0 and p3 as control point anchors (Catmull-Rom → Cubic Bezier)
+  // https://en.wikipedia.org/wiki/Catmull-Rom_spline
+  function toCubicBezier(p0: Point, p1: Point, p2: Point, p3: Point, tension = 0.5): string {
+    const t = tension;
+    const cp1x = p1.x + (p2.x - p0.x) / 6 * t;
+    const cp1y = p1.y + (p2.y - p0.y) / 6 * t;
+    const cp2x = p2.x - (p3.x - p1.x) / 6 * t;
+    const cp2y = p2.y - (p3.y - p1.y) / 6 * t;
+    return `C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  d += toCubicBezier(pts[0], pts[0], pts[1], pts[2]);
+  for (let i = 1; i < pts.length - 2; i++) {
+    d += toCubicBezier(pts[i - 1], pts[i], pts[i + 1], pts[i + 2]);
+  }
+  d += toCubicBezier(pts[pts.length - 3], pts[pts.length - 2], pts[pts.length - 1], pts[pts.length - 1]);
+  return d;
+}
+
 function MouseShell({title,kicker,description,accent,isSignedIn,stats,children,modeButtons}:{title:string;kicker:string;description:string;accent:string;isSignedIn:boolean;stats:{label:string;value:string;detail:string}[];children:ReactNode;modeButtons?:ReactNode}){
   return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mouse Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div>{modeButtons?modeButtons:<div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>}</div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
 }
@@ -249,8 +276,8 @@ function SymbolTracing({traceMode,isSignedIn,modeButtons}:{traceMode:TraceMode;i
       <div className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-4 touch-none select-none" onPointerDown={e=>{if(phase!=='tracing')return;const p=getBP(e.clientX,e.clientY);if(!p)return;if(traceRef.current.length>0)return;setDrawing(true);traceRef.current=[p];setUp([p])}} onPointerMove={e=>{if(phase!=='tracing'||!drawing)return;const p=getBP(e.clientX,e.clientY);if(!p)return;const cur=traceRef.current;if(cur.length===0){traceRef.current=[p];setUp([p]);return}if(dist(cur[cur.length-1],p)<0.25)return;const next=[...cur,p];traceRef.current=next;setUp(next)}} onPointerUp={()=>{setDrawing(false)}} ref={boardRef}>
         {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-          {(showGuide||showMemGuide||showRevealGuide)&&<polyline fill="none" points={symbol.points.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.3:1}/>}
-          <polyline fill="none" points={up.map(p=>`${p.x},${p.y}`).join(' ')} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>
+          {(showGuide||showMemGuide||showRevealGuide)&&<path fill="none" d={smoothPath(symbol.points)} stroke="#10b981" strokeDasharray="3 4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" opacity={showRevealGuide?0.3:1}/>}
+          {up.length>0&&<path fill="none" d={smoothPath(up)} stroke="#0f172a" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.4"/>}
         </svg>
 
         {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
