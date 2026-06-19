@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 
@@ -19,12 +19,11 @@ function MouseShell({title,kicker,description,accent,isSignedIn,stats,children}:
 const TRACE_SYMBOLS:TraceSymbol[]=[{key:'star',label:'Star',points:[{x:50,y:16},{x:58,y:38},{x:82,y:38},{x:62,y:52},{x:70,y:76},{x:50,y:61},{x:30,y:76},{x:38,y:52},{x:18,y:38},{x:42,y:38},{x:50,y:16}]},{key:'arrow',label:'Arrow',points:[{x:18,y:50},{x:60,y:50},{x:60,y:36},{x:84,y:50},{x:60,y:64},{x:60,y:50},{x:18,y:50}]},{key:'heart',label:'Heart',points:[{x:50,y:78},{x:74,y:55},{x:80,y:38},{x:69,y:27},{x:56,y:30},{x:50,y:37},{x:44,y:30},{x:31,y:27},{x:20,y:38},{x:26,y:55},{x:50,y:78}]},{key:'loop',label:'Loop',points:[{x:50,y:20},{x:75,y:30},{x:82,y:50},{x:68,y:72},{x:50,y:80},{x:32,y:72},{x:18,y:50},{x:25,y:30},{x:40,y:26},{x:50,y:34},{x:32,y:55},{x:50,y:68},{x:68,y:55},{x:50,y:20}]}];
 
 // ─────────────────────────────────────────────────────────────────────
-// REDESIGNED SCORING SYSTEM
+// REDESIGNED SCORING SYSTEM — V2 (HARSH)
 // ─────────────────────────────────────────────────────────────────────
 
 /**
  * Resample a path to exactly n evenly-spaced points.
- * Uses cumulative distance along the path for interpolation.
  */
 function resamplePath(pts: Point[], n: number): Point[] {
   if (pts.length < 2) return pts.slice();
@@ -49,250 +48,191 @@ function resamplePath(pts: Point[], n: number): Point[] {
   return out;
 }
 
-/**
- * Build a kd-tree-like nearest-point lookup from an array of points.
- * For small N (≤500), brute-force is fine. For larger, we use a simple spatial grid.
- */
-function buildPointLookup(pts: Point[]): (px: number, py: number) => { dist: number; pt: Point } {
+// ── Nearest-point lookup ────────────────────────────────────────────
+function nearestPointLookup(pts: Point[]): (px: number, py: number) => number {
   return (px: number, py: number) => {
-    let bestDist = Infinity;
-    let bestPt = pts[0];
+    let best = Infinity;
     for (let i = 0; i < pts.length; i++) {
       const d = Math.hypot(px - pts[i].x, py - pts[i].y);
-      if (d < bestDist) {
-        bestDist = d;
-        bestPt = pts[i];
-      }
+      if (d < best) best = d;
     }
-    return { dist: bestDist, pt: bestPt };
+    return best;
   };
 }
 
-/**
- * Nonlinear penalty function.
- * Small errors have minor penalty, medium errors moderate, large errors severe.
- *
- * @param distance - distance from user point to nearest target point
- * @param maxDist - the distance at which penalty becomes 1.0 (total loss)
- * @returns penalty factor from 0 (perfect) to 1 (total fail)
- *
- * Shape: quadratic-exponential hybrid
- *   d/maxDist < 0.3:  quadratic (soft at small values)
- *   d/maxDist >= 0.3: exponential (harsh at large values)
- */
-function nonlinearPenalty(distance: number, maxDist: number): number {
-  const ratio = distance / maxDist;
-  if (ratio <= 0) return 0;
-  if (ratio <= 0.3) {
-    // Quadratic region: ratio=0 → 0, ratio=0.3 → ~0.09
-    return (ratio / 0.3) * (ratio / 0.3) * 0.09;
+// ── Nonlinear penalty (steep curve) ────────────────────────────────
+//   ratio ≤ 0.15 → quadratic, tiny penalty (max 0.04)
+//   ratio > 0.15 → exponential, ramps to 1.0 at ratio=1.0
+//   This means even moderate errors hurt significantly.
+function nonlinearPenalty(d: number, maxD: number): number {
+  const r = d / maxD;
+  if (r <= 0) return 0;
+  if (r <= 0.15) {
+    // at r=0.15 → 0.04 penalty
+    return (r / 0.15) * (r / 0.15) * 0.04;
   }
-  // Exponential region: ramp from ~0.09 at ratio=0.3 to 1.0 at ratio=1.0
-  const t = (ratio - 0.3) / 0.7; // 0 at ratio=0.3, 1 at ratio=1.0
-  // Exponential curve: e^(t*ln(1/0.09)) = e^(t * 2.408)
-  return 0.09 * Math.exp(t * 2.408);
+  // exponential from 0.04 to 1.0
+  const t = (r - 0.15) / 0.85;
+  return 0.04 * Math.exp(t * 3.219); // ln(1/0.04) ≈ 3.219
 }
 
-/**
- * 1. PATH DEVIATION (Weight: 50%)
- *
- * For each sampled point on the user's path, find the nearest point on the target path.
- * Apply nonlinear penalty so large deviations are severely punished.
- * Returns a score from 0–100.
- */
+// ─────────────────────────────────────────────────────────────────────
+// 1. BIDIRECTIONAL PATH DEVIATION  (Weight: 50%)
+// ─────────────────────────────────────────────────────────────────────
+// Measures deviation in BOTH directions:
+//   User→Target: how far each user point is from the target
+//   Target→User: how far each target point is from the user (catches
+//                missing sections of the shape)
+// This ensures partial traces and random scribbles both score low.
 function computeDeviationScore(
   userPath: Point[],
   targetPath: Point[],
-  maxAllowedDist: number
+  maxD: number
 ): number {
-  const lookup = buildPointLookup(targetPath);
-  let totalPenalty = 0;
+  const toTarget = nearestPointLookup(targetPath);
+  const toUser = nearestPointLookup(userPath);
+
+  let userPenalty = 0;
   for (let i = 0; i < userPath.length; i++) {
-    const { dist: d } = lookup(userPath[i].x, userPath[i].y);
-    totalPenalty += nonlinearPenalty(d, maxAllowedDist);
+    userPenalty += nonlinearPenalty(toTarget(userPath[i].x, userPath[i].y), maxD);
   }
-  const avgPenalty = totalPenalty / userPath.length;
-  // Convert penalty to score: 0 penalty = 100, 1 penalty = 0
-  const score = Math.max(0, 100 - avgPenalty * 100);
-  return score;
+
+  let targetPenalty = 0;
+  for (let i = 0; i < targetPath.length; i++) {
+    targetPenalty += nonlinearPenalty(toUser(targetPath[i].x, targetPath[i].y), maxD);
+  }
+
+  const avgPenalty = (userPenalty / userPath.length + targetPenalty / targetPath.length) / 2;
+  return Math.max(0, 100 - avgPenalty * 100);
 }
 
-/**
- * 2. PATH COVERAGE (Weight: 20%)
- *
- * For each sampled point on the target path, find the nearest point on the user's path.
- * Count how many target points are "covered" (within a reasonable distance).
- * This measures how much of the shape the user actually traced.
- *
- * Additionally checks if the user's path covers the full extent of the shape.
- */
+// ─────────────────────────────────────────────────────────────────────
+// 2. PATH COVERAGE  (Weight: 20%)
+// ─────────────────────────────────────────────────────────────────────
+// Strict threshold: a target point is only "covered" if a user point
+// is within 5 units. Scoring curve requires ~80% coverage to break even.
 function computeCoverageScore(
   userPath: Point[],
   targetPath: Point[]
 ): number {
-  const lookup = buildPointLookup(userPath);
-  const coverageThreshold = 12; // Max distance to consider a target point "covered"
+  const toUser = nearestPointLookup(userPath);
+  const threshold = 5; // must be very close to count
 
   let covered = 0;
   for (let i = 0; i < targetPath.length; i++) {
-    const { dist: d } = lookup(targetPath[i].x, targetPath[i].y);
-    if (d <= coverageThreshold) covered++;
+    const d = toUser(targetPath[i].x, targetPath[i].y);
+    if (d <= threshold) covered++;
   }
-  const coveragePct = covered / targetPath.length;
-  // Scale: 100% coverage = 100, 50% coverage = 0
-  const score = Math.max(0, (coveragePct - 0.5) * 200);
+  const pct = covered / targetPath.length;
+  // Need >80% coverage to get any positive score
+  // 80% → 0, 90% → 50, 100% → 100
+  const score = Math.max(0, (pct - 0.8) * 500);
   return Math.min(100, score);
 }
 
-/**
- * 3. OVERSHOOTING / STRAYING (Weight: 15%)
- *
- * Detect points that are far from the target path.
- * Also detect erratic loops by checking if the user's path length
- * is significantly longer than the target path.
- *
- * Penalizes:
- * - Points far from any target path segment (> maxAllowedDist)
- * - Excessive path length (scribbling)
- */
+// ─────────────────────────────────────────────────────────────────────
+// 3. OVERSHOOTING / STRAYING  (Weight: 15%)
+// ─────────────────────────────────────────────────────────────────────
 function computeStrayScore(
   userRaw: Point[],
   targetPath: Point[]
 ): number {
-  // Check how many raw user points stray far from the target
-  const lookup = buildPointLookup(targetPath);
-  const strayThreshold = 15;
+  const toTarget = nearestPointLookup(targetPath);
+  const strayThreshold = 8; // points >8 units from target = stray
 
-  // Downsample raw points for performance
+  // Sample up to 300 raw points
   const step = Math.max(1, Math.floor(userRaw.length / 300));
   let strayCount = 0;
-  let totalChecked = 0;
+  let total = 0;
   for (let i = 0; i < userRaw.length; i += step) {
-    totalChecked++;
-    const { dist: d } = lookup(userRaw[i].x, userRaw[i].y);
-    if (d > strayThreshold) strayCount++;
+    total++;
+    if (toTarget(userRaw[i].x, userRaw[i].y) > strayThreshold) strayCount++;
   }
+  const strayPct = total > 0 ? strayCount / total : 0;
 
-  const strayPct = totalChecked > 0 ? strayCount / totalChecked : 0;
-
-  // Path length ratio penalty (scribble detection)
+  // Path length ratio penalty
   let userLen = 0;
-  for (let i = 1; i < userRaw.length; i++) {
-    userLen += dist(userRaw[i - 1], userRaw[i]);
-  }
+  for (let i = 1; i < userRaw.length; i++) userLen += dist(userRaw[i - 1], userRaw[i]);
   let tplLen = 0;
-  for (let i = 1; i < targetPath.length; i++) {
-    tplLen += dist(targetPath[i - 1], targetPath[i]);
-  }
+  for (let i = 1; i < targetPath.length; i++) tplLen += dist(targetPath[i - 1], targetPath[i]);
 
   const lenRatio = tplLen > 0 ? userLen / tplLen : 1;
 
-  // Ideal ratio is ~1 (same length). Shorter traces are penalized in coverage.
-  // Longer traces are straying/scribbling. Penalize when ratio > 1.5
+  // Penalize traces that are too long (scribbles) or too short (partial)
   let lengthPenalty = 0;
-  if (lenRatio > 1.5) {
-    // At 2x length, penalty = 0.5; at 3x, penalty = 1.0
-    lengthPenalty = Math.min(1, (lenRatio - 1.5) / 1.5);
+  if (lenRatio > 1.3) {
+    // at 1.5x → 0.4 penalty; at 2.5x → 1.0
+    lengthPenalty = Math.min(1, (lenRatio - 1.3) / 1.2);
   }
 
-  // Combined stray score: 0 strays = 100, all strays = 0
-  const strayScore = Math.max(0, 100 - strayPct * 200);
-  // Apply length penalty
-  const finalScore = strayScore * (1 - lengthPenalty * 0.5);
+  // Also penalize if the user traced way too little (covered by coverage
+  // and bidirectional deviation, but add a small extra nudge)
+  if (lenRatio < 0.5) {
+    lengthPenalty = Math.max(lengthPenalty, 0.3);
+  }
+
+  const strayScore = Math.max(0, 100 - strayPct * 250); // steep
+  const finalScore = strayScore * (1 - lengthPenalty * 0.6);
   return Math.max(0, Math.min(100, finalScore));
 }
 
-/**
- * 4. TRACE SMOOTHNESS (Weight: 10%)
- *
- * Detect erratic jumps, teleport-like movements, and sudden shortcuts
- * by analyzing the spacing between consecutive sampled points.
- *
- * If the distance between two consecutive samples is large relative
- * to the local target path curvature, it indicates a jump/shortcut.
- */
+// ─────────────────────────────────────────────────────────────────────
+// 4. TRACE SMOOTHNESS  (Weight: 10%)
+// ─────────────────────────────────────────────────────────────────────
 function computeSmoothnessScore(
-  userPath: Point[],
-  targetPath: Point[]
+  userPath: Point[]
 ): number {
-  if (userPath.length < 3) return 0;
+  if (userPath.length < 5) return 0;
 
-  const userDistances: number[] = [];
-  for (let i = 1; i < userPath.length; i++) {
-    userDistances.push(dist(userPath[i - 1], userPath[i]));
-  }
+  const steps: number[] = [];
+  for (let i = 1; i < userPath.length; i++) steps.push(dist(userPath[i - 1], userPath[i]));
 
-  // Compute median and MAD (median absolute deviation) of user step sizes
-  const sorted = [...userDistances].sort((a, b) => a - b);
+  const sorted = [...steps].sort((a, b) => a - b);
   const median = sorted[Math.floor(sorted.length / 2)];
-  const deviations = userDistances.map(d => Math.abs(d - median));
+  const deviations = steps.map(d => Math.abs(d - median));
   const devSorted = deviations.sort((a, b) => a - b);
   const mad = devSorted[Math.floor(devSorted.length / 2)] || 1;
 
-  // Count "jumps" — steps significantly larger than median + 3*MAD
-  const jumpThreshold = Math.max(median + 3 * mad, 3);
+  // Use 2×MAD for jump detection (more sensitive than 3×)
+  const jumpThreshold = Math.max(median + 2 * mad, 2);
   let jumps = 0;
-  for (let i = 0; i < userDistances.length; i++) {
-    if (userDistances[i] > jumpThreshold) jumps++;
+  for (let i = 0; i < steps.length; i++) {
+    if (steps[i] > jumpThreshold) jumps++;
   }
+  const jumpPct = steps.length > 0 ? jumps / steps.length : 0;
 
-  const jumpPct = userDistances.length > 0 ? jumps / userDistances.length : 0;
-
-  // Also check for "too smooth" (identical spacing) which indicates interpolation artifacts
-  let zeroVar = 0;
-  if (mad < 0.01 && median > 0) zeroVar = 1;
-
-  // Score: fewer jumps = better. Zero jumps = 100, 50% jumps = 0
-  let score = Math.max(0, 100 - jumpPct * 200);
-
-  // If points are suspiciously uniformly spaced, penalize somewhat
-  if (zeroVar > 0) score = Math.min(score, 80);
-
+  // Each jump costs 3× the point percentage
+  let score = Math.max(0, 100 - jumpPct * 300);
   return score;
 }
 
-/**
- * 5. COMPLETION (Weight: 5%)
- *
- * Award a small bonus for fully completing the symbol.
- * Check if the user started near the first target point and
- * ended near the last target point.
- */
+// ─────────────────────────────────────────────────────────────────────
+// 5. COMPLETION BONUS  (Weight: 5%)
+// ─────────────────────────────────────────────────────────────────────
 function computeCompletionScore(
   userRaw: Point[],
   targetPath: Point[]
 ): number {
   if (userRaw.length < 4 || targetPath.length < 2) return 0;
 
-  // Did the user start near the first target point?
   const startDist = dist(userRaw[0], targetPath[0]);
   const endDist = dist(userRaw[userRaw.length - 1], targetPath[targetPath.length - 1]);
 
-  // Did the user trace the full shape? Check by sampling target path
-  // and seeing if the cumulative coverage near the end is good.
-  const lookup = buildPointLookup(userRaw);
-  const endRegionThreshold = 10;
-
-  // Check last 20% of target points
-  const endStartIdx = Math.floor(targetPath.length * 0.8);
+  // Check if last 30% of the target is traced
+  const toUser = nearestPointLookup(userRaw);
+  const endStart = Math.floor(targetPath.length * 0.7);
   let endCovered = 0;
-  for (let i = endStartIdx; i < targetPath.length; i++) {
-    const { dist: d } = lookup(targetPath[i].x, targetPath[i].y);
-    if (d <= endRegionThreshold) endCovered++;
+  for (let i = endStart; i < targetPath.length; i++) {
+    if (toUser(targetPath[i].x, targetPath[i].y) <= 8) endCovered++;
   }
-  const endCoveragePct = (targetPath.length - endStartIdx) > 0
-    ? endCovered / (targetPath.length - endStartIdx)
-    : 0;
+  const endCoverPct = (targetPath.length - endStart) > 0
+    ? endCovered / (targetPath.length - endStart) : 0;
 
-  // Start bonus: close to first point
-  const startBonus = startDist <= 8 ? 100 : startDist <= 15 ? 50 : 0;
-  // End bonus: ended near the end of the path
-  const endBonus = endDist <= 8 ? 100 : endDist <= 15 ? 50 : 0;
-  // Coverage bonus: traced the final section
-  const coverageBonus = endCoveragePct >= 0.8 ? 100 : endCoveragePct >= 0.5 ? 50 : 0;
+  const startBonus = startDist <= 5 ? 100 : startDist <= 10 ? 50 : 0;
+  const endBonus = endDist <= 5 ? 100 : endDist <= 10 ? 60 : endDist <= 20 ? 20 : 0;
+  const coverBonus = endCoverPct >= 0.7 ? 100 : endCoverPct >= 0.4 ? 40 : 0;
 
-  const finalScore = startBonus * 0.2 + endBonus * 0.3 + coverageBonus * 0.5;
-  return finalScore;
+  return startBonus * 0.15 + endBonus * 0.35 + coverBonus * 0.50;
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -300,54 +240,35 @@ function computeCompletionScore(
 // ─────────────────────────────────────────────────────────────────────
 
 function evaluateTrace(userPts: Point[], tplPts: Point[]) {
-  // Minimum points check
   if (userPts.length < 4) {
     return { accuracy: 0, deviation: 99, completion: 0, labScore: 0 };
   }
 
-  // High-density sampling: 500 points for precision
-  const SAMPLE_COUNT = 500;
+  const SAMPLE_COUNT = 600;
   const usamp = resamplePath(userPts, SAMPLE_COUNT);
   const tsamp = resamplePath(tplPts, SAMPLE_COUNT);
-  const MAX_ALLOWED_DIST = 20; // units beyond which penalty is severe
+  const MAX_D = 10; // severe penalty beyond 10 units
 
-  // 1. Path Deviation (50%)
-  const deviationScore = computeDeviationScore(usamp, tsamp, MAX_ALLOWED_DIST);
-
-  // 2. Path Coverage (20%)
+  const deviationScore = computeDeviationScore(usamp, tsamp, MAX_D);
   const coverageScore = computeCoverageScore(usamp, tsamp);
-
-  // 3. Overshooting / Straying (15%)
   const strayScore = computeStrayScore(userPts, tsamp);
-
-  // 4. Trace Smoothness (10%)
-  const smoothnessScore = computeSmoothnessScore(usamp, tsamp);
-
-  // 5. Completion Bonus (5%)
+  const smoothnessScore = computeSmoothnessScore(usamp);
   const completionScore = computeCompletionScore(userPts, tsamp);
 
-  // Weighted combination
-  const weightedRaw =
-    deviationScore * 0.50 +
+  const weighted =
+    deviationScore  * 0.50 +
     coverageScore   * 0.20 +
     strayScore      * 0.15 +
     smoothnessScore * 0.10 +
     completionScore * 0.05;
 
-  // The weighted raw is a 0-100 score.
-  // Map to a 0-1000 labScore using a square-root curve (more human-friendly):
-  //   labScore = round(weightedRaw * 10)
+  const accuracy = clamp(Math.round(weighted), 0, 100);
+  const labScore = clamp(Math.round(weighted * 10), 0, 1000);
 
-  const accuracy = clamp(Math.round(weightedRaw), 0, 100);
-  const labScore = clamp(Math.round(weightedRaw * 10), 0, 1000);
-
-  // Compute a meaningful deviation metric for display (average distance to nearest target)
-  const lookup = buildPointLookup(tsamp);
+  // Average deviation (for display)
+  const toTarget = nearestPointLookup(tsamp);
   let totalDev = 0;
-  for (let i = 0; i< usamp.length; i++) {
-    const { dist: d } = lookup(usamp[i].x, usamp[i].y);
-    totalDev += d;
-  }
+  for (let i = 0; i < usamp.length; i++) totalDev += toTarget(usamp[i].x, usamp[i].y);
   const avgDev = totalDev / usamp.length;
 
   return {
@@ -355,16 +276,11 @@ function evaluateTrace(userPts: Point[], tplPts: Point[]) {
     deviation: Number(avgDev.toFixed(2)),
     completion: accuracy,
     labScore,
-    deviationScore: Math.round(deviationScore),
-    coverageScore: Math.round(coverageScore),
-    strayScore: Math.round(strayScore),
-    smoothnessScore: Math.round(smoothnessScore),
-    completionScore: Math.round(completionScore),
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// COMPONENT (unchanged except for display)
+// COMPONENT
 // ─────────────────────────────────────────────────────────────────────
 
 function SymbolTracing({isSignedIn}:{initialTraceMode?:TraceMode;isSignedIn:boolean}){
