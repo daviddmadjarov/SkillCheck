@@ -30,7 +30,7 @@ export function MultiplayerSessionGuard() {
   const isDuelSession = modeParam === 'duel';
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
-  const shouldForfeitOnLeave = isDuelSession;
+  const shouldForfeitOnLeave = isMultiplayer;
   const forfeitSentRef = useRef(false);
 
   /**

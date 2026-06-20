@@ -10,28 +10,24 @@ type PartyAutoStartProps = {
   isJoined: boolean;
   /** The lobby code */
   lobbyCode: string;
-  /** The initial lobby status (to detect transitions) */
-  initialStatus: string;
 };
 
 /**
  * Mounted for every joined player in a party lobby.
- * Polls lobby status every 2 seconds. When status transitions from
- * 'waiting'/'lobby' to 'live', automatically redirects to the first game URL.
+ * Polls lobby status every 2 seconds. When status becomes 'live',
+ * automatically redirects to the first game URL.
  *
- * Only redirects on status transition — if the lobby was already live when
- * the page loaded, the player simply sees the manual "Start Session" link.
+ * If the lobby was already live when the page loaded, the player simply
+ * sees the manual "Start Session" link (no auto-redirect on first render).
  */
-export function PartyAutoStart({ nextGameHref, isJoined, lobbyCode, initialStatus }: PartyAutoStartProps) {
+export function PartyAutoStart({ nextGameHref, isJoined, lobbyCode }: PartyAutoStartProps) {
   const router = useRouter();
   const redirectedRef = useRef(false);
-  const wasLiveRef = useRef(initialStatus === 'live');
 
   useEffect(() => {
     if (!isJoined || !nextGameHref) return;
 
     redirectedRef.current = false;
-    wasLiveRef.current = initialStatus === 'live';
 
     const intervalId = window.setInterval(async () => {
       if (redirectedRef.current) return;
@@ -50,17 +46,11 @@ export function PartyAutoStart({ nextGameHref, isJoined, lobbyCode, initialStatu
 
         if (!payload) return;
 
-        // Detect transition: was NOT live, now IS live
-        if (!wasLiveRef.current && payload.status === 'live') {
+        // When lobby status becomes 'live', auto-redirect to the next game
+        if (payload.status === 'live') {
           redirectedRef.current = true;
           window.clearInterval(intervalId);
-          router.push(nextGameHref);
-          return;
-        }
-
-        // Update our tracking ref
-        if (payload.status === 'live') {
-          wasLiveRef.current = true;
+          void router.push(nextGameHref);
         }
       } catch {
         // keep polling
@@ -70,7 +60,7 @@ export function PartyAutoStart({ nextGameHref, isJoined, lobbyCode, initialStatu
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isJoined, nextGameHref, lobbyCode, router, initialStatus]);
+  }, [isJoined, nextGameHref, lobbyCode, router]);
 
   return null;
 }

@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
   const readyToAdvance = resolvedRound > round;
   const isSessionFinished = resolvedRound >= lobby.game_order.length;
 
-  // ── Normal match completion: all rounds resolved, trigger Elo processing ──
+  // ── Normal match completion for duel: all rounds resolved, trigger Elo processing ──
   if (isSessionFinished && lobby.status === 'live' && lobby.mode === 'duel' && !lobby.winner_user_id) {
     const duelPlayers = sessionPlayers ?? [];
 
@@ -225,6 +225,47 @@ export async function GET(request: NextRequest) {
         });
       }
     }
+  }
+
+  // ── Normal match completion for party: all rounds resolved, mark finished (no Elo) ──
+  if (isSessionFinished && lobby.status === 'live' && lobby.mode === 'party' && !lobby.winner_user_id) {
+    const partyPlayers = sessionPlayers ?? [];
+
+    // Mark lobby as finished (no Elo processing)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any)
+      .from('multiplayer_lobbies')
+      .update({ status: 'finished', updated_at: new Date().toISOString() })
+      .eq('id', lobby.id);
+
+    lobby.status = 'finished';
+
+    // Determine winner (highest score wins, tie = first player)
+    const winner = partyPlayers[0] ?? null;
+
+    const partyStandings = partyPlayers.map(
+      (p: { display_name: string; id: string; score_total: number; user_id: string }, index: number) => ({
+        displayName: p.display_name,
+        forfeited: false,
+        isLeading: index === 0,
+        playerId: p.id,
+        rank: index + 1,
+        scoreTotal: p.score_total,
+        userId: p.user_id,
+      }),
+    );
+
+    return NextResponse.json({
+      forfeited: false,
+      isPartyMode: true,
+      isSessionFinished: true,
+      playersCount: partyPlayers.length,
+      readyToAdvance: true,
+      standings: partyStandings,
+      submittedCount: partyPlayers.length,
+      totalRounds: lobby.game_order.length,
+      winnerDisplayName: winner?.display_name ?? null,
+    });
   }
 
   // Count submissions for the current round

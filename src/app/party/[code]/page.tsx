@@ -69,7 +69,6 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
     <main className="min-h-screen px-4 py-6">
       {!isDuel && isJoined ? (
         <PartyAutoStart
-          initialStatus={lobby.status}
           isJoined={isJoined}
           lobbyCode={lobby.code}
           nextGameHref={nextGameHref}
