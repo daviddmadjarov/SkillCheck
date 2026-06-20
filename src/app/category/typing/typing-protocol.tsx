@@ -164,7 +164,7 @@ export function TypingProtocol({
         setElapsedMs(duration * 1000);
         setFinished(true);
         setStarted(false);
-        playTypingComplete(typingAudioRef);
+        playTypingComplete();
         return;
       }
 
@@ -252,7 +252,7 @@ export function TypingProtocol({
     if (nextValue.length > input.length) {
       const newCharIndex = input.length;
       const isError = newCharIndex < targetText.length && nextValue[newCharIndex] !== targetText[newCharIndex];
-      playTypingKeypress(typingAudioRef, isError);
+      playTypingKeypress(isError);
     }
 
     const clamped = nextValue.slice(0, targetText.length);

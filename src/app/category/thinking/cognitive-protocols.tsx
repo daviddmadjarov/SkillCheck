@@ -429,9 +429,9 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
     if (ok) setCorrectCount(c => c + 1);
     setPhase('reveal');
     if (ok) {
-      playCorrectChime(rotationAudioRef);
+      playCorrectChime();
     } else {
-      playWrongBuzz(rotationAudioRef);
+      playWrongBuzz();
     }
   }
 
@@ -935,7 +935,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
                   className="w-full accent-amber-500"
                   max={cfg.max}
                   min={cfg.min}
-                  onChange={(e) => { setGuess(Number(e.target.value)); playSliderMove(sliderAudioRef); }}
+                  onChange={(e) => { setGuess(Number(e.target.value)); playSliderMove(); }}
                   step={cfg.step}
                   type="range"
                   value={guess}

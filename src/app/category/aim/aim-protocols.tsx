@@ -20,7 +20,6 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
   const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);const [targetSeed,setTargetSeed]=useState(0);
   const [canRetry,setCanRetry]=useState(false);
   const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const aimAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
 
@@ -32,7 +31,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
 
   function startRun(){setTimes([]);setRunning(true);setStartedAt(performance.now());spawnTarget()}
   function spawnTarget(){setTarget({x:Math.random()*64+18,y:Math.random()*64+18});setTargetSeed(c=>c+1)}
-  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(aimAudioRef,times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
+  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
 
   return <AimShell title="Aim Trainer" kicker="Precision warm-up" description="Click the target where it appears. Twenty-five hits complete the drill." accent="border-cyan-200 bg-cyan-50 text-cyan-900" isSignedIn={isSignedIn} stats={[{label:'Targets left',value:String(hitsLeft),detail:'Finish all 25 targets.'},{label:'Average reaction',value:avg===null?'--':`${avg} ms`,detail:'Average across all hits.'},{label:'Lab score',value:labScore===null?'--':String(labScore),detail:best!==null?`Best: ${best} ms.`:'Calculated from average.'},{label:'Status',value:isFinished?'Done':!running?'Ready':'Live',detail:isFinished?'Use Try again.':!running?'Click target.':'Click each target.'}]}>
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
@@ -56,7 +55,6 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   const [best,setBest]=useState<number|null>(null);const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);
   const [targetSeed,setTargetSeed]=useState(0);const [canRetry,setCanRetry]=useState(false);
   const velocity=useRef({x:0,y:0});const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
-  const movingAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
 
@@ -112,7 +110,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
     const nt=[...times,rt];
     setTimes(nt);
     setHits(h=>h+1);
-    playAimHit(movingAudioRef,hits);
+    playAimHit(hits);
     if(hits+1>=25){finishRun(nt);return}
     setStartedAt(now);
     spawnTarget()
@@ -250,7 +248,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   const hasAutoStarted = useRef(false);
   const usedLabels = useRef<Set<string>>(new Set());
   const cd = useDuelCountdown(isMultiplayerSession);
-  const splitAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
 
@@ -364,7 +361,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     setResult({ pctA, pctB, score });
     setScores(prev => [...prev, score]);
     setPhase('result');
-    playSplitSnap(splitAudioRef);
+    playSplitSnap();
   }
 
   function advanceRound() {

@@ -33,7 +33,6 @@ function DuelResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lobbyCode = searchParams.get('lobby');
-  const ctxRef = useRef<AudioContext | null>(null);
   const playedRef = useRef(false);
 
   const [result, setResult] = useState<DuelResult | null>(null);
@@ -74,9 +73,9 @@ function DuelResultContent() {
     if (!result || playedRef.current) return;
     playedRef.current = true;
     if (result.isCurrentWinner) {
-      playWinJingle(ctxRef);
+      playWinJingle();
     } else {
-      playLoseJingle(ctxRef);
+      playLoseJingle();
     }
   }, [result]);
 

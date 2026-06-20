@@ -1,23 +1,17 @@
 'use client';
 
-type CtxRef = { current: AudioContext | null };
+import { getSharedContext } from './audio-manager';
 
-function getCtx(ref: CtxRef) {
-  // Global mute: if the user has disabled sounds, never return a context
-  if (typeof window !== 'undefined' && window.localStorage.getItem('skillcheck-sound-enabled') === 'false') {
-    return null;
-  }
-
-  if (!ref.current) {
-    const AC = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return null;
-    ref.current = new AC();
-  }
-  if (ref.current.state === 'suspended') {
-    ref.current.resume().catch(() => {});
-  }
-  return ref.current;
-}
+/**
+ * All sound functions now use the SINGLE shared AudioContext from
+ * audio-manager.ts.  This ensures:
+ *
+ *  - AudioContext is only created after the first user gesture (required
+ *    by iOS Safari / Chrome Android).
+ *  - A silent buffer keeps the context alive so it doesn't get suspended
+ *    by the browser after a few seconds of inactivity.
+ *  - The global mute check (localStorage) works for every sound.
+ */
 
 /** Quick oscillator pulse helper */
 function pulse(
@@ -69,10 +63,21 @@ function noiseBurst(
   src.stop(now + duration + 0.01);
 }
 
+/**
+ * Check global mute before returning the shared AudioContext.
+ * Returns null if sounds are disabled.
+ */
+function getCtx(): AudioContext | null {
+  if (typeof window !== 'undefined' && window.localStorage.getItem('skillcheck-sound-enabled') === 'false') {
+    return null;
+  }
+  return getSharedContext();
+}
+
 // ─── Countdown sounds ────────────────────────────────────────────────
 
-export function playCountdownTick(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playCountdownTick() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -90,8 +95,8 @@ export function playCountdownTick(ctxRef: CtxRef) {
   noiseBurst(ctx, 0.015, 0.05);
 }
 
-export function playCountdownGo(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playCountdownGo() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -123,8 +128,8 @@ export function playCountdownGo(ctxRef: CtxRef) {
 
 // ─── Win / Lose jingles ─────────────────────────────────────────────
 
-export function playWinJingle(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playWinJingle() {
+  const ctx = getCtx();
   if (!ctx) return;
   const notes = [523, 659, 784, 1047];
   notes.forEach((freq, i) => {
@@ -136,8 +141,8 @@ export function playWinJingle(ctxRef: CtxRef) {
   pulse(ctx, 1568, 0.4, 0.06, 'sine', 0.7);
 }
 
-export function playLoseJingle(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playLoseJingle() {
+  const ctx = getCtx();
   if (!ctx) return;
   const notes = [330, 262, 220, 165];
   notes.forEach((freq, i) => {
@@ -149,8 +154,8 @@ export function playLoseJingle(ctxRef: CtxRef) {
 
 // ─── Start button sound ────────────────────────────────────────────
 
-export function playStartSound(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playStartSound() {
+  const ctx = getCtx();
   if (!ctx) return;
   pulse(ctx, 420, 0.11, 0.11, 'triangle');
   pulse(ctx, 620, 0.08, 0.08, 'triangle', 0.09);
@@ -158,8 +163,8 @@ export function playStartSound(ctxRef: CtxRef) {
 
 // ─── Return to Lab sounds ─────────────────────────────────────────
 
-export function playReturnToLabHover(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playReturnToLabHover() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -188,8 +193,8 @@ export function playReturnToLabHover(ctxRef: CtxRef) {
   osc2.stop(now + 0.06);
 }
 
-export function playReturnToLabClick(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playReturnToLabClick() {
+  const ctx = getCtx();
   if (!ctx) return;
   pulse(ctx, 800, 0.06, 0.07, 'square');
   pulse(ctx, 200, 0.12, 0.06, 'triangle', 0.02);
@@ -198,8 +203,8 @@ export function playReturnToLabClick(ctxRef: CtxRef) {
 
 // ─── Aim hit sounds (rising pitch) ──────────────────────────────────
 
-export function playAimHit(ctxRef: CtxRef, hitIndex: number) {
-  const ctx = getCtx(ctxRef);
+export function playAimHit(hitIndex: number) {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const minFreq = 600;
@@ -232,8 +237,8 @@ export function playAimHit(ctxRef: CtxRef, hitIndex: number) {
 
 // ─── Slider drag sound (Estimation Challenge) ──────────────────────
 
-export function playSliderMove(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playSliderMove() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -256,16 +261,16 @@ export function playSliderMove(ctxRef: CtxRef) {
 
 // ─── Reaction game sounds ─────────────────────────────────────────
 
-export function playReactionReadyChime(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playReactionReadyChime() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 880, 0.1, 0.06, 'triangle');
   pulse(ctx, 1100, 0.12, 0.05, 'sine', 0.08);
 }
 
-export function playReactionSuccess(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playReactionSuccess() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 1400, 0.08, 0.09, 'sine');
@@ -273,8 +278,8 @@ export function playReactionSuccess(ctxRef: CtxRef) {
   pulse(ctx, 2200, 0.1, 0.04, 'sine', 0.08);
 }
 
-export function playReactionTooSoon(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playReactionTooSoon() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -293,12 +298,11 @@ export function playReactionTooSoon(ctxRef: CtxRef) {
 
 // ─── Typing sounds ────────────────────────────────────────────────
 
-export function playTypingKeypress(ctxRef: CtxRef, isError: boolean) {
-  const ctx = getCtx(ctxRef);
+export function playTypingKeypress(isError: boolean) {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   if (isError) {
-    // Low soft thud for errors
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.type = 'triangle';
@@ -312,7 +316,6 @@ export function playTypingKeypress(ctxRef: CtxRef, isError: boolean) {
     osc.start(now);
     osc.stop(now + 0.04);
   } else {
-    // Mechanical click
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.type = 'square';
@@ -329,11 +332,10 @@ export function playTypingKeypress(ctxRef: CtxRef, isError: boolean) {
   }
 }
 
-export function playTypingComplete(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playTypingComplete() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  // Rising arpeggio
   pulse(ctx, 600, 0.12, 0.08, 'sine');
   pulse(ctx, 800, 0.1, 0.06, 'sine', 0.1);
   pulse(ctx, 1000, 0.08, 0.05, 'sine', 0.2);
@@ -342,18 +344,15 @@ export function playTypingComplete(ctxRef: CtxRef) {
 
 // ─── Mouse/Symbol Tracing - pencil scratch sound ─────────────────
 
-export function playPencilScratch(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playPencilScratch() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  // Short noise burst with a tonal body for that pencil-on-paper feel
   const bufSize = Math.ceil(ctx.sampleRate * 0.04);
   const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < data.length; i++) {
-    // High-frequency noise with a rapid decay for scratch texture
     data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 1.5) * 0.5;
-    // Add some tonal harmonics
     const t = i / ctx.sampleRate;
     data[i] += Math.sin(2 * Math.PI * 2000 * t) * Math.pow(1 - i / data.length, 2) * 0.3;
   }
@@ -371,8 +370,8 @@ export function playPencilScratch(ctxRef: CtxRef) {
 
 // ─── CPS Tester - crisp mechanical click ─────────────────────────
 
-export function playCPSClick(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playCPSClick() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -392,8 +391,8 @@ export function playCPSClick(ctxRef: CtxRef) {
 
 // ─── Perfect Split - snap sound ─────────────────────────────────
 
-export function playSplitSnap(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playSplitSnap() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 2500, 0.04, 0.08, 'square');
@@ -403,8 +402,8 @@ export function playSplitSnap(ctxRef: CtxRef) {
 
 // ─── Mental Rotation - correct/wrong sounds ─────────────────────
 
-export function playCorrectChime(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playCorrectChime() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 880, 0.1, 0.07, 'sine');
@@ -412,8 +411,8 @@ export function playCorrectChime(ctxRef: CtxRef) {
   pulse(ctx, 1320, 0.12, 0.06, 'sine', 0.14);
 }
 
-export function playWrongBuzz(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playWrongBuzz() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -433,11 +432,10 @@ export function playWrongBuzz(ctxRef: CtxRef) {
 
 // ─── Duel match found notification ─────────────────────────────
 
-export function playMatchFound(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playMatchFound() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
-  // Quick ascending sequence
   pulse(ctx, 660, 0.08, 0.08, 'sine');
   pulse(ctx, 880, 0.08, 0.07, 'sine', 0.08);
   pulse(ctx, 1100, 0.08, 0.06, 'sine', 0.16);
@@ -446,8 +444,8 @@ export function playMatchFound(ctxRef: CtxRef) {
 
 // ─── Daily challenge sounds ────────────────────────────────────
 
-export function playDailyChime(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playDailyChime() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 800, 0.08, 0.07, 'triangle');
@@ -456,8 +454,8 @@ export function playDailyChime(ctxRef: CtxRef) {
   pulse(ctx, 800, 0.25, 0.05, 'triangle', 0.35);
 }
 
-export function playDailyComplete(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playDailyComplete() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 523, 0.15, 0.08, 'sine');
@@ -469,16 +467,16 @@ export function playDailyComplete(ctxRef: CtxRef) {
 
 // ─── Party lobby sounds ─────────────────────────────────────────
 
-export function playPlayerJoined(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playPlayerJoined() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 660, 0.08, 0.06, 'sine');
   pulse(ctx, 880, 0.1, 0.05, 'sine', 0.08);
 }
 
-export function playPlayerLeft(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playPlayerLeft() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   pulse(ctx, 440, 0.1, 0.05, 'triangle');
@@ -487,8 +485,8 @@ export function playPlayerLeft(ctxRef: CtxRef) {
 
 // ─── UI toggle / tab switch sounds ─────────────────────────────
 
-export function playTabSwitch(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playTabSwitch() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
   const osc = ctx.createOscillator();
@@ -505,16 +503,31 @@ export function playTabSwitch(ctxRef: CtxRef) {
   osc.stop(now + 0.03);
 }
 
-// ─── Duel queue searching sound (radar ping, repeats every ~2 s) ──
-// A low, atmospheric pulse that feels like the matchmaking system
-// is sweeping for an opponent — similar in spirit to Fortnite's lobby
-// search but distinct enough to avoid legal issues.
-export function playQueueSearching(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
+export function playDropdownClick() {
+  const ctx = getCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1000, now);
+  osc.frequency.exponentialRampToValueAtTime(600, now + 0.015);
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.linearRampToValueAtTime(0.015, now + 0.001);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.025);
+}
+
+// ─── Duel queue searching sound (radar ping) ──────────────────────
+
+export function playQueueSearching() {
+  const ctx = getCtx();
   if (!ctx) return;
   const now = ctx.currentTime;
 
-  // Sub-bass thump (the "radar pulse" body)
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   osc.type = 'sine';
@@ -529,7 +542,6 @@ export function playQueueSearching(ctxRef: CtxRef) {
   osc.start(now);
   osc.stop(now + 0.4);
 
-  // Higher "ping" overtone that gives it a searching, radar-like feel
   const osc2 = ctx.createOscillator();
   const g2 = ctx.createGain();
   osc2.type = 'triangle';
@@ -543,7 +555,6 @@ export function playQueueSearching(ctxRef: CtxRef) {
   osc2.start(now + 0.03);
   osc2.stop(now + 0.3);
 
-  // Subtle noise sweep to simulate interference / scanning
   const bufSize = Math.ceil(ctx.sampleRate * 0.08);
   const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
   const data = noiseBuf.getChannelData(0);
@@ -560,22 +571,4 @@ export function playQueueSearching(ctxRef: CtxRef) {
   noiseGain.connect(ctx.destination);
   noise.start(now + 0.02);
   noise.stop(now + 0.2);
-}
-
-export function playDropdownClick(ctxRef: CtxRef) {
-  const ctx = getCtx(ctxRef);
-  if (!ctx) return;
-  const now = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const g = ctx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(1000, now);
-  osc.frequency.exponentialRampToValueAtTime(600, now + 0.015);
-  g.gain.setValueAtTime(0.001, now);
-  g.gain.linearRampToValueAtTime(0.015, now + 0.001);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
-  osc.connect(g);
-  g.connect(ctx.destination);
-  osc.start(now);
-  osc.stop(now + 0.025);
 }

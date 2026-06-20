@@ -176,7 +176,7 @@ export function InteractiveSounds() {
       currentHovered.current = interactive;
 
       if (interactive.hasAttribute('data-return-to-lab')) {
-        playReturnToLabHover(ctx);
+        playReturnToLabHover();
       } else if (interactive.hasAttribute('data-pitched-hover')) {
         playPitchedHoverSound(ctx);
       } else {
@@ -200,9 +200,9 @@ export function InteractiveSounds() {
       if (!interactive) return;
 
       if (interactive.hasAttribute('data-return-to-lab')) {
-        playReturnToLabClick(ctx);
+        playReturnToLabClick();
       } else if (interactive.hasAttribute('data-start-game')) {
-        playStartSound(ctx);
+        playStartSound();
       } else {
         playClickSound(ctx);
       }

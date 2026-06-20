@@ -91,7 +91,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setPhase('too-soon');
       setReactionMs(null);
-      playReactionTooSoon(reactionAudioRef);
+      playReactionTooSoon();
       return;
     }
 
@@ -99,7 +99,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       const ms = Math.round(performance.now() - readyAtRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setReactionMs(ms);
-      playReactionSuccess(reactionAudioRef);
+      playReactionSuccess();
 
       const newTimes = [...roundTimes, ms];
       setRoundTimes(newTimes);
