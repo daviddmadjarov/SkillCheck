@@ -26,8 +26,8 @@ const MAX_SPEED = 12; // cap so it remains playable
 const MIN_TARGET_DELTA = Math.PI / 4; // 45°
 const TARGET_HALF_ANGLE = 0.22; // angular width of the hit zone (≈12.6°)
 const RING_RADIUS_RATIO = 0.36; // ring radius relative to canvas min dimension
-const RING_LINE_WIDTH = 6;
-const BALL_RADIUS = 12;
+const RING_LINE_WIDTH = 10;
+const BALL_RADIUS = 14;
 const TARGET_RADIUS_OUTER = 33; // size of the outward half-circle (≈50% bigger)
 const GLOW_BLUR = 24;
 const HIT_FLASH_DURATION = 200; // ms — how long the hit flash lasts
@@ -274,9 +274,12 @@ export default function RhythmLockGame({
     ctx.beginPath();
     ctx.arc(bx, by, BALL_RADIUS, 0, 2 * Math.PI);
     ctx.fillStyle = ballColor;
+    ctx.strokeStyle = isDark ? '#ffffff' : '#000000';
+    ctx.lineWidth = 3;
     ctx.shadowColor = ringGlowColor;
     ctx.shadowBlur = GLOW_BLUR;
     ctx.fill();
+    ctx.stroke();
     ctx.shadowBlur = 0;
 
     // ── Hit flash overlay (drawn on top of ring + ball) ──
