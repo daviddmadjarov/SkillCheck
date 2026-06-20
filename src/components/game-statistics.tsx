@@ -36,25 +36,36 @@ function formatDisplay(value: number | null, precision: number, unit: string) {
 }
 
 function linkify(text: string): ReactNode {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-  return parts.map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a
-          key={i}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-cyan-600 underline hover:text-cyan-800"
-        >
-          {part}
-        </a>
-      );
+  // Match markdown-style links: [text](url)
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Add text before this match
+    if (match.index > lastIndex) {
+      parts.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
     }
-    // Split by newlines for paragraph breaks
-    return <span key={i}>{part}</span>;
-  });
+    // Add the clickable link
+    parts.push(
+      <a
+        key={`l${match.index}`}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-cyan-600 underline hover:text-cyan-800 font-semibold"
+      >
+        {match[1]}
+      </a>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(<span key={`t${lastIndex}`}>{text.slice(lastIndex)}</span>);
+  }
+  return <>{parts}</>;
 }
 
 function formatAboutText(text: string): ReactNode[] {

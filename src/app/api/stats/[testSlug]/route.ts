@@ -20,8 +20,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'reaction-time': {
     title: 'Reaction Time — Method & Norms',
     about:
-      'This protocol measures simple visual reaction time — the interval between the onset of a visual stimulus and your motor response. In human neurophysiology, the typical simple visual reaction time for young adults ranges from 150–300 ms, with a strong dependency on stimulus intensity, contrast, and retinal eccentricity (the further from the fovea a stimulus appears, the slower the response). Studies on speed-of-information processing distinguish between simple reaction time (one stimulus, one response) and choice reaction time (multiple stimuli with conditional responses), a paradigm first systematically studied by Franciscus Donders in 1868. Performance is also influenced by display latency: a typical 60 Hz LCD introduces 8–16 ms of input lag, while high-refresh-rate monitors (240 Hz+) can reduce this to under 4 ms. Data collected across SkillCheck users are shown below.\n\n'
-      + 'Further reading: Wikipedia — Mental chronometry (https://en.wikipedia.org/wiki/Mental_chronometry) and Hick\'s law (https://en.wikipedia.org/wiki/Hick%27s_law).',
+      'This protocol measures simple visual reaction time — how fast you respond to seeing a stimulus. In most people, simple reaction time sits between 150–300 ms, though it varies with things like stimulus brightness and where on your screen it appears (your peripheral vision is slower than your fovea). Performance is also affected by your display: a typical 60 Hz LCD adds 8–16 ms of input lag, while high-refresh monitors (240 Hz+) can cut that to under 4 ms. Data shown below is collected from all SkillCheck users.\n\n'
+      + 'Fun fact: the "simple vs. choice" reaction time distinction was first studied by Franciscus Donders back in 1868 — [read more on Wikipedia](https://en.wikipedia.org/wiki/Mental_chronometry).',
     convertScore: (s) => Math.max(0, 1200 - s),
     unit: 'ms',
     label: 'Avg reaction',
@@ -30,8 +30,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'audio-reaction': {
     title: 'Audio Reaction — Auditory Cue',
     about:
-      'This variant measures auditory reaction time — responding to a pure tone (880 Hz sine wave) instead of a visual flash. Meta-analyses consistently show auditory reaction times are approximately 20–50 ms faster than visual ones, attributed to the shorter transduction cascade in the cochlea and the absence of phototransduction delay in the retina. The auditory brainstem response (ABR) occurs within 10 ms of stimulus onset, whereas the visual counterpart (the P100 wave) peaks around 100–130 ms. Wireless audio peripherals can add 30–200 ms of Bluetooth codec latency (Qualcomm, 2022), which is especially relevant for this test.\n\n'
-      + 'Further reading: Wikipedia — Brainstem auditory evoked potential (https://en.wikipedia.org/wiki/Brainstem_auditory_evoked_potential) and Psychoacoustics (https://en.wikipedia.org/wiki/Psychoacoustics).',
+      'Same idea, but you react to an audio tone instead of a visual flash. Most people are about 20–50 ms faster with audio cues — that\'s because your ear processes sound faster than your eye processes light, and there\'s no phototransduction delay in the retina. Your audio gear matters here: Bluetooth headphones can add 30–200 ms of latency depending on the codec.\n\n'
+      + 'More on how audio perception works: [Wikipedia — Psychoacoustics](https://en.wikipedia.org/wiki/Psychoacoustics).',
     convertScore: (s) => Math.max(0, 1200 - s),
     unit: 'ms',
     label: 'Avg reaction',
@@ -40,8 +40,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'multi-reaction': {
     title: 'Multi-Reaction — Choice Response',
     about:
-      'This protocol measures choice reaction time (CRT): the interval required to detect which of four possible stimuli appeared and execute the corresponding motor response. According to Hick\'s law (1952), CRT increases logarithmically with the number of stimulus-response alternatives: CRT = a + b × log₂(n), where n is the number of equally probable choices. For n = 4, the information load is 2 bits, adding roughly 50–100 ms compared to simple reaction time. This paradigm traces back to Donders\' subtraction method (1868), one of the earliest experimental frameworks in cognitive psychology. Choice reaction tasks are widely used in clinical assessments of processing speed, especially in multiple sclerosis and traumatic brain injury research.\n\n'
-      + 'Further reading: Wikipedia — Hick\'s law (https://en.wikipedia.org/wiki/Hick%27s_law) and Donders\' subtraction method (https://en.wikipedia.org/wiki/Franciscus_Donders).',
+      'Instead of one button, you get four — and you need to hit the right one. This measures choice reaction time (CRT), which adds a decision-making step. According to Hick\'s law, the time it takes grows with the number of options: each extra bit of information (doubling the choices) adds about 50–100 ms. That\'s why 4-button tests are slower than the single-button variant.\n\n'
+      + 'First explored by Donders in 1868: [Wikipedia — Hick\'s law](https://en.wikipedia.org/wiki/Hick%27s_law).',
     convertScore: (s) => Math.max(0, 1200 - s),
     unit: 'ms',
     label: 'Avg reaction',
@@ -50,8 +50,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'aim-trainer': {
     title: 'Aim Trainer — Static Precision',
     about:
-      'In this test you click a stationary circular target as quickly as possible, combining visual reaction time with a ballistic pointing movement. Fitts\'s law (1954) models the movement time as MT = a + b × log₂(2A/W), where A is the distance to the target and W is its width. The ratio 2A/W is the index of difficulty. Unlike simple reaction tests, this task incorporates movement planning and execution, which recruit the contralateral motor cortex and cerebellum. The angular displacement required to reach each new target varies randomly, preventing trajectory learning. The lab score reflects the time per target averaged across 25 hits.\n\n'
-      + 'Further reading: Wikipedia — Fitts\'s law (https://en.wikipedia.org/wiki/Fitts%27s_law) and Aim trainer (https://en.wikipedia.org/wiki/Aim_trainer).',
+      'Click a stationary target as fast as possible — that\'s a combination of reaction time plus a pointing movement. Fitts\'s law predicts how long that movement takes based on how far you have to move and how big the target is. Harder targets (further away and smaller) take longer. That\'s why aim trainer times are slower than pure reaction tests — you\'re moving the cursor too.\n\n'
+      + 'More on the science of pointing: [Wikipedia — Fitts\'s law](https://en.wikipedia.org/wiki/Fitts%27s_law).',
     convertScore: (s) => Math.max(0, 1200 - s),
     unit: 'ms',
     label: 'Avg time',
@@ -60,8 +60,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'aim-moving-targets': {
     title: 'Moving Targets — Dynamic Tracking',
     about:
-      'Targets drift across the screen with random velocities and bounce off arena boundaries. This adds a motion extrapolation component to the basic aiming task, requiring the participant to predict future target position and coordinate an intercepting movement — a skill known as coincidence anticipation. In sports science, this capacity is measured with the Bassin Anticipation Timer and correlates with batting and catching performance. The brain\'s middle temporal (MT/V5) visual area is specialised for processing motion, and predictive saccades are generated by the frontal eye fields. The drift speed and bounce timing are randomised across trials to prevent rhythm-based compensation.\n\n'
-      + 'Further reading: Wikipedia — Motion perception (https://en.wikipedia.org/wiki/Motion_perception) and Middle temporal gyrus (https://en.wikipedia.org/wiki/Middle_temporal_gyrus).',
+      'This time the target moves around the screen at random speeds and bounces off the edges. You\'re not just reacting — you\'re predicting where it\'ll be and intercepting it. That\'s called coincidence anticipation, and it\'s the same skill you use when catching a ball. The brain area that handles motion tracking (MT/V5) is working overtime here.\n\n'
+      + 'Learn about how we perceive motion: [Wikipedia — Motion perception](https://en.wikipedia.org/wiki/Motion_perception).',
     convertScore: (s) => Math.max(0, 1200 - s),
     unit: 'ms',
     label: 'Avg time',
@@ -70,8 +70,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'aim-perfect-split': {
     title: 'Perfect Split — Geometric Precision',
     about:
-      'Drag two control points along the perimeter of an irregular convex polygon to partition it into two regions of equal area. The score is a monotonic function of the absolute deviation from 50:50 (inverse exponential mapping). This task probes spatial estimation and fine-grained motor calibration, domains in which proprioceptive feedback from slow-adapting mechanoreceptors (Merkel discs and Ruffini endings) plays a critical role. The polygon shapes are randomly drawn from a procedural generation system, with fill and stroke colours assigned to maximise edge contrast. Each round uses a distinct shape from the same generator family to prevent visual memorisation.\n\n'
-      + 'Further reading: Wikipedia — Proprioception (https://en.wikipedia.org/wiki/Proprioception) and Computational geometry (https://en.wikipedia.org/wiki/Computational_geometry).',
+      'Drag two dots along the edge of a shape to cut it into two equal halves. The closer you get to 50:50, the higher your score. This tests your spatial estimation and fine motor control, relying on sensory feedback from tiny sensors in your skin called mechanoreceptors. The shapes are randomly generated, so no two runs are ever the same.\n\n'
+      + 'More on how your body senses position: [Wikipedia — Proprioception](https://en.wikipedia.org/wiki/Proprioception).',
     // score = 1000 * exp(-deviation^2 / 55) → deviation ≈ sqrt(-55 * ln(score / 1000))
     convertScore: (s) => {
       if (s >= 1000) return 0;
@@ -85,8 +85,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'aim-tracking-test': {
     title: 'Tracking Test — Sustained Cursor Control',
     about:
-      'A randomly drifting target must be kept under the cursor for 20 consecutive seconds. The score is the ratio of time-on-target to total duration, expressed as a percentage. This paradigm is a digital adaptation of the pursuit rotor task, first introduced by Koerth in 1922 as a measure of fine motor skill acquisition. Pursuit tracking performance improves with practice through cerebellar plasticity and is impaired by fatigue, alcohol, and sleep deprivation. The target trajectory uses pseudo-random acceleration with wall-bounce boundary conditions, ensuring an Ergodically rich motion profile that does not repeat between trials.\n\n'
-      + 'Further reading: Wikipedia — Pursuit rotor (https://en.wikipedia.org/wiki/Pursuit_rotor) and Eye-hand coordination (https://en.wikipedia.org/wiki/Eye%E2%80%93hand_coordination).',
+      'Keep your cursor inside a moving target for 20 seconds. Your score is the percentage of time you stayed on target. This is a digital version of the pursuit rotor test, first used in 1922 to measure motor skill learning. Performance improves with practice through a process called cerebellar plasticity, but gets worse when you\'re tired or distracted. The target never repeats the same trajectory, so you can\'t memorise the path.\n\n'
+      + 'More on this classic test: [Wikipedia — Pursuit rotor](https://en.wikipedia.org/wiki/Pursuit_rotor).',
     convertScore: (s) => Math.round((s / 10) * 10) / 10,
     unit: '% on target',
     label: 'Avg accuracy',
@@ -95,8 +95,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'mouse-symbol-tracing': {
     title: 'Symbol Tracing — Path Accuracy',
     about:
-      'Trace the contour of a target symbol as precisely as possible. The accuracy score is a composite of deviation from the ideal path, spatial coverage of the template, stray click percentage, and movement smoothness — each weighted according to its contribution to overall tracing quality. Tracing tasks activate the premotor cortex and the anterior cingulate gyrus, regions involved in visually guided action and error monitoring. The symbol set spans 24 distinct shapes (star, arrow, heart, spiral, hexagon, etc.), designed to cover a range of curvature profiles and directional transitions. Memory mode (available in party and duel sessions) adds a delay between exposure and recall, engaging working memory.\n\n'
-      + 'Further reading: Wikipedia — Visuospatial sketchpad (https://en.wikipedia.org/wiki/Visuospatial_sketchpad) and Motor skill (https://en.wikipedia.org/wiki/Motor_skill).',
+      'Trace the outline of a shape as precisely as possible. Your score is based on how close you stay to the line, how much of the shape you cover, and how smooth your movement is — all wrapped into one accuracy percentage. Tracing activates parts of your brain involved in visually-guided movement and error detection. There are 24 different shapes to keep things varied.\n\n'
+      + 'Read more: [Wikipedia — Motor skill](https://en.wikipedia.org/wiki/Motor_skill).',
     convertScore: (s) => Math.round(s / 10),
     unit: '% accuracy',
     label: 'Avg accuracy',
@@ -105,8 +105,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'mouse-cps': {
     title: 'Click Speed — CPS Test',
     about:
-      'Maximum voluntary click rate over a 10-second window. The lab score is a weighted combination of sustained CPS (75 %) and peak 1-second burst rate (25 %). Human maximal finger-tapping frequency is constrained by the refractory period of motor units and the corticospinal pathway; the population mean for index finger tapping is approximately 5–7 Hz according to normative data (Aoki et al., 2017). Professional gamers using specialised techniques such as jitter-clicking (vibrating the entire forearm) can transiently exceed 10–12 CPS, though this carries a risk of repetitive strain injury. The test duration of 10 seconds was chosen as a compromise between measuring sustainable rate and avoiding muscular fatigue confounds.\n\n'
-      + 'Further reading: Wikipedia — Finger tapping (https://en.wikipedia.org/wiki/Finger_tapping) and Repetitive strain injury (https://en.wikipedia.org/wiki/Repetitive_strain_injury).',
+      'How many clicks can you fit into 10 seconds? Most people average around 5–7 clicks per second for index finger tapping, according to published norms. Some gamers use specialised techniques like "jitter clicking" (vibrating the whole forearm) to push past 10 CPS, but that comes with a real risk of repetitive strain injury. This test balances burst speed with sustainability.\n\n'
+      + 'More: [Wikipedia — Finger tapping](https://en.wikipedia.org/wiki/Finger_tapping).',
     // labScore ≈ ((CPS * 0.75 + peakCPS * 0.25) / 20) * 1000 → roughly CPS ≈ score / 1000 * 20 / 0.75
     convertScore: (s) => Math.round(((s / 1000) * 20 / 0.75) * 100) / 100,
     unit: 'CPS',
@@ -116,8 +116,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'typing-speed': {
     title: 'Typing Speed — WPM & Accuracy',
     about:
-      'A timed typing sprint using randomly generated words from a curated dictionary in English, German, or Spanish. The composite lab score combines words per minute and character-level accuracy into a single metric on a 0–1000 scale. Skilled touch typists achieve 60–80 WPM on average, with the world record for 30-second sprints exceeding 200 WPM (Sean Wrona, 2014). Typing draws on procedural memory consolidated in the basal ganglia and cerebellum; interference paradigms suggest that typing is largely feedforward — once a word is initiated, individual keystrokes are executed from a stored motor plan rather than controlled online. The word bank includes over 50 entries per language spanning 5–18 characters, providing lexical diversity without exposing the full dictionary between runs.\n\n'
-      + 'Further reading: Wikipedia — Words per minute (https://en.wikipedia.org/wiki/Words_per_minute) and Touch typing (https://en.wikipedia.org/wiki/Touch_typing).',
+      'A timed typing sprint using random words in English, German or Spanish. The score combines your speed and accuracy into one number. Skilled typists usually hit 60–80 WPM, and the world record for a 30-second sprint is over 200 WPM. Once you know a word, typing it is mostly automatic — the fingers just execute a stored motor plan without thinking about each letter.\n\n'
+      + 'More: [Wikipedia — Words per minute](https://en.wikipedia.org/wiki/Words_per_minute).',
     // labScore = speedFactor * accuracyFactor * 1000, speedFactor = wpm / 120
     convertScore: (s) => Math.round(((s / 1000) * 120 / 0.85)),
     unit: 'WPM',
@@ -127,8 +127,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'perfect-sync': {
     title: 'Sync Test — BPM Estimation',
     about:
-      'Listen to an 8-beat rhythmic groove and estimate its tempo in beats per minute (BPM). The lab score is a linear function of the mean absolute error across four rounds of increasing tempo diversity (range: 40–200 BPM). The audio engine generates synthetic percussion using a bank of oscillators — downbeats are emphasised with a 72 Hz triangle wave, backbeats with a 220 Hz square wave, and off-beat subdivisions with a shorter 950 Hz impulse. Human beat perception is mediated by the basal ganglia and the supplementary motor area (SMA), which entrain to periodic stimuli even in the absence of overt movement. Groove patterns are identified by randomly selected names (Prism Groove, Neon Bounce, etc.) for aesthetic reference.\n\n'
-      + 'Further reading: Wikipedia — Beat perception (https://en.wikipedia.org/wiki/Beat_perception) and Entrainment (biomusicology) (https://en.wikipedia.org/wiki/Entrainment_%28biomusicology%29).',
+      'Listen to an 8-beat rhythm and guess its tempo in BPM. Your score depends on how close you get, averaged over four rounds. The audio is generated by a bank of oscillators — different sounds for downbeats, backbeats and subdivisions. Recognising tempo is something your brain does naturally: the basal ganglia and supplementary motor area lock onto a beat even when you\'re sitting still.\n\n'
+      + 'More on the science of rhythm: [Wikipedia — Beat perception](https://en.wikipedia.org/wiki/Beat_perception).',
     // liveScore = clamp(1000 - avgError * 8, 0, 1000) → error ≈ (1000 - score) / 8
     convertScore: (s) => Math.round(((1000 - s) / 8) * 10) / 10,
     unit: 'BPM error',
@@ -138,8 +138,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'stop-timer': {
     title: 'Stop the Timer — Internal Clock',
     about:
-      'A target duration between 3 and 20 seconds is shown, the timer runs visibly for 1.5 seconds, then the display fades. You must stop the timer as close to the target as possible using only your internal sense of elapsed time. This measures interval timing, a cognitive function that depends on the cortico-striato-thalamic loop and dopaminergic modulation within the basal ganglia (Matell & Meck, 2004, "Cortico-striatal circuits and interval timing"). The scalar expectancy theory (SET) posits that variability in time estimation scales proportionally with the target duration (Weber\'s law for time). The lab score applies a threshold non-linearity such that errors below 50 ms are not penalised, reflecting the intrinsic temporal uncertainty of human motor execution.\n\n'
-      + 'Further reading: Wikipedia — Time perception (https://en.wikipedia.org/wiki/Time_perception) and Scalar expectancy theory (https://en.wikipedia.org/wiki/Scalar_expectancy_theory).',
+      'A target time between 3 and 20 seconds is shown. You see the timer for 1.5 seconds, then the display fades and you have to stop it as close to the target as possible using just your internal sense of time. This is called interval timing, and it relies on a brain circuit involving the basal ganglia. Interestingly, the variability in your estimates grows with the target duration — a phenomenon known as Weber\'s law for time.\n\n'
+      + 'More: [Wikipedia — Time perception](https://en.wikipedia.org/wiki/Time_perception).',
     // finalScore = clamp(1000 - max(0, avg - 50) * 0.25, 0, 1000) → avg ≈ (1000 - score) / 0.25 + 50
     convertScore: (s) => Math.round(Math.max(0, (1000 - s) / 0.25 + 50)),
     unit: 'ms error',
@@ -149,8 +149,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'mental-rotation': {
     title: 'Mental Rotation — Spatial Reasoning',
     about:
-      'A reference shape is shown alongside four options, three of which are distractor variants from the same shape family. The participant must identify the single option that is a rotated version of the reference. Mental rotation was systematically quantified by Shepard and Metzler (1971) in their landmark paper "Mental rotation of three-dimensional objects", which demonstrated that reaction time increases linearly with angular disparity — implying that humans mentally rotate an internal representation at a constant angular velocity (about 50–60 degrees per second in most subjects). The shape families used here are two-dimensional projections of the original Shepard–Metzler-style block figures, with distractors differing by subtle variant features (notch position, arm width, etc.) rather than by rotation alone.\n\n'
-      + 'Further reading: Wikipedia — Mental rotation (https://en.wikipedia.org/wiki/Mental_rotation) and Shepard and Metzler (https://en.wikipedia.org/wiki/Mental_rotation#Shepard_and_Metzler).',
+      'You\'re shown a shape and four options — three are distractors that look similar, one is the exact same shape just rotated. Can you find it? This is based on a classic 1971 experiment by Shepard and Metzler, who found that people mentally rotate objects at a steady speed of about 50–60 degrees per second. The longer the rotation, the longer it takes to answer. The distractors here are designed to be tricky by varying subtle features.\n\n'
+      + 'Read the original study: [Wikipedia — Mental rotation](https://en.wikipedia.org/wiki/Mental_rotation).',
     convertScore: (s) => Math.round(s / 10),
     unit: '% correct',
     label: 'Avg accuracy',
@@ -159,8 +159,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'estimation-challenge': {
     title: 'Estimation Challenge — Perceptual Precision',
     about:
-      'Each round draws a random task type from five perceptual categories: line length estimation (with a scale bar reference), fill percentage, angle estimation, dot count (2-second exposure then hidden), and a firefly-count simulation (moving luminous dots inside a jar). Each round is scored on a 0–250 point scale for a maximum lab score of 1,000 across four rounds. Estimation of length and angle recruits the intraparietal sulcus (IPS), a region central to numerical and spatial cognition. The dot-count condition with rapid occlusion is a variant of subitising — the ability to enumerate small quantities without counting — which is limited to about four items before serial counting takes over (the subitising range, Kaufman et al., 1949).\n\n'
-      + 'Further reading: Wikipedia — Subitizing (https://en.wikipedia.org/wiki/Subitizing) and Approximate number system (https://en.wikipedia.org/wiki/Approximate_number_system).',
+      'Each round gives you a random perceptual puzzle: estimate a line length, a fill percentage, an angle, how many dots flashed briefly on screen, or how many fireflies are in the jar. Scoring goes up to 250 per round, maxing at 1000 for the full run. The dot-count task taps into something called subitising — your brain can instantly tell how many items there are when it\'s 4 or fewer, but beyond that you have to count.\n\n'
+      + 'More on this: [Wikipedia — Subitizing](https://en.wikipedia.org/wiki/Subitizing).',
     // labScore = sum of 4 round scores (each 0–250) → avgRound = score / 4
     convertScore: (s) => Math.round((s / 4) * 10) / 10,
     unit: '/250 per round',
@@ -170,8 +170,8 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'sequence-memory': {
     title: 'Sequence Memory — Working Memory',
     about:
-      'A 3 × 3 grid of colour-coded tiles lights up in sequence. After observing the sequence, you must reproduce it by tapping the tiles in the same order. One new step is added each successful round. The maximum sequence length achieved before the first error reflects the capacity of visuospatial working memory (Baddeley\'s visuospatial sketchpad). The average adult can hold 7 ± 2 items in verbal working memory (Miller, 1956), but visuospatial span is typically lower — about 4–6 items depending on the complexity of each position encoding. Tiles are colour-coded with 9 distinct hues (red through violet), and each tile press triggers a corresponding MIDI note (C4–D6), providing a concurrent auditory encoding channel that may assist performance via cross-modal binding.\n\n'
-      + 'Further reading: Wikipedia — Working memory (https://en.wikipedia.org/wiki/Working_memory) and Miller\'s law (https://en.wikipedia.org/wiki/Miller%27s_law).',
+      'Watch a 3×3 grid light up in a sequence, then tap it back in the same order. Each successful round adds another step. Your max sequence length reveals your visuospatial working memory capacity — how many spatial positions you can hold in mind at once. Most adults can handle about 4–6 items for this kind of task. The tiles light up with different colours and each one plays a unique note, giving your brain two ways to encode the sequence.\n\n'
+      + 'More: [Wikipedia — Working memory](https://en.wikipedia.org/wiki/Working_memory).',
     // labScore = clamp(sequence.length * 80, 0, 1000) → length ≈ score / 80
     convertScore: (s) => Math.max(0, Math.round(s / 80)),
     unit: 'steps',
