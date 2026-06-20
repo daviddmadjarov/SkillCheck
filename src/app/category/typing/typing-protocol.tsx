@@ -4,6 +4,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { playTypingKeypress, playTypingComplete } from '@/lib/audio/sounds';
 
 type TypingProtocolProps = {
   initialDuration?: DurationSeconds;
@@ -219,6 +220,7 @@ export function TypingProtocol({
   const hiddenInputRef = useRef<HTMLInputElement | null>(null);
   const wordsContainerRef = useRef<HTMLDivElement | null>(null);
   const cursorAnchorRef = useRef<HTMLSpanElement | null>(null);
+  const typingAudioRef = useRef<AudioContext | null>(null);
 
   // Auto-scroll the words panel to keep the current typing position visible
   useEffect(() => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { playReactionSuccess, playReactionTooSoon } from '@/lib/audio/sounds';
 
 type ReactionProtocolProps = {
   initialAttempts: number;
@@ -25,6 +26,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
   const readyAtRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoStarted = useRef(false);
+  const reactionAudioRef = useRef<AudioContext | null>(null);
 
   // Duel countdown hook - reliable, decoupled from React lifecycle
   const cd = useDuelCountdown(isMultiplayerSession);
@@ -89,6 +91,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setPhase('too-soon');
       setReactionMs(null);
+      playReactionTooSoon(reactionAudioRef);
       return;
     }
 
@@ -96,6 +99,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       const ms = Math.round(performance.now() - readyAtRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setReactionMs(ms);
+      playReactionSuccess(reactionAudioRef);
 
       const newTimes = [...roundTimes, ms];
       setRoundTimes(newTimes);
