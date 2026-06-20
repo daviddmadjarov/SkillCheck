@@ -6,6 +6,7 @@ import { MultiReactionProtocol } from '@/app/category/reaction/multi-reaction-pr
 import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -133,6 +134,12 @@ function tabClass(isActive: boolean) {
   return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 html[data-theme="dark"]:border-slate-700 html[data-theme="dark"]:bg-slate-900 html[data-theme="dark"]:text-slate-300 html[data-theme="dark"]:hover:bg-slate-800';
 }
 
+function getStatsSlug(mode: ReactionMode): string {
+  if (mode === 'audio') return 'audio-reaction';
+  if (mode === 'multi') return 'multi-reaction';
+  return 'reaction-time';
+}
+
 export default async function ReactionPage({
   searchParams,
 }: {
@@ -221,6 +228,12 @@ export default async function ReactionPage({
             isSignedIn={isSignedIn}
           />
         )}
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

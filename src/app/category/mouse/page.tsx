@@ -8,6 +8,7 @@ import { MouseProtocols } from './mouse-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
 
 type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
@@ -66,6 +67,12 @@ function tabClass(isActive: boolean) {
   }
 
   return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50';
+}
+
+function getStatsSlug(mode: MouseMode): string {
+  if (mode === 'cps') return 'mouse-cps';
+  if (mode === 'tracking') return 'aim-tracking-test';
+  return 'mouse-symbol-tracing';
 }
 
 export default async function MousePage({
@@ -153,6 +160,12 @@ export default async function MousePage({
           isSignedIn={isSignedIn}
           mode={mode}
         />
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

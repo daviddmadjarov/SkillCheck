@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
 import { RhythmProtocols } from './rhythm-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
@@ -135,6 +136,12 @@ export default async function RhythmPage({
         )}
 
         <RhythmProtocols isSignedIn={isSignedIn} mode={mode} />
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : 'perfect-sync'} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

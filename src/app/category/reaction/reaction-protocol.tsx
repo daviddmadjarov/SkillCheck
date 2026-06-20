@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { GameStatistics } from '@/components/game-statistics';
 import { playReactionSuccess, playReactionTooSoon } from '@/lib/audio/sounds';
 
 type ReactionProtocolProps = {

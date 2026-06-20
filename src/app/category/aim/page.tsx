@@ -8,6 +8,7 @@ import { DailyGameBadge } from '@/components/daily-game-banner';
 
 import { AimProtocols } from './aim-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
+import { GameStatistics } from '@/components/game-statistics';
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
@@ -142,6 +143,12 @@ export default async function AimPage({
         )}
 
         <AimProtocols mode={mode} isSignedIn={isSignedIn} />
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

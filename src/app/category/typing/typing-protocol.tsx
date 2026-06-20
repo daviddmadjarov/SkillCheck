@@ -4,6 +4,7 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { GameStatistics } from '@/components/game-statistics';
 import { playTypingKeypress, playTypingComplete } from '@/lib/audio/sounds';
 
 type TypingProtocolProps = {

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
 import { CognitiveProtocols } from './cognitive-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
@@ -117,6 +118,12 @@ export default async function ThinkingPage({
         )}
 
         <CognitiveProtocols isSignedIn={isSignedIn} mode={mode} />
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={mode === 'estimation' ? 'estimation-challenge' : mode === 'sequence' ? 'sequence-memory' : 'mental-rotation'} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

@@ -5,6 +5,7 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
 
 import { TypingProtocol } from './typing-protocol';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -115,6 +116,12 @@ export default async function TypingPage({
           isSignedIn={isSignedIn}
           isDailyGame={isDailyGame}
         />
+
+        {!isMultiplayerSession && !isDailyGame ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug="typing-speed" visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );
