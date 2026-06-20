@@ -14,8 +14,10 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
+import { Suspense } from 'react';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
+import { LeaderboardScroll } from '@/components/leaderboard-scroll';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 import { GameModeCard } from '@/components/game-mode-card';
@@ -678,7 +680,8 @@ export default async function Home({
             </section>
           </div>
 
-          <aside className="lab-card p-5 sm:p-6 xl:min-h-[680px]">
+            <Suspense fallback={null}><LeaderboardScroll /></Suspense>
+            <aside className="lab-card p-5 sm:p-6 xl:min-h-[680px]" id="rankings">
             <div className="mb-5 flex items-center gap-3">
               <div className="rounded-2xl bg-amber-100 p-3 text-amber-700">
                 <Trophy className="h-6 w-6" />
