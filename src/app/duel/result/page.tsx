@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Swords, Trophy, RotateCcw, Home } from 'lucide-react';
 
@@ -24,7 +24,7 @@ type DuelResult = {
   currentDisplayName: string | null;
 };
 
-export default function DuelResultPage() {
+function DuelResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lobbyCode = searchParams.get('lobby');
@@ -192,5 +192,19 @@ export default function DuelResultPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function DuelResultPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <p className="text-2xl font-black text-slate-800">Loading result...</p>
+        </div>
+      </main>
+    }>
+      <DuelResultContent />
+    </Suspense>
   );
 }
