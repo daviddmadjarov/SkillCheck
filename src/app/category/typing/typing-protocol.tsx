@@ -338,10 +338,10 @@ export function TypingProtocol({
       </div>
 
       <div className="relative rounded-[1.7rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 sm:p-5" onClick={handlePanelClick}>
-        {/* Invisible input overlay to capture keyboard on mobile */}
+        {/* Invisible input to capture keyboard on mobile — pinned to top so browser doesn't scroll mid-panel */}
         <input
           ref={hiddenInputRef}
-          className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
+          className="absolute left-0 right-0 top-0 z-10 h-0 w-full cursor-text overflow-hidden opacity-0"
           inputMode="text"
           autoComplete="off"
           autoCorrect="off"
@@ -354,7 +354,7 @@ export function TypingProtocol({
           onBlur={(e) => {
             // Re-focus on blur so mobile keyboard stays open while typing
             if (!finished) {
-              setTimeout(() => hiddenInputRef.current?.focus(), 0);
+              setTimeout(() => hiddenInputRef.current?.focus({ preventScroll: true }), 0);
             }
           }}
         />
