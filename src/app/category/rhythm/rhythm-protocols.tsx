@@ -39,7 +39,7 @@ const MODE_META = {
   },
   overclock: {
     accent: 'border-rose-300 bg-rose-100 text-rose-800',
-    description: 'Hit the moving target as the ball orbits the ring — 20 seconds of escalating speed and reflex intensity.',
+    description: 'Hit the moving target as the ball orbits the ring — 30 seconds of escalating speed and reflex intensity.',
     kicker: 'Reflex Overdrive',
     title: 'Overclock',
   },
@@ -831,7 +831,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
       accent={MODE_META.overclock.accent}
       isSignedIn={isSignedIn}
       stats={[
-        { label: 'Time limit', value: '20s', detail: 'Race the clock — every millisecond counts.' },
+        { label: 'Time limit', value: '30s', detail: 'Race the clock — every millisecond counts.' },
         { label: 'Streak bonus', value: '+0.25x', detail: 'Speed increases by 0.25 rad/s per consecutive hit.' },
         { label: 'Last score', value: finalScore === null ? '--' : String(finalScore), detail: 'Points = total successful checks.' },
         { label: 'Best score', value: bestScore === null ? '--' : String(bestScore), detail: bestScore === null ? 'Complete a run to set a local best.' : `Personal best this session.` },
@@ -852,7 +852,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
           )}
           <RhythmLockGame
             key={gameKey.current}
-            timeLimit={20}
+            timeLimit={30}
             initialSpeed={2}
             onGameComplete={handleGameComplete}
             onScoreUpdate={handleScoreUpdate}
