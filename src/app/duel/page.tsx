@@ -1,10 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Swords, Timer, Users } from 'lucide-react';
-
-import { MULTIPLAYER_GAME_POOL } from '@/lib/multiplayer/catalog';
+import { Swords, Timer, Users, Trophy, TrendingUp, ShieldCheck, Zap, Sparkles } from 'lucide-react';
 
 type DuelState = 'idle' | 'waiting' | 'matched';
 
@@ -16,6 +14,15 @@ export default function DuelPage() {
   const [queueCount, setQueueCount] = useState<number>(0);
   const [playingCount, setPlayingCount] = useState<number>(0);
   const [opponentName, setOpponentName] = useState<string | null>(null);
+  const ctxRef = useRef<AudioContext | null>(null);
+
+  // ── Queue sound ──
+  // Play a single sub-bass thump when entering the queue (no repeating ping).
+  useEffect(() => {
+    if (state === 'waiting') {
+      playQueueThump(ctxRef);
+    }
+  }, [state]);
 
   async function handleQueue() {
     setIsSubmitting(true);
@@ -288,16 +295,80 @@ export default function DuelPage() {
           ) : null}
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {MULTIPLAYER_GAME_POOL.slice(0, 4).map((game) => (
-            <div key={game.slug} className="rounded-[1.5rem] border-2 border-slate-200 bg-white p-4 shadow-[0_6px_0_rgba(226,232,240,1)]">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{game.category}</p>
-              <h2 className="mt-2 text-lg font-black text-slate-800">{game.label}</h2>
-              <p className="mt-2 text-sm font-medium leading-6 text-slate-500">{game.description}</p>
+        {/* ── Lobby waiting room tips ── */}
+        <section>
+          <h2 className="mb-4 text-lg font-black tracking-tight text-slate-800">
+            Before you queue
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-[1.5rem] border-2 border-rose-200 bg-white p-4 shadow-[0_6px_0_rgba(254,202,202,1)]">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                <Zap className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black text-slate-800">4 rounds. One winner.</h3>
+              <p className="mt-2 text-sm font-medium leading-5 text-slate-500">
+                You and your opponent play 4 random games. The player with the highest aggregate score wins the duel.
+              </p>
             </div>
-          ))}
+            <div className="rounded-[1.5rem] border-2 border-cyan-200 bg-white p-4 shadow-[0_6px_0_rgba(165,243,252,1)]">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black text-slate-800">Elo at stake</h3>
+              <p className="mt-2 text-sm font-medium leading-5 text-slate-500">
+                Win to gain Elo rating points. Lose and you'll drop. New players start at 1000 Elo.
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border-2 border-amber-200 bg-white p-4 shadow-[0_6px_0_rgba(253,230,138,1)]">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black text-slate-800">Fair play rules</h3>
+              <p className="mt-2 text-sm font-medium leading-5 text-slate-500">
+                If a player disconnects or fails to submit a score, the round is forfeited to the opponent.
+              </p>
+            </div>
+            <div className="rounded-[1.5rem] border-2 border-emerald-200 bg-white p-4 shadow-[0_6px_0_rgba(167,243,208,1)]">
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-black text-slate-800">Stay sharp</h3>
+              <p className="mt-2 text-sm font-medium leading-5 text-slate-500">
+                Each round is timed. Focus, adapt to the game, and give it your best — every round counts.
+              </p>
+            </div>
+          </div>
         </section>
       </div>
     </main>
   );
+}
+
+/** Single sub-bass thump played once when entering the queue. */
+function playQueueThump(ctxRef: React.MutableRefObject<AudioContext | null>) {
+  let ac = ctxRef.current;
+  if (!ac) {
+    const AC = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    ac = new AC();
+    ctxRef.current = ac;
+  }
+  if (ac.state === 'suspended') {
+    ac.resume().catch(() => {});
+  }
+
+  const now = ac.currentTime;
+  const osc = ac.createOscillator();
+  const g = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.linearRampToValueAtTime(0.07, now + 0.008);
+  g.gain.linearRampToValueAtTime(0.04, now + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  osc.connect(g);
+  g.connect(ac.destination);
+  osc.start(now);
+  osc.stop(now + 0.4);
 }

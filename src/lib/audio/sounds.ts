@@ -500,6 +500,63 @@ export function playTabSwitch(ctxRef: CtxRef) {
   osc.stop(now + 0.03);
 }
 
+// ─── Duel queue searching sound (radar ping, repeats every ~2 s) ──
+// A low, atmospheric pulse that feels like the matchmaking system
+// is sweeping for an opponent — similar in spirit to Fortnite's lobby
+// search but distinct enough to avoid legal issues.
+export function playQueueSearching(ctxRef: CtxRef) {
+  const ctx = getCtx(ctxRef);
+  if (!ctx) return;
+  const now = ctx.currentTime;
+
+  // Sub-bass thump (the "radar pulse" body)
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.linearRampToValueAtTime(0.07, now + 0.008);
+  g.gain.linearRampToValueAtTime(0.04, now + 0.1);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.4);
+
+  // Higher "ping" overtone that gives it a searching, radar-like feel
+  const osc2 = ctx.createOscillator();
+  const g2 = ctx.createGain();
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(600, now + 0.03);
+  osc2.frequency.exponentialRampToValueAtTime(300, now + 0.15);
+  g2.gain.setValueAtTime(0.001, now + 0.03);
+  g2.gain.linearRampToValueAtTime(0.03, now + 0.033);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  osc2.connect(g2);
+  g2.connect(ctx.destination);
+  osc2.start(now + 0.03);
+  osc2.stop(now + 0.3);
+
+  // Subtle noise sweep to simulate interference / scanning
+  const bufSize = Math.ceil(ctx.sampleRate * 0.08);
+  const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 4);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = noiseBuf;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.001, now + 0.02);
+  noiseGain.gain.linearRampToValueAtTime(0.015, now + 0.025);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  noise.connect(noiseGain);
+  noiseGain.connect(ctx.destination);
+  noise.start(now + 0.02);
+  noise.stop(now + 0.2);
+}
+
 export function playDropdownClick(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
