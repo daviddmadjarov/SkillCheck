@@ -274,7 +274,7 @@ export default function RhythmLockGame({
     ctx.beginPath();
     ctx.arc(bx, by, BALL_RADIUS, 0, 2 * Math.PI);
     ctx.fillStyle = ballColor;
-    ctx.strokeStyle = isDark ? '#ffffff' : '#000000';
+    ctx.strokeStyle = isDark ? '#000000' : '#ffffff';
     ctx.lineWidth = 3;
     ctx.shadowColor = ringGlowColor;
     ctx.shadowBlur = GLOW_BLUR;
