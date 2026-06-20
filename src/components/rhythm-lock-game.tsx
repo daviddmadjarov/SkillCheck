@@ -28,9 +28,9 @@ const TARGET_HALF_ANGLE = 0.22; // angular width of the hit zone (≈12.6°)
 const RING_RADIUS_RATIO = 0.36; // ring radius relative to canvas min dimension
 const RING_LINE_WIDTH = 10;
 const BALL_RADIUS = 14;
-const TARGET_RADIUS_OUTER = 33; // size of the outward half-circle (≈50% bigger)
+const TARGET_RADIUS_OUTER = 33; // size of the outward half-circle
 const GLOW_BLUR = 24;
-const HIT_FLASH_DURATION = 200; // ms — how long the hit flash lasts
+const HIT_FLASH_DURATION = 200; // ms
 
 /** Scoring: map raw hits to a 0-1000 lab score */
 function computeLabScore(hits: number, maxStreak: number, avgSpeed: number): number {
@@ -60,9 +60,8 @@ export default function RhythmLockGame({
   const comboRef = useRef<HTMLDivElement>(null);
   const comboAnimRef = useRef<number>(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const hitFlashRef = useRef(0); // timestamp when flash started, 0 = no flash
+  const hitFlashRef = useRef(0);
 
-  /* Game state (kept in refs to avoid re-renders inside the loop) */
   const phaseRef = useRef<Phase>('idle');
   const scoreRef = useRef(0);
   const streakRef = useRef(0);
@@ -70,14 +69,13 @@ export default function RhythmLockGame({
   const speedRef = useRef(initialSpeed);
   const speedSumRef = useRef(0);
   const speedSamplesRef = useRef(0);
-  const directionRef = useRef(1); // 1 = CW, -1 = CCW
-  const angleRef = useRef(0); // ball angle in radians
+  const directionRef = useRef(1);
+  const angleRef = useRef(0);
   const targetAngleRef = useRef(0);
   const timeLeftRef = useRef(timeLimit);
   const lastFrameRef = useRef(0);
   const startTimeRef = useRef(0);
 
-  /* React state for UI overlay & stats */
   const [phase, setPhase] = useState<Phase>('idle');
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(timeLimit);
@@ -85,13 +83,10 @@ export default function RhythmLockGame({
   const [displayStreak, setDisplayStreak] = useState(0);
   const [comboScale, setComboScale] = useState(1);
 
-  /* Stable callbacks */
   const onGameCompleteRef = useRef(onGameComplete);
   const onScoreUpdateRef = useRef(onScoreUpdate);
   useEffect(() => { onGameCompleteRef.current = onGameComplete; }, [onGameComplete]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
-
-  /* ── Audio helpers ────────────────────────── */
 
   const getAudioCtx = useCallback(() => {
     if (typeof window === 'undefined') return null;
@@ -143,8 +138,6 @@ export default function RhythmLockGame({
     osc.stop(now + 0.15);
   }, [getAudioCtx]);
 
-  /* ── Theme-aware colors ──────────────────── */
-
   const isDark = theme === 'dark';
   const bgColor = isDark ? '#0f172a' : '#f8fafc';
   const ringColor = isDark ? '#ffffff' : '#1e293b';
@@ -154,11 +147,8 @@ export default function RhythmLockGame({
   const timeLabelColor = isDark ? '#94a3b8' : '#64748b';
   const timeValueColor = isDark ? '#ffffff' : '#0f172a';
   const overlayBg = isDark ? 'rgba(15,23,42,0.5)' : 'rgba(248,250,252,0.6)';
-  // Flash glow color: white in dark mode, black in light mode
   const flashGlowColor = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.35)';
   const flashStrokeColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.4)';
-
-  /* ── Helpers ─────────────────────────────── */
 
   const clampAngle = (a: number) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
@@ -173,8 +163,6 @@ export default function RhythmLockGame({
     }
     return clampAngle(ballAngle + Math.PI);
   }, []);
-
-  /* ── Combo pop animation ──────────────────── */
 
   const triggerComboPop = useCallback(() => {
     setComboScale(1.4);
@@ -195,34 +183,27 @@ export default function RhythmLockGame({
     comboAnimRef.current = requestAnimationFrame(pop);
   }, []);
 
-  /* ── Hit flash animation ─────────────────── */
-
   const triggerHitFlash = useCallback(() => {
     hitFlashRef.current = performance.now();
   }, []);
-
-  /* ── Drawing ──────────────────────────────── */
 
   const draw = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => {
     const cx = w / 2;
     const cy = h / 2;
     const ringR = Math.min(w, h) * RING_RADIUS_RATIO;
 
-    // Compute flash intensity (decaying)
     const flashElapsed = performance.now() - hitFlashRef.current;
     const flashProgress = Math.max(0, 1 - flashElapsed / HIT_FLASH_DURATION);
-    const flash = flashProgress; // 1 → 0
+    const flash = flashProgress;
 
     ctx.clearRect(0, 0, w, h);
 
-    // ── Background ──
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
     ctx.translate(cx, cy);
 
-    // ── Ring glow ──
     ctx.beginPath();
     ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
     ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(30,41,59,0.10)';
@@ -232,7 +213,6 @@ export default function RhythmLockGame({
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── Ring ──
     ctx.beginPath();
     ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
     ctx.strokeStyle = ringColor;
@@ -242,7 +222,6 @@ export default function RhythmLockGame({
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── Target: filled red half-circle on the OUTSIDE of the ring ──
     const ta = targetAngleRef.current;
     const hx = Math.cos(ta) * ringR;
     const hy = Math.sin(ta) * ringR;
@@ -266,7 +245,6 @@ export default function RhythmLockGame({
     ctx.stroke();
     ctx.restore();
 
-    // ── Ball ──
     const ba = angleRef.current;
     const bx = Math.cos(ba) * ringR;
     const by = Math.sin(ba) * ringR;
@@ -282,13 +260,11 @@ export default function RhythmLockGame({
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── Hit flash overlay (drawn on top of ring + ball) ──
     if (flash > 0) {
-      // Outer ring flash
       ctx.beginPath();
       ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
       ctx.strokeStyle = flashStrokeColor;
-      ctx.lineWidth = RING_LINE_WIDTH + 4 + flash * 8; // expands outward
+      ctx.lineWidth = RING_LINE_WIDTH + 4 + flash * 8;
       ctx.shadowColor = flashGlowColor;
       ctx.shadowBlur = GLOW_BLUR * 2 * flash;
       ctx.globalAlpha = flash * 0.6;
@@ -296,7 +272,6 @@ export default function RhythmLockGame({
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
-      // Ball flash
       ctx.beginPath();
       ctx.arc(bx, by, BALL_RADIUS + flash * 6, 0, 2 * Math.PI);
       ctx.fillStyle = flashStrokeColor;
@@ -307,7 +282,6 @@ export default function RhythmLockGame({
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
-      // Target flash
       ctx.save();
       ctx.translate(hx, hy);
       ctx.rotate(ta);
@@ -326,7 +300,6 @@ export default function RhythmLockGame({
 
     ctx.restore();
 
-    // ── Score (center of ring) ──
     ctx.fillStyle = scoreColor;
     ctx.font = `bold ${ringR * 0.8}px "Inter", "SF Pro", system-ui, sans-serif`;
     ctx.textAlign = 'center';
@@ -336,7 +309,6 @@ export default function RhythmLockGame({
     ctx.fillText(String(scoreRef.current), cx, cy);
     ctx.shadowBlur = 0;
 
-    // ── TIME LEFT ──
     const tl = timeLeftRef.current;
     ctx.fillStyle = timeLabelColor;
     ctx.font = 'bold 13px "Inter", "SF Pro", system-ui, sans-serif';
@@ -349,10 +321,7 @@ export default function RhythmLockGame({
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`${Math.ceil(tl)}s`, 18, 38);
-
   }, [bgColor, ringColor, ringGlowColor, ballColor, scoreColor, timeLabelColor, timeValueColor, isDark, flashGlowColor, flashStrokeColor]);
-
-  /* ── Game loop ────────────────────────────── */
 
   const tick = useCallback((timestamp: number) => {
     if (phaseRef.current !== 'playing') return;
@@ -362,17 +331,14 @@ export default function RhythmLockGame({
       : Math.min((timestamp - lastFrameRef.current) / 1000, 0.05);
     lastFrameRef.current = timestamp;
 
-    // Update ball angle
     angleRef.current = clampAngle(
       angleRef.current + directionRef.current * speedRef.current * dt,
     );
 
-    // Update timer
     const elapsed = (performance.now() - startTimeRef.current) / 1000;
     const remaining = Math.max(0, timeLimit - elapsed);
     timeLeftRef.current = remaining;
 
-    // Time up?
     if (remaining <= 0) {
       phaseRef.current = 'finished';
       const hits = scoreRef.current;
@@ -386,12 +352,10 @@ export default function RhythmLockGame({
       return;
     }
 
-    // Sync React state
     if (scoreRef.current !== score) setScore(scoreRef.current);
     const displayTime = Math.ceil(remaining);
     if (displayTime !== Math.ceil(timeLeft)) setTimeLeft(remaining);
 
-    // Draw
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext('2d');
@@ -401,8 +365,6 @@ export default function RhythmLockGame({
     rafRef.current = requestAnimationFrame(tick);
   }, [timeLimit, draw, score, timeLeft, initialSpeed]);
 
-  /* ── Check (Space / Tap) ──────────────────── */
-
   const check = useCallback(() => {
     if (phaseRef.current !== 'playing') return;
 
@@ -411,7 +373,6 @@ export default function RhythmLockGame({
     const angularDiff = Math.abs(clampAngle(ballAngle - targetAngle));
 
     if (angularDiff <= TARGET_HALF_ANGLE || angularDiff >= 2 * Math.PI - TARGET_HALF_ANGLE) {
-      // HIT
       const newStreak = streakRef.current + 1;
       scoreRef.current += 1;
       streakRef.current = newStreak;
@@ -420,41 +381,27 @@ export default function RhythmLockGame({
       setDisplayStreak(newStreak);
       onScoreUpdateRef.current?.(scoreRef.current);
 
-      // Combo pop + sound + flash
       triggerComboPop();
       triggerHitFlash();
       playComboSound(newStreak);
 
-      // Reverse direction
       directionRef.current *= -1;
 
-      // Increase speed (capped)
-      const newSpeed = Math.min(
-        MAX_SPEED,
-        initialSpeed + newStreak * SPEED_MULTIPLIER_STEP,
-      );
+      const newSpeed = Math.min(MAX_SPEED, initialSpeed + newStreak * SPEED_MULTIPLIER_STEP);
       speedRef.current = newSpeed;
-
-      // Track speed for final scoring
       speedSumRef.current += newSpeed;
       speedSamplesRef.current += 1;
 
-      // Fairness: new target position, min 45° from previous & ball
       targetAngleRef.current = randomTargetAngle(targetAngleRef.current, ballAngle);
     } else {
-      // MISS — reset streak
       streakRef.current = 0;
       speedRef.current = initialSpeed;
       setDisplayStreak(0);
       playMissSound();
-
-      // Track speed for final scoring
       speedSumRef.current += initialSpeed;
       speedSamplesRef.current += 1;
     }
   }, [initialSpeed, randomTargetAngle, triggerComboPop, triggerHitFlash, playComboSound, playMissSound]);
-
-  /* ── Keyboard / Touch listeners ───────────── */
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -467,21 +414,16 @@ export default function RhythmLockGame({
     return () => window.removeEventListener('keydown', handler);
   }, [check]);
 
-  /* ── Auto-start for duel/party mode ─────────── */
-
   useEffect(() => {
     if (autoStart && phaseRef.current === 'idle') {
       startGame();
     }
-  }, [autoStart]); // eslint-disable-line
-
-  /* ── Start / Stop ─────────────────────────── */
+  }, [autoStart]);
 
   const startGame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Reset state
     scoreRef.current = 0;
     streakRef.current = 0;
     maxStreakRef.current = 0;
@@ -500,7 +442,6 @@ export default function RhythmLockGame({
     setFinalScore(null);
     setDisplayStreak(0);
 
-    // Unlock audio context on user gesture
     if (audioCtxRef.current?.state === 'suspended') {
       void audioCtxRef.current.resume();
     }
@@ -519,8 +460,6 @@ export default function RhythmLockGame({
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
-
-  /* ── Canvas sizing ────────────────────────── */
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -544,8 +483,6 @@ export default function RhythmLockGame({
     return () => window.removeEventListener('resize', resize);
   }, [draw]);
 
-  /* ── Initial draw ─────────────────────────── */
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -555,8 +492,6 @@ export default function RhythmLockGame({
     draw(ctx, size, size);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme]);
-
-  /* ── Render ────────────────────────────────── */
 
   const borderCls = isDark ? 'border-slate-700' : 'border-slate-200';
   const comboTextCls = isDark ? 'text-rose-400' : 'text-rose-600';
@@ -571,7 +506,6 @@ export default function RhythmLockGame({
         onClick={check}
       />
 
-      {/* Combo counter (overlaid on canvas during play) */}
       {phase === 'playing' && displayStreak > 0 && (
         <div
           ref={comboRef}
@@ -586,7 +520,6 @@ export default function RhythmLockGame({
         </div>
       )}
 
-      {/* Overlay: idle */}
       {phase === 'idle' && (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] backdrop-blur-sm"
@@ -613,7 +546,6 @@ export default function RhythmLockGame({
         </div>
       )}
 
-      {/* Overlay: finished */}
       {phase === 'finished' && (
         <div
           className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] backdrop-blur-sm"

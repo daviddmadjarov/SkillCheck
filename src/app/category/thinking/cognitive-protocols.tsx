@@ -430,6 +430,10 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
     setLastOk(ok);
     if (ok) setCorrectCount(c => c + 1);
     setPhase('reveal');
+    // Auto-advance in multiplayer past the "See Score" button
+    if (isMultiplayerSession && roundIdx + 1 >= ROUNDS) {
+      setTimeout(() => setPhase('finished'), 1200);
+    }
     if (ok) {
       playCorrectChime();
     } else {

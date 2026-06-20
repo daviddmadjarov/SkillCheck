@@ -265,10 +265,19 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
     if(traceMode==='memory'){startMemorizePhase()}else{setPhase('tracing')}
   }
 
+  // Auto-advance in multiplayer: skip the "See Final Score" button
+  useEffect(() => {
+    if (!isMultiplayerSession || phase !== 'reveal' || !result) return;
+    if (roundIdx + 1 >= ROUNDS) {
+      const t = setTimeout(() => advanceRound(), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMultiplayerSession, phase, result, roundIdx]);
+
   const showGuide = phase==='tracing' && traceMode==='assist';
   const showMemGuide = phase==='memorizing';
   const showRevealGuide = phase==='reveal';
-  const modeLocked = phase==='tracing' || phase==='memorizing' || phase==='reveal';
+  const modeLocked = phase==='tracing' || phase==='memorizing' || phase==='reveal' || cd.active;
 
   // Build mode toggle buttons, disabled during active rounds
   const localModeButtons = <div className="flex gap-3">

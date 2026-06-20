@@ -252,6 +252,15 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
 
+  // Auto-advance in multiplayer: skip the "See Final Score" button
+  useEffect(() => {
+    if (!isMultiplayerSession || phase !== 'result') return;
+    if (roundIdx + 1 >= TOTAL_ROUNDS) {
+      const t = setTimeout(() => advanceRound(), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMultiplayerSession, phase, roundIdx]);
+
   const avgScore = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
   const labScore = avgScore;
 

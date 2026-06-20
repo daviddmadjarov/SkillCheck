@@ -329,6 +329,15 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
     setPhase('listening');
   }
 
+  // In multiplayer, auto-advance past "See Final Score"
+  useEffect(() => {
+    if (!isMultiplayerSession || phase !== 'reveal') return;
+    if (roundIndex + 1 >= TOTAL_ROUNDS) {
+      const t = setTimeout(() => setPhase('finished'), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [isMultiplayerSession, phase, roundIndex]);
+
   async function submitGuess() {
     if (phase !== 'guess') {
       return;
@@ -361,7 +370,6 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
           body: JSON.stringify({ testSlug: 'perfect-sync', score: finalScore, ...multiplayerMeta }),
         }).then(() => {
           emitTelemetryAssessment('perfect-sync', finalScore);
-          if (isMultiplayerSession) goToIntermission();
         });
       }
     }
@@ -801,14 +809,15 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
     setFinalScore(score);
     setBestScore((prev) => (prev === null ? score : Math.max(prev, score)));
 
-    if (isSignedIn) {
+    if (isMultiplayerSession) {
+      goToIntermission();
+    } else if (isSignedIn) {
       void fetch('/api/scores/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ testSlug: 'overclock', score, ...multiplayerMeta }),
       }).then(() => {
         emitTelemetryAssessment('overclock', score);
-        if (isMultiplayerSession) goToIntermission();
       });
     }
   }, [isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission]);
