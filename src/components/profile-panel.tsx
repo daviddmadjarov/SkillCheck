@@ -112,6 +112,8 @@ export function ProfilePanel({
 
   const handleTerminalComplete = () => {
     setTerminalVisible(false);
+    // Force a full page reload so the server component picks up the new metadata
+    window.location.href = '/';
   };
 
   return (
