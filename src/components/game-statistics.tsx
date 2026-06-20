@@ -14,12 +14,15 @@ import {
 type StatBucket = { label: string; count: number };
 
 type StatsData = {
-  average: number | null;
+  displayAverage: number | null;
+  displayMedian: number | null;
   buckets: StatBucket[];
-  median: number | null;
   totalParticipants: number;
   about: string;
   title: string;
+  unit: string;
+  label: string;
+  precision: number;
 };
 
 type GameStatisticsProps = {
@@ -27,9 +30,9 @@ type GameStatisticsProps = {
   visible: boolean;
 };
 
-function formatScore(value: number | null) {
+function formatDisplay(value: number | null, precision: number, unit: string) {
   if (value === null) return '—';
-  return new Intl.NumberFormat('en-US').format(value);
+  return `${value.toFixed(precision)} ${unit}`;
 }
 
 export function GameStatistics({ testSlug, visible }: GameStatisticsProps) {
@@ -139,18 +142,18 @@ export function GameStatistics({ testSlug, visible }: GameStatisticsProps) {
               <div className="flex flex-wrap gap-4">
                 <div className="rounded-[1.2rem] border-2 border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                    Average
+                    {data.label}
                   </p>
                   <p className="mt-1 text-2xl font-black text-slate-800">
-                    {formatScore(data.average)}
+                    {formatDisplay(data.displayAverage, data.precision, data.unit)}
                   </p>
                 </div>
                 <div className="rounded-[1.2rem] border-2 border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                    Median
+                    Median {data.unit}
                   </p>
                   <p className="mt-1 text-2xl font-black text-slate-800">
-                    {formatScore(data.median)}
+                    {formatDisplay(data.displayMedian, data.precision, data.unit)}
                   </p>
                 </div>
                 <div className="rounded-[1.2rem] border-2 border-slate-200 bg-slate-50 px-4 py-3">
