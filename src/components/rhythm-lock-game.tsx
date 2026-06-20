@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTheme } from '@/app/theme-provider';
 
 /* ── Types ──────────────────────────────── */
 
@@ -21,12 +22,12 @@ const BASE_SPEED = 2; // rad/s
 const SPEED_MULTIPLIER_STEP = 0.25; // extra rad/s per streak
 const MAX_SPEED = 12; // cap so it remains playable
 const MIN_TARGET_DELTA = Math.PI / 4; // 45°
-const TARGET_HALF_ANGLE = 0.18; // angular width of the hit zone (≈10°)
+const TARGET_HALF_ANGLE = 0.22; // angular width of the hit zone (≈12.6°)
 const RING_RADIUS_RATIO = 0.36; // ring radius relative to canvas min dimension
-const RING_LINE_WIDTH = 4;
-const BALL_RADIUS = 8;
-const TARGET_RADIUS = 14;
-const GLOW_BLUR = 20;
+const RING_LINE_WIDTH = 6;
+const BALL_RADIUS = 12;
+const TARGET_RADIUS_OUTER = 22; // size of the outward half-circle
+const GLOW_BLUR = 24;
 
 /* ── Game phases ────────────────────────── */
 
@@ -40,6 +41,7 @@ export default function RhythmLockGame({
   onGameComplete,
   onScoreUpdate,
 }: RhythmLockProps) {
+  const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -66,6 +68,18 @@ export default function RhythmLockGame({
   const onScoreUpdateRef = useRef(onScoreUpdate);
   useEffect(() => { onGameCompleteRef.current = onGameComplete; }, [onGameComplete]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
+
+  /* ── Theme-aware colors ──────────────────── */
+
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? '#0f172a' : '#f8fafc';
+  const ringColor = isDark ? '#ffffff' : '#1e293b';
+  const ringGlowColor = isDark ? '#a78bfa' : '#cbd5e1';
+  const ballColor = isDark ? '#ffffff' : '#1e293b';
+  const scoreColor = isDark ? '#ffffff' : '#1e293b';
+  const timeLabelColor = isDark ? '#94a3b8' : '#64748b';
+  const timeValueColor = isDark ? '#ffffff' : '#0f172a';
+  const overlayBg = isDark ? 'rgba(15,23,42,0.5)' : 'rgba(248,250,252,0.6)';
 
   /* ── Helpers ─────────────────────────────── */
 
@@ -94,7 +108,7 @@ export default function RhythmLockGame({
     ctx.clearRect(0, 0, w, h);
 
     // ── Background ──
-    ctx.fillStyle = '#0f172a'; // slate-900
+    ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
@@ -103,9 +117,9 @@ export default function RhythmLockGame({
     // ── Ring glow ──
     ctx.beginPath();
     ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = RING_LINE_WIDTH + 12;
-    ctx.shadowColor = '#a78bfa';
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(30,41,59,0.10)';
+    ctx.lineWidth = RING_LINE_WIDTH + 10;
+    ctx.shadowColor = ringGlowColor;
     ctx.shadowBlur = GLOW_BLUR;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -113,53 +127,31 @@ export default function RhythmLockGame({
     // ── Ring ──
     ctx.beginPath();
     ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
-    ctx.strokeStyle = '#ffffff';
+    ctx.strokeStyle = ringColor;
     ctx.lineWidth = RING_LINE_WIDTH;
-    ctx.shadowColor = '#a78bfa';
+    ctx.shadowColor = ringGlowColor;
     ctx.shadowBlur = GLOW_BLUR;
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Black border around ring (drawn slightly larger)
-    ctx.beginPath();
-    ctx.arc(0, 0, ringR, 0, 2 * Math.PI);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = RING_LINE_WIDTH + 2;
-    ctx.globalAlpha = 0.2;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // ── Target (crimson half-circle on outer edge) ──
+    // ── Target: red half-circle on the OUTSIDE of the ring ──
     const ta = targetAngleRef.current;
+    const targetOuterR = ringR + TARGET_RADIUS_OUTER * 0.6;
+
     ctx.beginPath();
     ctx.arc(
-      Math.cos(ta) * ringR,
-      Math.sin(ta) * ringR,
-      TARGET_RADIUS,
+      Math.cos(ta) * targetOuterR,
+      Math.sin(ta) * targetOuterR,
+      TARGET_RADIUS_OUTER,
       ta - Math.PI / 2 - TARGET_HALF_ANGLE,
       ta - Math.PI / 2 + TARGET_HALF_ANGLE,
     );
     ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth = TARGET_RADIUS * 1.6;
+    ctx.lineWidth = TARGET_RADIUS_OUTER * 1.4;
     ctx.shadowColor = '#dc2626';
     ctx.shadowBlur = GLOW_BLUR;
     ctx.stroke();
     ctx.shadowBlur = 0;
-
-    // Target border
-    ctx.beginPath();
-    ctx.arc(
-      Math.cos(ta) * ringR,
-      Math.sin(ta) * ringR,
-      TARGET_RADIUS,
-      ta - Math.PI / 2 - TARGET_HALF_ANGLE,
-      ta - Math.PI / 2 + TARGET_HALF_ANGLE,
-    );
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = TARGET_RADIUS * 1.6 + 2;
-    ctx.globalAlpha = 0.2;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
 
     // ── Ball ──
     const ba = angleRef.current;
@@ -168,45 +160,38 @@ export default function RhythmLockGame({
 
     ctx.beginPath();
     ctx.arc(bx, by, BALL_RADIUS, 0, 2 * Math.PI);
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = '#a78bfa';
+    ctx.fillStyle = ballColor;
+    ctx.shadowColor = ringGlowColor;
     ctx.shadowBlur = GLOW_BLUR;
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Ball border
-    ctx.beginPath();
-    ctx.arc(bx, by, BALL_RADIUS, 0, 2 * Math.PI);
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
     ctx.restore();
 
     // ── Score (center of ring) ──
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${ringR * 0.7}px "Inter", "SF Pro", system-ui, sans-serif`;
+    ctx.fillStyle = scoreColor;
+    ctx.font = `bold ${ringR * 0.8}px "Inter", "SF Pro", system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#a78bfa';
-    ctx.shadowBlur = 14;
+    ctx.shadowColor = ringGlowColor;
+    ctx.shadowBlur = 12;
     ctx.fillText(String(scoreRef.current), cx, cy);
     ctx.shadowBlur = 0;
 
     // ── TIME LEFT ──
     const tl = timeLeftRef.current;
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = timeLabelColor;
     ctx.font = 'bold 13px "Inter", "SF Pro", system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText('TIME LEFT', 18, 18);
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = timeValueColor;
     ctx.font = 'bold 36px "Inter", "SF Pro", system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(`${Math.ceil(tl)}s`, 18, 38);
-  }, []);
+  }, [bgColor, ringColor, ringGlowColor, ballColor, scoreColor, timeLabelColor, timeValueColor, isDark]);
 
   /* ── Game loop ────────────────────────────── */
 
@@ -237,7 +222,7 @@ export default function RhythmLockGame({
       return;
     }
 
-    // Sync React state periodically (every ~10 frames)
+    // Sync React state
     if (scoreRef.current !== score) setScore(scoreRef.current);
     const displayTime = Math.ceil(remaining);
     if (displayTime !== Math.ceil(timeLeft)) setTimeLeft(remaining);
@@ -311,7 +296,7 @@ export default function RhythmLockGame({
     speedRef.current = initialSpeed;
     directionRef.current = 1;
     angleRef.current = 0;
-    targetAngleRef.current = Math.PI * 0.75; // arbitrary start
+    targetAngleRef.current = Math.PI * 0.75;
     timeLeftRef.current = timeLimit;
     lastFrameRef.current = 0;
     startTimeRef.current = performance.now();
@@ -347,7 +332,6 @@ export default function RhythmLockGame({
       const size = Math.min(rect.width, 600);
       canvas.width = size;
       canvas.height = size;
-      // Redraw if idle
       if (phaseRef.current === 'idle') {
         const ctx = canvas.getContext('2d');
         if (ctx) draw(ctx, size, size);
@@ -369,15 +353,17 @@ export default function RhythmLockGame({
     const size = Math.min(canvas.width || 400, 600);
     draw(ctx, size, size);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [theme]);
 
   /* ── Render ────────────────────────────────── */
+
+  const borderCls = isDark ? 'border-slate-700' : 'border-slate-200';
 
   return (
     <div className="relative mx-auto w-full max-w-[600px]">
       <canvas
         ref={canvasRef}
-        className="block w-full select-none rounded-[2rem] border-2 border-slate-700"
+        className={`block w-full select-none rounded-[2rem] border-2 ${borderCls}`}
         style={{ aspectRatio: '1 / 1' }}
         onTouchStart={(e) => { e.preventDefault(); check(); }}
         onClick={check}
@@ -385,12 +371,15 @@ export default function RhythmLockGame({
 
       {/* Overlay: idle */}
       {phase === 'idle' && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] bg-slate-900/50 backdrop-blur-sm">
-          <div className="rounded-[1.5rem] border-2 border-slate-600 bg-slate-800 px-6 py-5 text-center shadow-lg">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] backdrop-blur-sm"
+          style={{ backgroundColor: overlayBg }}
+        >
+          <div className={`rounded-[1.5rem] border-2 ${isDark ? 'border-slate-600 bg-slate-800' : 'border-slate-200 bg-white'} px-6 py-5 text-center shadow-lg`}>
+            <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isDark ? 'text-violet-400' : 'text-cyan-600'}`}>
               Rhythm Sync — Overclock
             </p>
-            <p className="mt-2 text-sm font-semibold text-slate-300">
+            <p className={`mt-2 text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               Press SPACE or tap when the ball overlaps the red target.
               <br />
               {timeLimit}s · speed increases on streaks!
@@ -409,15 +398,18 @@ export default function RhythmLockGame({
 
       {/* Overlay: finished */}
       {phase === 'finished' && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] bg-slate-900/50 backdrop-blur-sm">
-          <div className="rounded-[1.5rem] border-2 border-slate-600 bg-slate-800 px-6 py-5 text-center shadow-lg">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-400">
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-[2rem] backdrop-blur-sm"
+          style={{ backgroundColor: overlayBg }}
+        >
+          <div className={`rounded-[1.5rem] border-2 ${isDark ? 'border-slate-600 bg-slate-800' : 'border-slate-200 bg-white'} px-6 py-5 text-center shadow-lg`}>
+            <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isDark ? 'text-violet-400' : 'text-cyan-600'}`}>
               Run complete
             </p>
             <p className="mt-3 text-5xl font-black tracking-tight text-white">
               {finalScore}
             </p>
-            <p className="mt-1 text-sm font-semibold text-slate-400">points</p>
+            <p className={`mt-1 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>points</p>
             <button
               className="mt-4 rounded-full border-2 border-violet-500 bg-violet-600 px-6 py-3 text-sm font-bold text-white shadow-[0_4px_0_rgba(139,92,246,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-violet-500 hover:shadow-[0_8px_0_rgba(139,92,246,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(139,92,246,1)]"
               onClick={startGame}
