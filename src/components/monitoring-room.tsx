@@ -265,8 +265,6 @@ export function MonitoringRoom({
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="w-full max-w-[1240px]"><SiteFooter /></div>
         </div>
         <style>{`@keyframes coolant{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}@keyframes float-up{0%{transform:translateY(100%) scale(0.5);opacity:0}10%{opacity:0.6}50%{transform:translateY(-150px) translateX(8px) scale(1)}75%{transform:translateY(-250px) translateX(-4px) scale(0.9)}100%{transform:translateY(-340px) scale(0.3);opacity:0}}`}</style>
       </main>
