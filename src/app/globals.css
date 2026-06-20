@@ -501,6 +501,36 @@ button, [role="button"] {
   }
 }
 
+/* ── Staff Access (Aethelgard Sight): force footer dark even in light mode ── */
+html[data-staff-access] .site-footer {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-staff-access] .site-footer .text-slate-400,
+html[data-staff-access] .site-footer .text-slate-500,
+html[data-staff-access] .site-footer p {
+  color: #94a3b8 !important;
+}
+
+html[data-staff-access] .site-footer-shell {
+  border-color: #334155 !important;
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  box-shadow: 0 4px 0 rgba(15, 23, 42, 1) !important;
+}
+
+html[data-staff-access] .site-footer-link {
+  border-color: #334155 !important;
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-staff-access] .site-footer-link:hover {
+  border-color: #475569 !important;
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
 /* =========================================================================
    Lore / ARG animations — Aethelgard "Calibration Net"
    ========================================================================= */

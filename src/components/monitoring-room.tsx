@@ -37,6 +37,14 @@ export function MonitoringRoom({
   const ambientTeardownRef = useRef<(() => void) | null>(null);
   const ambientInitRef = useRef(false);
 
+  // ── Force footer dark regardless of theme ──
+  useEffect(() => {
+    document.documentElement.dataset.staffAccess = 'true';
+    return () => {
+      delete document.documentElement.dataset.staffAccess;
+    };
+  }, []);
+
   // ── Liminal ambient sound ──
   useEffect(() => {
     if (!soundEnabled) {
