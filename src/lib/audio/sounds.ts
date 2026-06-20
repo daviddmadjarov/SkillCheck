@@ -127,7 +127,6 @@ export function playCountdownGo(ctxRef: CtxRef) {
 export function playWinJingle(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
-  const n = ctx.currentTime;
   // Ascending arpeggio: C5 → E5 → G5 → C6
   const notes = [523, 659, 784, 1047];
   notes.forEach((freq, i) => {
@@ -143,7 +142,6 @@ export function playWinJingle(ctxRef: CtxRef) {
 export function playLoseJingle(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
-  const n = ctx.currentTime;
   // Descending minor: E4 → C4 → A3 → E3
   const notes = [330, 262, 220, 165];
   notes.forEach((freq, i) => {
@@ -159,7 +157,6 @@ export function playLoseJingle(ctxRef: CtxRef) {
 export function playStartSound(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
-  const now = ctx.currentTime;
   pulse(ctx, 420, 0.11, 0.11, 'triangle');
   pulse(ctx, 620, 0.08, 0.08, 'triangle', 0.09);
 }
@@ -202,7 +199,6 @@ export function playReturnToLabHover(ctxRef: CtxRef) {
 export function playReturnToLabClick(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
-  const now = ctx.currentTime;
   // Satisfying click + sub drop
   pulse(ctx, 800, 0.06, 0.07, 'square');
   pulse(ctx, 200, 0.12, 0.06, 'triangle', 0.02);
