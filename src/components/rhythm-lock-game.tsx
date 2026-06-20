@@ -26,7 +26,7 @@ const TARGET_HALF_ANGLE = 0.22; // angular width of the hit zone (≈12.6°)
 const RING_RADIUS_RATIO = 0.36; // ring radius relative to canvas min dimension
 const RING_LINE_WIDTH = 6;
 const BALL_RADIUS = 12;
-const TARGET_RADIUS_OUTER = 22; // size of the outward half-circle
+const TARGET_RADIUS_OUTER = 33; // size of the outward half-circle (≈50% bigger)
 const GLOW_BLUR = 24;
 
 /** Scoring: map raw hits to a 0-1000 lab score */
