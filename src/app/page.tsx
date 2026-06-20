@@ -608,7 +608,7 @@ export default async function Home({
             </section>
 
             <section className="grid gap-4 sm:grid-cols-2">
-              <Link href="/duel" className="rounded-[1.8rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_6px_0_rgba(254,202,202,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(254,202,202,1)]">
+              <Link href="/duel" data-pitched-hover className="rounded-[1.8rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_6px_0_rgba(254,202,202,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(254,202,202,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500">
                   DUEL
                 </p>
@@ -626,7 +626,7 @@ export default async function Home({
                 </div>
               </Link>
 
-              <Link href="/party/create" className="rounded-[1.8rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-[0_6px_0_rgba(165,243,252,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(165,243,252,1)]">
+              <Link href="/party/create" data-pitched-hover className="rounded-[1.8rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-[0_6px_0_rgba(165,243,252,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(165,243,252,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-500">
                   Create Party
                 </p>
@@ -643,7 +643,7 @@ export default async function Home({
                   </div>
                 </div>
               </Link>
-              <Link href="/daily" className="rounded-[1.8rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_6px_0_rgba(253,230,138,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(253,230,138,1)]">
+              <Link href="/daily" data-pitched-hover className="rounded-[1.8rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_6px_0_rgba(253,230,138,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(253,230,138,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500">
                   DAILY
                 </p>
@@ -660,7 +660,7 @@ export default async function Home({
                   </div>
                 </div>
               </Link>
-              <Link href="/party/join" className="rounded-[1.8rem] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-[0_6px_0_rgba(167,243,208,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(167,243,208,1)]">
+              <Link href="/party/join" data-pitched-hover className="rounded-[1.8rem] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-[0_6px_0_rgba(167,243,208,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(167,243,208,1)]">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-500">
                   Join Party
                 </p>

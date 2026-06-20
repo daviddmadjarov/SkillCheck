@@ -54,6 +54,44 @@ function playHoverSound(ctxRef: CtxRef) {
   noise.stop(now + 0.018);
 }
 
+function playPitchedHoverSound(ctxRef: CtxRef) {
+  const ctx = getCtx(ctxRef);
+  if (!ctx) return;
+  const now = ctx.currentTime;
+
+  // Higher-pitched glassy ping
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(8800, now);
+  osc.frequency.exponentialRampToValueAtTime(3500, now + 0.01);
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.linearRampToValueAtTime(0.055, now + 0.001);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.028);
+
+  // Brighter spark (shorter, more high-frequency crackle)
+  const bufSize = Math.ceil(ctx.sampleRate * 0.006);
+  const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = noiseBuf;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.001, now);
+  noiseGain.gain.linearRampToValueAtTime(0.04, now + 0.0003);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
+  noise.connect(noiseGain);
+  noiseGain.connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.012);
+}
+
 function playClickSound(ctxRef: CtxRef) {
   const ctx = getCtx(ctxRef);
   if (!ctx) return;
@@ -127,7 +165,12 @@ export function InteractiveSounds() {
       const interactive = target.closest(selector);
       if (!interactive || interactive === currentHovered.current) return;
       currentHovered.current = interactive;
-      playHoverSound(ctx);
+
+      if (interactive.hasAttribute('data-pitched-hover')) {
+        playPitchedHoverSound(ctx);
+      } else {
+        playHoverSound(ctx);
+      }
     }
 
     function handleMouseOut(e: MouseEvent) {
