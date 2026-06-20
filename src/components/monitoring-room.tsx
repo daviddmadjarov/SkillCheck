@@ -33,6 +33,123 @@ export function MonitoringRoom({
   const [accessCode, setAccessCode] = useState('');
   const [loreTerminalVariant, setLoreTerminalVariant] = useState<'access' | 'sever'>('access');
   const [showLoreTerminal, setShowLoreTerminal] = useState(false);
+  const { soundEnabled } = useSoundToggle();
+  const ambientTeardownRef = useRef<(() => void) | null>(null);
+  const ambientInitRef = useRef(false);
+
+  // ── Liminal ambient sound ──
+  useEffect(() => {
+    if (!soundEnabled) {
+      // Tear down if currently playing
+      ambientTeardownRef.current?.();
+      ambientTeardownRef.current = null;
+      ambientInitRef.current = false;
+      return;
+    }
+
+    if (ambientInitRef.current) return; // Already started
+    ambientInitRef.current = true;
+
+    const startAmbient = async () => {
+      try {
+        const { getSharedContext } = await import('@/lib/audio/audio-manager');
+        const ctx = getSharedContext();
+        if (!ctx) return;
+
+        const master = ctx.createGain();
+        master.gain.value = 0.08;
+        master.connect(ctx.destination);
+
+        // Deep sub-bass drone (HVAC / facility hum)
+        const subDrone = ctx.createOscillator();
+        subDrone.type = 'sine';
+        subDrone.frequency.value = 55;
+        const subGain = ctx.createGain();
+        subGain.gain.value = 0.12;
+        subDrone.connect(subGain);
+        subGain.connect(master);
+        subDrone.start();
+
+        // Low rumble noise (filtered brown noise approximation)
+        const bufferSize = ctx.sampleRate * 2;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noiseSrc = ctx.createBufferSource();
+        noiseSrc.buffer = buffer;
+        noiseSrc.loop = true;
+        const lowPass = ctx.createBiquadFilter();
+        lowPass.type = 'lowpass';
+        lowPass.frequency.value = 160;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.value = 0.07;
+        noiseSrc.connect(lowPass);
+        lowPass.connect(noiseGain);
+        noiseGain.connect(master);
+        noiseSrc.start();
+
+        // Faint high-frequency electrical whine
+        const whine = ctx.createOscillator();
+        whine.type = 'sine';
+        whine.frequency.value = 3400;
+        const whineGain = ctx.createGain();
+        whineGain.gain.value = 0.02;
+        whine.connect(whineGain);
+        whineGain.connect(master);
+        whine.start();
+
+        // Periodic distant creak / structural settling
+        const creaks = () => {
+          const now = ctx.currentTime;
+          const osc = ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(100 + Math.random() * 60, now);
+          const band = ctx.createBiquadFilter();
+          band.type = 'bandpass';
+          band.frequency.value = 280;
+          band.Q.value = 1.5;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.018, now + 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+          osc.connect(band);
+          band.connect(gain);
+          gain.connect(master);
+          osc.start(now);
+          osc.stop(now + 0.65);
+        };
+
+        const creakInterval = window.setInterval(creaks, 3500 + Math.random() * 2000);
+
+        ambientTeardownRef.current = () => {
+          window.clearInterval(creakInterval);
+          try { subDrone.stop(); } catch { /* ignore */ }
+          try { noiseSrc.stop(); } catch { /* ignore */ }
+          try { whine.stop(); } catch { /* ignore */ }
+          subDrone.disconnect();
+          noiseSrc.disconnect();
+          whine.disconnect();
+          subGain.disconnect();
+          lowPass.disconnect();
+          noiseGain.disconnect();
+          whineGain.disconnect();
+          master.disconnect();
+        };
+      } catch {
+        // Audio unavailable – silently degrade
+      }
+    };
+
+    void startAmbient();
+
+    return () => {
+      ambientTeardownRef.current?.();
+      ambientTeardownRef.current = null;
+      ambientInitRef.current = false;
+    };
+  }, [soundEnabled]);
 
   const handleLoreTerminalComplete = () => {
     setShowLoreTerminal(false);
@@ -47,7 +164,7 @@ export function MonitoringRoom({
   return (
     <>
       {showLoreTerminal && <LoreTerminal variant={loreTerminalVariant} onComplete={handleLoreTerminalComplete} />}
-      <main className="min-h-screen bg-[#060d18] text-slate-200">
+      <main className="flex min-h-full flex-col bg-[#060d18] text-slate-200">
         {/* Dark header bar */}
         <header className="sticky top-0 z-40 border-b border-cyan-900/50 bg-[#0a1628]/95 backdrop-blur-sm">
           <div className="mx-auto flex w-full max-w-[1240px] items-center justify-between px-4 py-3 sm:px-6">
