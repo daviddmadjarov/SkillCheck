@@ -56,10 +56,12 @@ export function MultiplayerSessionGuard() {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     // ── pagehide: fires on tab close or navigation away.
-    // We check intentionalNavRef — if we deliberately navigated to
-    // intermission, this ref is true and we skip forfeit.
+    // We skip forfeit if:
+    //   - intentionalNavRef is set (deliberate navigation to intermission/result)
+    //   - __skillcheck_dnf is set (timer expired, DNF submitted — not abandonment)
     const handlePageHide = () => {
       if (intentionalNavRef.current) return;
+      if ((window as any).__skillcheck_dnf) return;
       sendForfeit();
     };
     window.addEventListener('pagehide', handlePageHide);
@@ -67,6 +69,7 @@ export function MultiplayerSessionGuard() {
     // ── popstate: fires on browser back/forward buttons ──
     const handlePopState = () => {
       if (intentionalNavRef.current) return;
+      if ((window as any).__skillcheck_dnf) return;
       sendForfeit();
     };
     window.addEventListener('popstate', handlePopState);

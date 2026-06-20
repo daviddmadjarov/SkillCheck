@@ -16,6 +16,9 @@ type DuelRoundTimerProps = {
  *
  * When the timer reaches 0 and the player hasn't submitted results,
  * auto-submits a score of 0 (DNF) and redirects to the intermission page.
+ *
+ * Sets window.__skillcheck_dnf to signal to MultiplayerSessionGuard
+ * that this is an intentional navigation, not abandonment.
  */
 export function DuelRoundTimer({ gameSlug, lobbyCode, playerId, round }: DuelRoundTimerProps) {
   const timeLimit = getRoundTimeLimitSeconds(gameSlug);
@@ -34,6 +37,9 @@ export function DuelRoundTimer({ gameSlug, lobbyCode, playerId, round }: DuelRou
           if (!hasExpiredRef.current) {
             hasExpiredRef.current = true;
 
+            // Signal to MultiplayerSessionGuard: this is intentional, not forfeit
+            (window as any).__skillcheck_dnf = true;
+
             // Submit DNF (score = 0) for this round
             fetch('/api/scores/submit', {
               method: 'POST',
@@ -49,9 +55,7 @@ export function DuelRoundTimer({ gameSlug, lobbyCode, playerId, round }: DuelRou
               }),
             }).catch(() => {});
 
-            // Redirect to intermission with dnf=1 — tells intermission
-            // to skip the old server-side deadline and advance to 3-2-1
-            // countdown for the next round immediately.
+            // Redirect to intermission with dnf=1
             const params = new URLSearchParams();
             params.set('game', gameSlug);
             params.set('player', playerId);

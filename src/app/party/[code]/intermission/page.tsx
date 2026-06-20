@@ -136,8 +136,8 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
         <section className={`rounded-[2rem] border-2 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8 ${isForfeit ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50'}`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="status-pill">{isForfeit ? 'Match Forfeited' : 'Session Leaderboard'}</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-800">{lobby.code}</h1>
+              <p className="status-pill">{isForfeit ? 'Match Forfeited' : isDuel ? 'Current Standings' : 'Session Leaderboard'}</p>
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-800">{isDuel ? 'Current Standings' : lobby.code}</h1>
               {isForfeit && forfeitedMessage ? (
                 <p className="mt-2 max-w-2xl rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
                   {forfeitedMessage}
