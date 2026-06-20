@@ -58,8 +58,8 @@ export default function PrivacyPolicyPage() {
         {
           title: 'Children',
           body: [
-            'This site is open to users aged 6 and above. We do not knowingly collect additional personal data from children beyond what is listed above.',
-            'If you believe a child under 6 has registered an account, please contact us at marketcapgame@gmail.com and we will delete the account.',
+            'SkillCheck is a general-audience game. We do not knowingly collect personal information from children under 13.',
+            'If you believe a child under 13 has registered an account, please contact us at marketcapgame@gmail.com and we will delete the account.',
           ],
         },
         {

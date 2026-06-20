@@ -6,6 +6,7 @@ import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { reactionMsToLeaderboardScore } from '@/lib/scoring/reaction';
 import { playAimHit, playSplitSnap } from '@/lib/audio/sounds';
 import { randomShape, type SplitShapeDef } from './shapes';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
 export type Point = { x: number; y: number };
@@ -31,7 +32,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
 
   function startRun(){setTimes([]);setRunning(true);setStartedAt(performance.now());spawnTarget()}
   function spawnTarget(){setTarget({x:Math.random()*64+18,y:Math.random()*64+18});setTargetSeed(c=>c+1)}
-  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
+  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{emitTelemetryAssessment('aim-trainer',reactionMsToLeaderboardScore(av));if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
 
   return <AimShell title="Aim Trainer" kicker="Precision warm-up" description="Click the target where it appears. Twenty-five hits complete the drill." accent="border-cyan-200 bg-cyan-50 text-cyan-900" isSignedIn={isSignedIn} stats={[{label:'Targets left',value:String(hitsLeft),detail:'Finish all 25 targets.'},{label:'Average reaction',value:avg===null?'--':`${avg} ms`,detail:'Average across all hits.'},{label:'Lab score',value:labScore===null?'--':String(labScore),detail:best!==null?`Best: ${best} ms.`:'Calculated from average.'},{label:'Status',value:isFinished?'Done':!running?'Ready':'Live',detail:isFinished?'Use Try again.':!running?'Click target.':'Click each target.'}]}>
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
@@ -97,7 +98,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   function finishRun(nt:number[]){
     const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);
     setBest(c=>c===null?av:Math.min(c,av));
-    if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-moving-targets',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});
+    if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-moving-targets',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{emitTelemetryAssessment('aim-moving-targets',reactionMsToLeaderboardScore(av));if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});
     setRunning(false);
     setStartedAt(null);
   }
@@ -257,7 +258,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   useEffect(() => {
     if (!isSignedIn || phase !== 'finished' || labScore === null || hasSavedRef.current) return;
     hasSavedRef.current = true;
-    fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { if(r.ok && isMultiplayerSession) goToIntermission(); else if(r.ok && mm.daily) goToDailyResult(); });
+    fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { emitTelemetryAssessment('aim-perfect-split', labScore as number); if(r.ok && isMultiplayerSession) goToIntermission(); else if(r.ok && mm.daily) goToDailyResult(); });
   }, [phase, isSignedIn, labScore, isMultiplayerSession, goToIntermission, mm]);
 
   const posARef = useRef({ idx: 0, frac: 0 });

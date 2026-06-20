@@ -6,6 +6,7 @@ import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { BetweenRoundCountdown } from '@/components/between-round-countdown';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { ResponseTimer } from '@/components/response-timer';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 type RhythmMode = 'sync' | 'timer';
 
@@ -352,6 +353,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ testSlug: 'perfect-sync', score: finalScore, ...multiplayerMeta }),
         }).then(() => {
+          emitTelemetryAssessment('perfect-sync', finalScore);
           if (isMultiplayerSession) goToIntermission();
         });
       }
@@ -652,6 +654,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ testSlug: 'stop-timer', score, ...multiplayerMeta }),
         }).then(() => {
+          emitTelemetryAssessment('stop-timer', score);
           if (isMultiplayerSession) goToIntermission();
         });
       }

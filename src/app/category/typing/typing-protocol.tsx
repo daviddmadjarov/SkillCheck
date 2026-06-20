@@ -6,6 +6,7 @@ import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { GameStatistics } from '@/components/game-statistics';
 import { playTypingKeypress, playTypingComplete } from '@/lib/audio/sounds';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 type TypingProtocolProps = {
   initialDuration?: DurationSeconds;
@@ -192,6 +193,7 @@ export function TypingProtocol({
       });
 
       if (response.ok) {
+        emitTelemetryAssessment('typing-speed', metrics.labScore);
         if (isMultiplayerSession) {
           goToIntermission();
         } else if (multiplayerMeta.daily) {

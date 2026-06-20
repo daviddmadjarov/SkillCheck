@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 type GamePhase = 'idle' | 'waiting' | 'active' | 'too-soon' | 'finished';
 const NUM_BUTTONS = 4, MIN_RD = 2000, MAX_RD = 4000, MIN_GAP = 200;
@@ -38,7 +39,7 @@ export function MultiReactionProtocol({ initialAttempts, isSignedIn }: { initial
     timeoutRef.current = setTimeout(() => { const b = Math.floor(Math.random()*NUM_BUTTONS); readyAtRef.current = performance.now(); setActiveBtn(b); setPhase('active'); }, extra + MIN_RD + Math.random()*(MAX_RD-MIN_RD));
   }
   function startGame() { setPhase('waiting'); setCurRound(0); setTimes([]); setActiveBtn(null); sched(0); }
-  function save(avg: number) { if (!isSignedIn) return; startSaving(async () => { const r = await fetch('/api/reaction-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reactionMs: avg, testSlug:'multi-reaction',...multiplayerMeta})}); const p = (await r.json().catch(()=>null)) as {ok?:boolean; score?:number}|null; if (!r.ok||!p?.ok||typeof p.score!=='number') return; const s=p.score; setAttempts(c=>c+1); setBest(c=>c===null?s:Math.max(c,s)); if (isMultiplayerSession) goToIntermission(); }); }
+  function save(avg: number) { if (!isSignedIn) return; startSaving(async () => { const r = await fetch('/api/reaction-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reactionMs: avg, testSlug:'multi-reaction',...multiplayerMeta})}); const p = (await r.json().catch(()=>null)) as {ok?:boolean; score?:number}|null; if (!r.ok||!p?.ok||typeof p.score!=='number') return; const s=p.score; setAttempts(c=>c+1); setBest(c=>c===null?s:Math.max(c,s)); emitTelemetryAssessment('multi-reaction', s); if (isMultiplayerSession) goToIntermission(); }); }
 
   function click(i: number) {
     if (cd.active) return;

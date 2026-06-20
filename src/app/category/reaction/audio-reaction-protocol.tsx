@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSignedIn }: { initialAttempts: number; initialBestScore: number | null; isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('audio-reaction');
@@ -66,6 +67,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
       setAttempts(c => c + 1);
       const s: number = p.score;
       setBestScore(c => (c === null ? s : Math.max(c, s)));
+      emitTelemetryAssessment('audio-reaction', s);
       if (isMultiplayerSession) goToIntermission();
     });
   }

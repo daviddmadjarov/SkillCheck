@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
+import { useLoreGlitch } from '@/hooks/use-lore-glitch';
+
 const ICON_MAP: Record<string, LucideIcon> = {
   reaction: Activity,
   aim: Crosshair,
@@ -18,6 +20,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
   mouse: MousePointer2,
   rhythm: Timer,
   thinking: BrainCircuit,
+};
+
+const LORE_LABELS: Record<string, string> = {
+  'Reaction Protocol': 'Neural Latency Probe',
+  'Aim Assessment': 'Targeting Calibration',
+  'Keystroke Test': 'Motor Sequencing',
+  'Mouse Control': 'Fine-Motor Precision',
+  'Rhythm Sync': 'Internal Clock Calibration',
+  'Cognitive Review': 'Synaptic Integrity Scan',
 };
 
 type GameModeCardProps = {
@@ -31,6 +42,9 @@ type GameModeCardProps = {
 
 export function GameModeCard({ href, iconKey, title, desc, color, bg }: GameModeCardProps) {
   const Icon = ICON_MAP[iconKey];
+  const loreTitle = LORE_LABELS[title] ?? title;
+
+  const { displayText, isGlitching } = useLoreGlitch(title, loreTitle);
 
   return (
     <Link href={href} className="lab-card-interactive min-h-[126px] p-5">
@@ -39,7 +53,12 @@ export function GameModeCard({ href, iconKey, title, desc, color, bg }: GameMode
           {Icon && <Icon className={`h-7 w-7 ${color}`} strokeWidth={2.5} />}
         </div>
         <div>
-          <h2 className="protocol-title">{title}</h2>
+          <h2
+            className={`protocol-title ${isGlitching ? 'glitch-active' : ''}`}
+            data-text={isGlitching ? loreTitle : title}
+          >
+            {displayText}
+          </h2>
           <p className="mt-1 text-sm font-medium leading-6 text-slate-500">
             {desc}
           </p>

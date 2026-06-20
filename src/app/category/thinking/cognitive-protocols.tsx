@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { playSliderMove, playCorrectChime, playWrongBuzz } from '@/lib/audio/sounds';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 export type CognitiveMode = 'rotation' | 'estimation' | 'sequence';
 
@@ -399,6 +400,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ testSlug: 'mental-rotation', score: labScore, ...multiplayerMeta }),
     }).then(() => {
+      emitTelemetryAssessment('mental-rotation', labScore as number);
       if (isMultiplayerSession) goToIntermission();
     });
   }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
@@ -859,6 +861,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ testSlug: 'estimation-challenge', score: labScore, ...multiplayerMeta }),
     }).then(() => {
+      emitTelemetryAssessment('estimation-challenge', labScore as number);
       if (isMultiplayerSession) goToIntermission();
     });
   }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
@@ -1073,6 +1076,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ testSlug: 'sequence-memory', score: labScore, ...multiplayerMeta }),
     }).then(() => {
+      emitTelemetryAssessment('sequence-memory', labScore);
       if (isMultiplayerSession) goToIntermission();
     });
   }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);

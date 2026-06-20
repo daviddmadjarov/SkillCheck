@@ -501,6 +501,94 @@ button, [role="button"] {
   }
 }
 
+/* =========================================================================
+   Lore / ARG animations — Aethelgard "Calibration Net"
+   ========================================================================= */
+
+/* Text glitch — color channel split + micro-jitter */
+@keyframes glitch-text {
+  0% { transform: translate(0); }
+  20% { transform: translate(-1px, 0.5px); }
+  40% { transform: translate(1px, -0.5px); }
+  60% { transform: translate(-0.5px, -1px); }
+  80% { transform: translate(0.5px, 0.5px); }
+  100% { transform: translate(0); }
+}
+
+.glitch-active {
+  animation: glitch-text 0.15s ease-in-out infinite;
+  position: relative;
+}
+
+.glitch-active::before,
+.glitch-active::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.glitch-active::before {
+  color: #ff005d;
+  animation: glitch-text 0.2s ease-in-out infinite reverse;
+  z-index: -1;
+  clip-path: inset(50% 0 20% 0);
+}
+
+.glitch-active::after {
+  color: #00e5ff;
+  animation: glitch-text 0.18s ease-in-out infinite;
+  z-index: -1;
+  clip-path: inset(20% 0 50% 0);
+}
+
+/* Blinking block cursor for CRT terminal */
+@keyframes terminal-cursor {
+  0%,  49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.animate-terminal-cursor {
+  animation: terminal-cursor 0.7s step-end infinite;
+}
+
+/* CRT scanlines overlay */
+@keyframes scanlines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+.animate-scanlines {
+  background: repeating-linear-gradient(
+    rgba(0, 0, 0, 0.18) 0px,
+    rgba(0, 0, 0, 0.18) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  animation: scanlines 0.1s linear infinite;
+}
+
+/* Screen tear — brief horizontal displacement on unmount */
+@keyframes screen-tear {
+  0%   { transform: translateX(0); opacity: 1; }
+  15%  { transform: translateX(-18px); opacity: 0.9; }
+  25%  { transform: translateX(22px); opacity: 0.7; }
+  35%  { transform: translateX(-8px); opacity: 0.5; }
+  50%  { transform: translateX(14px); opacity: 0.3; }
+  70%  { transform: translateX(-4px); opacity: 0.1; }
+  85%  { transform: translateX(0); opacity: 0.05; }
+  100% { transform: translateX(0); opacity: 0; }
+}
+
+.animate-screen-tear {
+  animation: screen-tear 0.6s ease-out forwards;
+  pointer-events: auto;
+}
+
 /* Pointer coarse (touch) devices: increase target hitboxes */
 @media (pointer: coarse) {
   /* Aim trainer / moving targets targets */

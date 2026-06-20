@@ -335,9 +335,11 @@ type EloEntry = {
 async function loadHomeData(leaderboardType: string) {
   if (!hasSupabaseEnv()) {
     return {
+      completedProtocols: 0,
       dailyLeaderboard: [] as DailyLeaderboardEntry[],
       dailyLeaderboardError: null,
       eloLeaderboard: [] as EloEntry[],
+      hasAnomalousAccess: false,
       leaderboard: [] as ComputedLeaderboardEntry[],
       leaderboardError: null,
       profile: null as ProfileRow | null,
@@ -412,10 +414,30 @@ async function loadHomeData(leaderboardType: string) {
       ? await supabase.from('profiles').select('id, username, avatar_url, skill_level, created_at').eq('id', user.id).maybeSingle()
       : { data: null };
 
+    // ── Lore: count unique protocols completed ──
+    let completedProtocols = 0;
+    let hasAnomalousAccess = false;
+    if (user) {
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      hasAnomalousAccess = metadata.anomalous_access === true || metadata.anomalous_access === 'true';
+
+      // Count distinct test_slug values in score_submissions for this user
+      const { data: distinctTests } = await supabase
+        .from('score_submissions')
+        .select('test_slug')
+        .eq('user_id', user.id);
+      if (distinctTests) {
+        const unique = new Set(distinctTests.map((r: { test_slug: string }) => r.test_slug));
+        completedProtocols = unique.size;
+      }
+    }
+
     return {
+      completedProtocols,
       dailyLeaderboard,
       dailyLeaderboardError,
       eloLeaderboard,
+      hasAnomalousAccess,
       leaderboard,
       leaderboardError,
       profile: profileResult ?? null,
@@ -424,9 +446,11 @@ async function loadHomeData(leaderboardType: string) {
     };
   } catch (error) {
     return {
+      completedProtocols: 0,
       dailyLeaderboard: [] as DailyLeaderboardEntry[],
       dailyLeaderboardError: null,
       eloLeaderboard: [] as EloEntry[],
+      hasAnomalousAccess: false,
       leaderboard: [] as ComputedLeaderboardEntry[],
       leaderboardError: error instanceof Error ? error.message : 'Unable to reach Supabase.',
       profile: null as ProfileRow | null,
@@ -451,7 +475,7 @@ export default async function Home({
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const leaderboardType = typeof resolvedSearchParams.leaderboard === 'string' ? resolvedSearchParams.leaderboard : 'lab';
-  const { dailyLeaderboard, dailyLeaderboardError, eloLeaderboard, leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData(leaderboardType);
+  const { completedProtocols, dailyLeaderboard, dailyLeaderboardError, eloLeaderboard, hasAnomalousAccess, leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData(leaderboardType);
   const displayName = getDisplayName(user, profile);
   const initials = getInitials(displayName || 'SC');
   const authMessage = getAuthMessage(resolvedSearchParams);
@@ -502,8 +526,10 @@ export default async function Home({
             <div className="absolute right-0 z-20 mt-3 w-[min(25rem,calc(100vw-2rem))] rounded-[1.8rem] border-2 border-slate-200 bg-white p-4 shadow-[0_10px_0_rgba(226,232,240,1)]">
               {user ? (
                 <ProfilePanel
+                  completedProtocols={completedProtocols}
                   displayName={displayName}
                   email={user.email ?? null}
+                  hasAnomalousAccess={hasAnomalousAccess}
                   profileMessage={profileMessage}
                   username={profile?.username ?? ''}
                 />

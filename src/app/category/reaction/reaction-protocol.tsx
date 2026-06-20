@@ -6,6 +6,7 @@ import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { GameStatistics } from '@/components/game-statistics';
 import { playReactionSuccess, playReactionTooSoon } from '@/lib/audio/sounds';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 type ReactionProtocolProps = {
   initialAttempts: number;
@@ -69,6 +70,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
       const savedScore: number = payload.score;
       setAttempts((c) => c + 1);
       setBestScore((prev) => (prev === null ? savedScore : Math.max(prev, savedScore)));
+      emitTelemetryAssessment('reaction-time', savedScore);
       if (isMultiplayerSession) goToIntermission();
     })();
   }

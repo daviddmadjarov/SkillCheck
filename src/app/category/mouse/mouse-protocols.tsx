@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 type Point = { x: number; y: number };
 type TraceMode = 'assist'|'memory';
@@ -214,7 +215,7 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
   const symbol=TRACE_SYMBOLS[symbolIdx];
   const avgScore=scores.length===0?null:Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
 
-  useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToIntermission,isMultiplayerSession,isSignedIn,phase,mm]);
+  useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{emitTelemetryAssessment('mouse-symbol-tracing',avgScore as number);if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToIntermission,isMultiplayerSession,isSignedIn,phase,mm]);
 
   useEffect(()=>{return()=>{if(memTimerRef.current)clearInterval(memTimerRef.current)}},[]);
 
