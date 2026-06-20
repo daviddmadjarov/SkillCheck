@@ -440,7 +440,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Sync Test</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">Listen to the groove and guess the BPM. Four rounds.</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start Sync Test</button>
+                <button data-start-game className="lab-button mt-4" onClick={startRun} type="button">Start Sync Test</button>
               </div>
             </div>
           )}
@@ -733,7 +733,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Stop the Timer</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">Watch the timer for 1.5s, then stop it exactly on the target. Four rounds.</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start Timer</button>
+                <button data-start-game className="lab-button mt-4" onClick={startRun} type="button">Start Timer</button>
               </div>
             </div>
           )}

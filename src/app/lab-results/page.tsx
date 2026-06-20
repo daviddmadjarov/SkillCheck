@@ -180,7 +180,7 @@ export default async function LabResultsPage() {
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
           <section className="lab-card p-6">
             <div className="flex justify-end">
-              <Link className={returnToLabClassName} href="/">
+              <Link data-return-to-lab className={returnToLabClassName} href="/">
                 Return to Lab
               </Link>
             </div>
@@ -205,9 +205,9 @@ export default async function LabResultsPage() {
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
           <section className="lab-card p-6">
             <div className="flex justify-end">
-              <Link className={returnToLabClassName} href="/">
-                Return to Lab
-              </Link>
+            <Link data-return-to-lab className={returnToLabClassName} href="/">
+              Return to Lab
+            </Link>
             </div>
             <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-800">Lab Results</h1>
             <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
@@ -253,7 +253,7 @@ export default async function LabResultsPage() {
                 Your best performance in each mode, ordered from strongest to weakest.
               </p>
             </div>
-            <Link className={returnToLabClassName} href="/">
+            <Link data-return-to-lab className={returnToLabClassName} href="/">
               Return to Lab
             </Link>
           </div>

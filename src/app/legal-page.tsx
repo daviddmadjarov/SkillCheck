@@ -21,9 +21,9 @@ export function LegalPage({ title, kicker, intro, lastUpdated, sections }: Legal
     <main className="min-h-screen px-4 py-4 sm:px-6">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <div className="flex justify-end">
-          <Link className={returnToLabClassName} href="/">
-            Return to Lab
-          </Link>
+            <Link data-return-to-lab className={returnToLabClassName} href="/">
+              Return to Lab
+            </Link>
         </div>
 
         <section className="lab-card overflow-hidden p-6 sm:p-8">

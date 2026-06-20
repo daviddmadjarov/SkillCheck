@@ -501,7 +501,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mental Rotation</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">Identify the correctly rotated shape among 4 options. 10 rounds.</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start</button>
+                <button data-start-game className="lab-button mt-4" onClick={startRun} type="button">Start</button>
               </div>
             </div>
           )}
@@ -949,7 +949,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Estimation Challenge</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">Estimate lengths, fill percentages, angles and dot counts. 4 randomised rounds.</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start</button>
+                <button data-start-game className="lab-button mt-4" onClick={startRun} type="button">Start</button>
               </div>
             </div>
           )}
@@ -1220,7 +1220,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Sequence Memory</p>
                 <p className="mt-2 text-sm font-semibold text-slate-600">Watch the 3×3 grid light up, then tap the tiles in the same order. Sequence grows each round.</p>
-                <button className="lab-button mt-4" onClick={startRun} type="button">Start</button>
+                <button data-start-game className="lab-button mt-4" onClick={startRun} type="button">Start</button>
               </div>
             </div>
           )}
