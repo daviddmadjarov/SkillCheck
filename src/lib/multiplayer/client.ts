@@ -9,6 +9,7 @@ export type MultiplayerSubmissionMeta = {
   multiplayerLobbyCode: string | null;
   multiplayerPlayerId: string | null;
   multiplayerRound: number;
+  daily: boolean;
 };
 
 export function useMultiplayerSubmissionMeta(defaultGameSlug?: string): MultiplayerSubmissionMeta {
@@ -20,12 +21,14 @@ export function useMultiplayerSubmissionMeta(defaultGameSlug?: string): Multipla
     const multiplayerPlayerId = searchParams.get('player');
     const parsedRound = Number(searchParams.get('round'));
     const multiplayerRound = Number.isFinite(parsedRound) && parsedRound >= 0 ? Math.floor(parsedRound) : 0;
+    const daily = searchParams.get('daily') === 'true';
 
     return {
       multiplayerGameSlug,
       multiplayerLobbyCode,
       multiplayerPlayerId,
       multiplayerRound,
+      daily,
     };
   }, [defaultGameSlug, searchParams]);
 }

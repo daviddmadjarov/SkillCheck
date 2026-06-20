@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Timer,
   Trophy,
+  CalendarDays,
 } from 'lucide-react';
 
 import { hasSupabaseEnv } from '@/lib/supabase/config';
@@ -47,6 +48,13 @@ type ComputedLeaderboardEntry = {
   tests_completed: number;
   user_id: string;
   username: string | null;
+};
+
+type DailyLeaderboardEntry = {
+  rank: number;
+  username: string | null;
+  avatar_url: string | null;
+  score: number;
 };
 
 function toScoreBucket(testSlug: string) {
@@ -325,6 +333,8 @@ type EloEntry = {
 async function loadHomeData(leaderboardType: string) {
   if (!hasSupabaseEnv()) {
     return {
+      dailyLeaderboard: [] as DailyLeaderboardEntry[],
+      dailyLeaderboardError: null,
       eloLeaderboard: [] as EloEntry[],
       leaderboard: [] as ComputedLeaderboardEntry[],
       leaderboardError: null,
@@ -339,6 +349,8 @@ async function loadHomeData(leaderboardType: string) {
     const { data: userResult } = await supabase.auth.getUser();
     const user = userResult.user;
 
+    let dailyLeaderboard: DailyLeaderboardEntry[] = [];
+    let dailyLeaderboardError: string | null = null;
     let eloLeaderboard: EloEntry[] = [];
     let leaderboard: ComputedLeaderboardEntry[] = [];
     let leaderboardError: string | null = null;
@@ -347,6 +359,44 @@ async function loadHomeData(leaderboardType: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: eloData } = await (supabase.rpc as any)('get_elo_leaderboard', { p_limit: 8 });
       eloLeaderboard = (eloData ?? []) as EloEntry[];
+    } else if (leaderboardType === 'daily') {
+      // Fetch today's daily challenge leaderboard
+      const now = new Date();
+      const challengeDate = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: dailyData, error: dailyErr } = await (supabase as any)
+          .from('daily_challenge_log')
+          .select(`
+            score,
+            user_id,
+            profiles!inner (
+              username,
+              avatar_url
+            )
+          `)
+          .eq('challenge_date', challengeDate)
+          .order('score', { ascending: false })
+          .limit(8);
+
+        if (dailyErr) {
+          dailyLeaderboardError = dailyErr.message;
+        } else if (dailyData) {
+          dailyLeaderboard = (dailyData as Array<{
+            score: number;
+            user_id: string;
+            profiles: { username: string | null; avatar_url: string | null };
+          }>).map((entry, index) => ({
+            rank: index + 1,
+            username: entry.profiles?.username ?? null,
+            avatar_url: entry.profiles?.avatar_url ?? null,
+            score: Math.round(entry.score),
+          }));
+        }
+      } catch (err) {
+        dailyLeaderboardError = err instanceof Error ? err.message : 'Could not load daily leaderboard.';
+      }
     } else {
       const [profilesResult, submissionsResult] = await Promise.all([
         supabase.from('profiles').select('id, username, avatar_url, created_at'),
@@ -361,6 +411,8 @@ async function loadHomeData(leaderboardType: string) {
       : { data: null };
 
     return {
+      dailyLeaderboard,
+      dailyLeaderboardError,
       eloLeaderboard,
       leaderboard,
       leaderboardError,
@@ -370,6 +422,8 @@ async function loadHomeData(leaderboardType: string) {
     };
   } catch (error) {
     return {
+      dailyLeaderboard: [] as DailyLeaderboardEntry[],
+      dailyLeaderboardError: null,
       eloLeaderboard: [] as EloEntry[],
       leaderboard: [] as ComputedLeaderboardEntry[],
       leaderboardError: error instanceof Error ? error.message : 'Unable to reach Supabase.',
@@ -395,7 +449,7 @@ export default async function Home({
 }) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const leaderboardType = typeof resolvedSearchParams.leaderboard === 'string' ? resolvedSearchParams.leaderboard : 'lab';
-  const { eloLeaderboard, leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData(leaderboardType);
+  const { dailyLeaderboard, dailyLeaderboardError, eloLeaderboard, leaderboard, leaderboardError, profile, supabaseReady, user } = await loadHomeData(leaderboardType);
   const displayName = getDisplayName(user, profile);
   const initials = getInitials(displayName || 'SC');
   const authMessage = getAuthMessage(resolvedSearchParams);
@@ -604,6 +658,23 @@ export default async function Home({
                   </div>
                 </div>
               </Link>
+              <Link href="/daily" className="rounded-[1.8rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_6px_0_rgba(253,230,138,1)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_0_rgba(253,230,138,1)]">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-500">
+                  DAILY
+                </p>
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-3xl font-black text-slate-800">Challenge</p>
+                    <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-500">
+                      One shot per day. Compete on today's curated test.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border-2 border-white bg-amber-100 px-6 py-3 shadow-sm flex flex-col items-center justify-center min-w-[5rem]">
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-amber-600 leading-tight">Daily</span>
+                    <span className="block text-sm font-bold uppercase tracking-[0.15em] text-amber-600 leading-tight">Today</span>
+                  </div>
+                </div>
+              </Link>
             </section>
           </div>
 
@@ -623,7 +694,7 @@ export default async function Home({
             </div>
 
             {/* ── Tab switcher ── */}
-            <div className="mb-4 flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               <Link
                 className={tabButtonClass(leaderboardType === 'lab', 'amber')}
                 href="/?leaderboard=lab"
@@ -637,6 +708,13 @@ export default async function Home({
                 scroll={false}
               >
                 Elo Rankings
+              </Link>
+              <Link
+                className={tabButtonClass(leaderboardType === 'daily', 'amber')}
+                href="/?leaderboard=daily"
+                scroll={false}
+              >
+                Daily
               </Link>
             </div>
 
@@ -687,7 +765,7 @@ export default async function Home({
                   </div>
                 )}
               </>
-            ) : (
+            ) : leaderboardType === 'elo' ? (
               <>
                 {eloLeaderboard.length > 0 ? (
                   <ol className="space-y-3">
@@ -725,6 +803,59 @@ export default async function Home({
                   <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
                     <p className="text-sm font-medium leading-6 text-slate-600">
                       No duel rankings yet. Play a duel to appear on this leaderboard.
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {dailyLeaderboard.length > 0 ? (
+                  <ol className="space-y-3">
+                    {dailyLeaderboard.map((entry, index) => (
+                      <li className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-3 sm:flex-nowrap" key={`daily-${entry.username ?? index}-${index}`}>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_3px_0_rgba(226,232,240,1)]">
+                            {index < 3 ? <Medal className="h-5 w-5 text-amber-500" /> : <Orbit className="h-5 w-5 text-cyan-500" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-slate-800">
+                              {sanitizeGeneratedName(entry.username) ?? 'Unnamed Player'}
+                            </p>
+                            <p className="text-sm font-medium text-slate-500">
+                              Today's score
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                            Rank #{entry.rank}
+                          </p>
+                          <p className="text-2xl font-black text-slate-800">
+                            {formatScore(entry.score)}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : supabaseReady ? (
+                  <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      {dailyLeaderboardError
+                        ? `Could not load daily leaderboard: ${dailyLeaderboardError}`
+                        : 'No one has played today\'s challenge yet. Be the first!'}
+                    </p>
+                    <Link
+                      className="mt-3 inline-block rounded-2xl border-2 border-amber-300 bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5"
+                      href="/daily"
+                    >
+                      Play Today's Challenge
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 p-5">
+                    <p className="text-sm font-medium leading-6 text-slate-600">
+                      Daily leaderboard data will appear here once the Supabase project is configured.
                     </p>
                   </div>
                 )}

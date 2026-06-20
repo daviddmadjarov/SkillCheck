@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         multiplayerRound?: unknown;
         score?: unknown;
         testSlug?: unknown;
+        daily?: unknown;
       }
     | null;
 
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
   const parsedRound = Math.floor(Number(body?.multiplayerRound));
   const multiplayerRound = Number.isFinite(parsedRound) && parsedRound >= 0 ? parsedRound : 0;
   const isSessionSubmission = Boolean(multiplayerLobbyCode && multiplayerGameSlug);
+  const isDaily = body?.daily === true || body?.daily === 'true';
 
   if (!ALLOWED_TESTS.has(testSlug)) {
     return NextResponse.json({ error: 'Invalid test slug.' }, { status: 400 });
@@ -75,6 +77,29 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json({ error: 'Could not save score.' }, { status: 500 });
+    }
+  }
+
+  // ── Daily challenge tracking ──
+  // Log in daily_challenge_log. The unique (user_id, challenge_date) constraint
+  // ensures only one submission per user per day.
+  if (isDaily && !isSessionSubmission && hasSupabaseEnv()) {
+    const now = new Date();
+    const challengeDate = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: dailyError } = await (supabase.from('daily_challenge_log' as any) as any).insert({
+      challenge_date: challengeDate,
+      game_slug: testSlug,
+      score,
+      user_id: user.id,
+    });
+
+    if (dailyError) {
+      // If the unique constraint fails (user already submitted), that's fine
+      if (!dailyError.message?.includes('duplicate') && !dailyError.message?.includes('unique')) {
+        return NextResponse.json({ error: 'Could not save daily challenge result.' }, { status: 500 });
+      }
     }
   }
 
@@ -156,5 +181,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, score, sessionOnly: isSessionSubmission, testSlug, category });
+  return NextResponse.json({ ok: true, score, sessionOnly: isSessionSubmission, testSlug, category, daily: isDaily });
 }
