@@ -138,12 +138,13 @@ const GAME_CONVERSIONS: Record<string, GameConversion> = {
   'overclock': {
     title: 'Overclock — Reflex Ring Tracking',
     about:
-      'Hit the moving target as the ball orbits the ring at ever-increasing speed. Each successful hit reverses direction and adds speed — miss and you reset back to base. The 20-second timer keeps the pressure on. This tests visuomotor coordination and timing precision under escalating cognitive load.\n\n'
+      'Hit the moving target as the ball orbits the ring at ever-increasing speed. Each successful hit reverses direction and adds speed — miss and you reset back to base. The 30-second timer keeps the pressure on. This tests visuomotor coordination and timing precision under escalating cognitive load.\n\n'
+      + 'The lab score (0–1000) is computed from total hits, longest streak, and average sustained speed — rewarding both quantity and consistency.\n\n'
       + 'More on how the brain coordinates timing: [Wikipedia — Timing in the brain](https://en.wikipedia.org/wiki/Time_perception).',
-    // score = raw count of successful checks, no conversion needed
+    // score is already a 0–1000 lab score from the component
     convertScore: (s) => Math.round(s),
     unit: 'points',
-    label: 'Final score',
+    label: 'Lab score',
     precision: 0,
   },
   'stop-timer': {

@@ -6,13 +6,13 @@ import { useTheme } from '@/app/theme-provider';
 /* ── Types ──────────────────────────────── */
 
 export type RhythmLockProps = {
-  /** Game duration in seconds (default 20) */
+  /** Game duration in seconds (default 30) */
   timeLimit?: number;
   /** Starting angular velocity in rad/s (default 2) */
   initialSpeed?: number;
-  /** Called once when the game ends, with the final score */
+  /** Called once when the game ends, with the final 0-1000 lab score */
   onGameComplete?: (finalScore: number) => void;
-  /** Called every time the score changes */
+  /** Called every time the raw score changes */
   onScoreUpdate?: (currentScore: number) => void;
 };
 
@@ -29,6 +29,18 @@ const BALL_RADIUS = 12;
 const TARGET_RADIUS_OUTER = 22; // size of the outward half-circle
 const GLOW_BLUR = 24;
 
+/** Scoring: map raw hits to a 0-1000 lab score */
+function computeLabScore(hits: number, maxStreak: number, avgSpeed: number): number {
+  if (hits === 0) return 0;
+  // base: each hit is worth up to 30 points at ideal conditions
+  // streak bonus: longer streaks multiply score
+  // speed factor: higher sustained speed proves skill
+  const streakFactor = 1 + Math.min(maxStreak, 50) * 0.03;
+  const speedFactor = 0.8 + Math.min(avgSpeed / MAX_SPEED, 1) * 0.4;
+  const raw = hits * 30 * streakFactor * speedFactor;
+  return Math.min(1000, Math.round(raw));
+}
+
 /* ── Game phases ────────────────────────── */
 
 type Phase = 'idle' | 'playing' | 'finished';
@@ -44,30 +56,95 @@ export default function RhythmLockGame({
   const { theme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number | null>(null);
+  const comboRef = useRef<HTMLDivElement>(null);
+  const comboAnimRef = useRef<number>(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   /* Game state (kept in refs to avoid re-renders inside the loop) */
   const phaseRef = useRef<Phase>('idle');
   const scoreRef = useRef(0);
   const streakRef = useRef(0);
+  const maxStreakRef = useRef(0);
   const speedRef = useRef(initialSpeed);
+  const speedSumRef = useRef(0);
+  const speedSamplesRef = useRef(0);
   const directionRef = useRef(1); // 1 = CW, -1 = CCW
   const angleRef = useRef(0); // ball angle in radians
   const targetAngleRef = useRef(0);
   const timeLeftRef = useRef(timeLimit);
   const lastFrameRef = useRef(0);
   const startTimeRef = useRef(0);
+  const streakPopupRef = useRef<HTMLDivElement>(null);
 
   /* React state for UI overlay & stats */
   const [phase, setPhase] = useState<Phase>('idle');
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [displayStreak, setDisplayStreak] = useState(0);
+  const [comboScale, setComboScale] = useState(1);
 
   /* Stable callbacks */
   const onGameCompleteRef = useRef(onGameComplete);
   const onScoreUpdateRef = useRef(onScoreUpdate);
   useEffect(() => { onGameCompleteRef.current = onGameComplete; }, [onGameComplete]);
   useEffect(() => { onScoreUpdateRef.current = onScoreUpdate; }, [onScoreUpdate]);
+
+  /* ── Audio helpers ────────────────────────── */
+
+  const getAudioCtx = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    if (!audioCtxRef.current) {
+      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      void audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playComboSound = useCallback((streak: number) => {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // Pitch rises with streak (200Hz base, +30Hz per streak, cap at 800Hz)
+    const freq = Math.min(200 + streak * 30, 800);
+    const duration = Math.min(0.08 + streak * 0.005, 0.2);
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = streak > 5 ? 'sawtooth' : streak > 2 ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(Math.min(0.12 + streak * 0.01, 0.25), now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+  }, [getAudioCtx]);
+
+  const playMissSound = useCallback(() => {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.linearRampToValueAtTime(120, now + 0.1);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }, [getAudioCtx]);
 
   /* ── Theme-aware colors ──────────────────── */
 
@@ -94,8 +171,29 @@ export default function RhythmLockGame({
         return candidate;
       }
     }
-    // fallback: force a valid angle
     return clampAngle(ballAngle + Math.PI);
+  }, []);
+
+  /* ── Combo pop animation ──────────────────── */
+
+  const triggerComboPop = useCallback(() => {
+    setComboScale(1.4);
+    cancelAnimationFrame(comboAnimRef.current);
+    const start = performance.now();
+    const duration = 250;
+    function pop(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease-out: fast toward 1
+      const scale = 1 + (1.4 - 1) * Math.pow(1 - progress, 2);
+      setComboScale(scale);
+      if (progress < 1) {
+        comboAnimRef.current = requestAnimationFrame(pop);
+      } else {
+        setComboScale(1);
+      }
+    }
+    comboAnimRef.current = requestAnimationFrame(pop);
   }, []);
 
   /* ── Drawing ──────────────────────────────── */
@@ -136,14 +234,12 @@ export default function RhythmLockGame({
 
     // ── Target: filled red half-circle on the OUTSIDE of the ring ──
     const ta = targetAngleRef.current;
-    // Center the half-circle right on the ring edge; it protrudes outward naturally
     const hx = Math.cos(ta) * ringR;
     const hy = Math.sin(ta) * ringR;
 
     ctx.save();
     ctx.translate(hx, hy);
     ctx.rotate(ta);
-    // Draw half-circle that faces outward (positive Y after rotation = outward)
     ctx.beginPath();
     ctx.arc(0, 0, TARGET_RADIUS_OUTER, -Math.PI / 2, Math.PI / 2);
     ctx.closePath();
@@ -152,7 +248,6 @@ export default function RhythmLockGame({
     ctx.shadowBlur = GLOW_BLUR;
     ctx.fill();
     ctx.shadowBlur = 0;
-    // Thin border
     ctx.beginPath();
     ctx.arc(0, 0, TARGET_RADIUS_OUTER, -Math.PI / 2, Math.PI / 2);
     ctx.closePath();
@@ -208,7 +303,7 @@ export default function RhythmLockGame({
 
     const dt = lastFrameRef.current === 0
       ? 1 / 60
-      : Math.min((timestamp - lastFrameRef.current) / 1000, 0.05); // cap dt
+      : Math.min((timestamp - lastFrameRef.current) / 1000, 0.05);
     lastFrameRef.current = timestamp;
 
     // Update ball angle
@@ -224,9 +319,14 @@ export default function RhythmLockGame({
     // Time up?
     if (remaining <= 0) {
       phaseRef.current = 'finished';
-      setFinalScore(scoreRef.current);
+      const hits = scoreRef.current;
+      const avgSpeed = speedSamplesRef.current > 0
+        ? speedSumRef.current / speedSamplesRef.current
+        : initialSpeed;
+      const labScore = computeLabScore(hits, maxStreakRef.current, avgSpeed);
+      setFinalScore(labScore);
       setPhase('finished');
-      onGameCompleteRef.current?.(scoreRef.current);
+      onGameCompleteRef.current?.(labScore);
       return;
     }
 
@@ -243,7 +343,7 @@ export default function RhythmLockGame({
     }
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [timeLimit, draw, score, timeLeft]);
+  }, [timeLimit, draw, score, timeLeft, initialSpeed]);
 
   /* ── Check (Space / Tap) ──────────────────── */
 
@@ -256,19 +356,31 @@ export default function RhythmLockGame({
 
     if (angularDiff <= TARGET_HALF_ANGLE || angularDiff >= 2 * Math.PI - TARGET_HALF_ANGLE) {
       // HIT
+      const newStreak = streakRef.current + 1;
       scoreRef.current += 1;
-      streakRef.current += 1;
+      streakRef.current = newStreak;
+      if (newStreak > maxStreakRef.current) maxStreakRef.current = newStreak;
       setScore(scoreRef.current);
+      setDisplayStreak(newStreak);
       onScoreUpdateRef.current?.(scoreRef.current);
+
+      // Combo pop + sound
+      triggerComboPop();
+      playComboSound(newStreak);
 
       // Reverse direction
       directionRef.current *= -1;
 
       // Increase speed (capped)
-      speedRef.current = Math.min(
+      const newSpeed = Math.min(
         MAX_SPEED,
-        initialSpeed + streakRef.current * SPEED_MULTIPLIER_STEP,
+        initialSpeed + newStreak * SPEED_MULTIPLIER_STEP,
       );
+      speedRef.current = newSpeed;
+
+      // Track speed for final scoring
+      speedSumRef.current += newSpeed;
+      speedSamplesRef.current += 1;
 
       // Fairness: new target position, min 45° from previous & ball
       targetAngleRef.current = randomTargetAngle(targetAngleRef.current, ballAngle);
@@ -276,8 +388,14 @@ export default function RhythmLockGame({
       // MISS — reset streak
       streakRef.current = 0;
       speedRef.current = initialSpeed;
+      setDisplayStreak(0);
+      playMissSound();
+
+      // Track speed for final scoring
+      speedSumRef.current += initialSpeed;
+      speedSamplesRef.current += 1;
     }
-  }, [initialSpeed, randomTargetAngle]);
+  }, [initialSpeed, randomTargetAngle, triggerComboPop, playComboSound, playMissSound]);
 
   /* ── Keyboard / Touch listeners ───────────── */
 
@@ -301,7 +419,10 @@ export default function RhythmLockGame({
     // Reset state
     scoreRef.current = 0;
     streakRef.current = 0;
+    maxStreakRef.current = 0;
     speedRef.current = initialSpeed;
+    speedSumRef.current = 0;
+    speedSamplesRef.current = 0;
     directionRef.current = 1;
     angleRef.current = 0;
     targetAngleRef.current = Math.PI * 0.75;
@@ -311,6 +432,12 @@ export default function RhythmLockGame({
     setScore(0);
     setTimeLeft(timeLimit);
     setFinalScore(null);
+    setDisplayStreak(0);
+
+    // Unlock audio context on user gesture
+    if (audioCtxRef.current?.state === 'suspended') {
+      void audioCtxRef.current.resume();
+    }
 
     phaseRef.current = 'playing';
     setPhase('playing');
@@ -366,6 +493,7 @@ export default function RhythmLockGame({
   /* ── Render ────────────────────────────────── */
 
   const borderCls = isDark ? 'border-slate-700' : 'border-slate-200';
+  const comboTextCls = isDark ? 'text-rose-400' : 'text-rose-600';
 
   return (
     <div className="relative mx-auto w-full max-w-[600px]">
@@ -376,6 +504,21 @@ export default function RhythmLockGame({
         onTouchStart={(e) => { e.preventDefault(); check(); }}
         onClick={check}
       />
+
+      {/* Combo counter (overlaid on canvas during play) */}
+      {phase === 'playing' && displayStreak > 0 && (
+        <div
+          ref={comboRef}
+          className="absolute left-1/2 top-4 z-30 -translate-x-1/2 transition-transform duration-75"
+          style={{ transform: `scale(${comboScale})` }}
+        >
+          <div className={`rounded-full border-2 border-rose-300/60 bg-rose-500/20 px-5 py-1.5 text-center backdrop-blur-sm ${comboTextCls}`}>
+            <span className="text-lg font-black tracking-tight">
+              {displayStreak}x COMBO
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Overlay: idle */}
       {phase === 'idle' && (
@@ -414,10 +557,10 @@ export default function RhythmLockGame({
             <p className={`text-xs font-bold uppercase tracking-[0.2em] ${isDark ? 'text-violet-400' : 'text-cyan-600'}`}>
               Run complete
             </p>
-            <p className="mt-3 text-5xl font-black tracking-tight text-white">
+            <p className={`mt-3 text-5xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {finalScore}
             </p>
-            <p className={`mt-1 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>points</p>
+            <p className={`mt-1 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>lab score</p>
             <button
               className="mt-4 rounded-full border-2 border-violet-500 bg-violet-600 px-6 py-3 text-sm font-bold text-white shadow-[0_4px_0_rgba(139,92,246,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-violet-500 hover:shadow-[0_8px_0_rgba(139,92,246,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(139,92,246,1)]"
               onClick={startGame}
