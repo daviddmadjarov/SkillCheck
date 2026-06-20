@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -33,6 +33,38 @@ type GameStatisticsProps = {
 function formatDisplay(value: number | null, precision: number, unit: string) {
   if (value === null) return '—';
   return `${value.toFixed(precision)} ${unit}`;
+}
+
+function linkify(text: string): ReactNode {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-cyan-600 underline hover:text-cyan-800"
+        >
+          {part}
+        </a>
+      );
+    }
+    // Split by newlines for paragraph breaks
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function formatAboutText(text: string): ReactNode[] {
+  // Split on double newlines for paragraph breaks
+  const paragraphs = text.split('\n\n');
+  return paragraphs.map((para, i) => (
+    <p key={i} className="text-sm font-medium leading-6 text-slate-600">
+      {linkify(para)}
+    </p>
+  ));
 }
 
 export function GameStatistics({ testSlug, visible }: GameStatisticsProps) {
@@ -166,9 +198,9 @@ export function GameStatistics({ testSlug, visible }: GameStatisticsProps) {
                 </div>
               </div>
 
-              <p className="text-sm font-medium leading-6 text-slate-600">
-                {data.about}
-              </p>
+              <div className="space-y-3">
+                {formatAboutText(data.about)}
+              </div>
             </div>
           </div>
         </div>
