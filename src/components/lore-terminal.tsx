@@ -211,22 +211,75 @@ export function LoreTerminal({ variant = 'access', onComplete }: LoreTerminalPro
   useEffect(() => {
     const exitTimer = window.setTimeout(() => {
       setIsExiting(true);
-      // Play a final sound before the tear
+      // Play a layered digital glitch before the tear
       if (isAccess) {
         const ctx = getAudio();
         if (ctx) {
-          // Short "connection lost" glitch sound
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'square';
-          osc.frequency.setValueAtTime(300, ctx.currentTime);
-          osc.frequency.setValueAtTime(80, ctx.currentTime + 0.15);
-          gain.gain.setValueAtTime(0.06, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.22);
+          const now = ctx.currentTime;
+          const glitchDuration = 0.7;
+
+          // Layer 1 — rapid frequency-modulated screech
+          const osc1 = ctx.createOscillator();
+          const freqMod = ctx.createOscillator();
+          const gain1 = ctx.createGain();
+          freqMod.type = 'sine';
+          freqMod.frequency.value = 480;
+          const fmGain = ctx.createGain();
+          fmGain.gain.value = 280;
+          freqMod.connect(fmGain);
+          fmGain.connect(osc1.frequency);
+          osc1.type = 'sawtooth';
+          osc1.frequency.setValueAtTime(900, now);
+          osc1.frequency.linearRampToValueAtTime(1800, now + 0.09);
+          osc1.frequency.linearRampToValueAtTime(400, now + 0.2);
+          osc1.frequency.linearRampToValueAtTime(2800, now + 0.32);
+          osc1.frequency.linearRampToValueAtTime(90, now + glitchDuration);
+          gain1.gain.setValueAtTime(0.0001, now);
+          gain1.gain.linearRampToValueAtTime(0.07, now + 0.02);
+          gain1.gain.linearRampToValueAtTime(0.04, now + 0.12);
+          gain1.gain.linearRampToValueAtTime(0.09, now + 0.25);
+          gain1.gain.exponentialRampToValueAtTime(0.0001, now + glitchDuration);
+          osc1.connect(gain1);
+          gain1.connect(ctx.destination);
+          osc1.start(now);
+          osc1.stop(now + glitchDuration);
+          freqMod.start(now);
+          freqMod.stop(now + glitchDuration);
+
+          // Layer 2 — stuttered noise bursts (bit-crushed artefact)
+          const bufferSize = ctx.sampleRate * 0.4;
+          const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            // Square-wave amplitude modulation to create stutter
+            const stutter = Math.sin(i / (ctx.sampleRate / 180) * Math.PI * 2) > 0 ? 1 : 0;
+            data[i] = (Math.random() * 2 - 1) * stutter * (1 - i / bufferSize);
+          }
+          const noiseSource = ctx.createBufferSource();
+          noiseSource.buffer = buffer;
+          const noiseGain = ctx.createGain();
+          noiseGain.gain.setValueAtTime(0.0001, now);
+          noiseGain.gain.linearRampToValueAtTime(0.10, now + 0.05);
+          noiseGain.gain.linearRampToValueAtTime(0.06, now + 0.2);
+          noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + glitchDuration);
+          noiseSource.connect(noiseGain);
+          noiseGain.connect(ctx.destination);
+          noiseSource.start(now);
+          noiseSource.stop(now + glitchDuration);
+
+          // Layer 3 — low digital pulse at the very end
+          const osc3 = ctx.createOscillator();
+          const gain3 = ctx.createGain();
+          osc3.type = 'square';
+          osc3.frequency.setValueAtTime(55, now + 0.55);
+          osc3.frequency.setValueAtTime(40, now + 0.65);
+          gain3.gain.setValueAtTime(0.0001, now + 0.55);
+          gain3.gain.linearRampToValueAtTime(0.08, now + 0.6);
+          gain3.gain.exponentialRampToValueAtTime(0.0001, now + glitchDuration);
+          osc3.connect(gain3);
+          gain3.connect(ctx.destination);
+          osc3.start(now + 0.55);
+          osc3.stop(now + glitchDuration + 0.02);
         }
       }
       window.setTimeout(() => {

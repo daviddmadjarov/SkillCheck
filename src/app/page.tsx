@@ -359,6 +359,24 @@ async function loadHomeData(leaderboardType: string) {
     let leaderboard: ComputedLeaderboardEntry[] = [];
     let leaderboardError: string | null = null;
 
+    // ── Lore: count unique protocols completed ──
+    let completedProtocols = 0;
+    let hasAnomalousAccess = false;
+    if (user) {
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      hasAnomalousAccess = metadata.anomalous_access === true || metadata.anomalous_access === 'true';
+
+      // Count distinct test_slug values in score_submissions for this user
+      const { data: distinctTests } = await supabase
+        .from('score_submissions')
+        .select('test_slug')
+        .eq('user_id', user.id);
+      if (distinctTests) {
+        const unique = new Set(distinctTests.map((r: { test_slug: string }) => r.test_slug));
+        completedProtocols = unique.size;
+      }
+    }
+
     if (leaderboardType === 'elo') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: eloData } = await (supabase.rpc as any)('get_elo_leaderboard', { p_limit: 8 });
@@ -414,21 +432,42 @@ async function loadHomeData(leaderboardType: string) {
       ? await supabase.from('profiles').select('id, username, avatar_url, skill_level, created_at').eq('id', user.id).maybeSingle()
       : { data: null };
 
-    // ── Lore: count unique protocols completed ──
-    let completedProtocols = 0;
-    let hasAnomalousAccess = false;
-    if (user) {
-      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-      hasAnomalousAccess = metadata.anomalous_access === true || metadata.anomalous_access === 'true';
-
-      // Count distinct test_slug values in score_submissions for this user
-      const { data: distinctTests } = await supabase
-        .from('score_submissions')
-        .select('test_slug')
-        .eq('user_id', user.id);
-      if (distinctTests) {
-        const unique = new Set(distinctTests.map((r: { test_slug: string }) => r.test_slug));
-        completedProtocols = unique.size;
+    // ── Lore: inject S-042 entry if anomalous access is active ──
+    if (hasAnomalousAccess) {
+      if (leaderboardType === 'lab') {
+        leaderboard = [
+          {
+            avatar_url: null,
+            overall_score: 0,
+            rank: 0,
+            tests_completed: 0,
+            user_id: 's-042',
+            username: 'S-042 [CONTAINMENT FAILURE]',
+          },
+          ...leaderboard,
+        ];
+      } else if (leaderboardType === 'elo') {
+        eloLeaderboard = [
+          {
+            elo_rating: 0,
+            duel_wins: 0,
+            duel_losses: 0,
+            rank: 0,
+            user_id: 's-042',
+            username: 'S-042 [CONTAINMENT FAILURE]',
+          },
+          ...eloLeaderboard,
+        ];
+      } else if (leaderboardType === 'daily') {
+        dailyLeaderboard = [
+          {
+            rank: 0,
+            username: 'S-042 [CONTAINMENT FAILURE]',
+            avatar_url: null,
+            score: 0,
+          },
+          ...dailyLeaderboard,
+        ];
       }
     }
 
