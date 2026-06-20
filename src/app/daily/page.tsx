@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { CalendarDays, Trophy } from 'lucide-react';
 
@@ -19,6 +19,8 @@ export default function DailyPage() {
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true);
@@ -44,6 +46,33 @@ export default function DailyPage() {
   useEffect(() => {
     fetchChallenge();
   }, [fetchChallenge]);
+
+  // ── Auto-redirect to home after showing daily completion ──
+  useEffect(() => {
+    if (!challenge?.completed || redirectCountdown !== null) return;
+
+    setRedirectCountdown(3);
+  }, [challenge?.completed, redirectCountdown]);
+
+  useEffect(() => {
+    if (redirectCountdown === null) return;
+
+    if (redirectCountdown <= 0) {
+      window.location.href = '/';
+      return;
+    }
+
+    redirectTimerRef.current = setInterval(() => {
+      setRedirectCountdown((c) => (c !== null ? c - 1 : null));
+    }, 1000);
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearInterval(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
+  }, [redirectCountdown]);
 
   if (loading) {
     return (
@@ -126,6 +155,11 @@ export default function DailyPage() {
                 <p className="mt-3 text-sm font-medium leading-6 text-emerald-700">
                   You already played today's challenge. Each daily challenge is one attempt only — come back tomorrow for a new one!
                 </p>
+                {redirectCountdown !== null && redirectCountdown > 0 && (
+                  <p className="mt-3 text-sm font-semibold text-emerald-600">
+                    Redirecting to home page in {redirectCountdown} second{redirectCountdown !== 1 ? 's' : ''}…
+                  </p>
+                )}
               </div>
             ) : (
               <>

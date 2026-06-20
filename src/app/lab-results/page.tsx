@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Medal, Trophy } from 'lucide-react';
+import { CalendarDays, Medal, Trophy } from 'lucide-react';
 
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
@@ -229,6 +229,19 @@ export default async function LabResultsPage() {
 
   const modeResults = withRequiredModeRows(buildModeResults(data ?? []));
 
+  // ── Fetch daily challenge completions count ──
+  let dailyChallengeCount = 0;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count: dailyCount } = await (supabase.from('daily_challenge_log' as any) as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    dailyChallengeCount = dailyCount ?? 0;
+  } catch {
+    // Table may not exist yet — silently ignore
+  }
+
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
@@ -259,21 +272,31 @@ export default async function LabResultsPage() {
             </div>
           ) : (
             <>
-              <div className="mt-5 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-4">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Overall Average</p>
-                <p className="mt-1 text-3xl font-black text-slate-800">{formatNumber(calculateAverageScore(modeResults))}</p>
-                <p className="mt-1 text-xs font-medium text-slate-500">out of {MAX_MODE_SCORE}</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="h-4 w-full overflow-hidden rounded-full border-2 border-cyan-200 bg-white">
-                    <div
-                      aria-label="Overall average progress"
-                      className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
-                      style={{ width: `${getProgressPercent(calculateAverageScore(modeResults))}%` }}
-                    />
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Overall Average</p>
+                  <p className="mt-1 text-3xl font-black text-slate-800">{formatNumber(calculateAverageScore(modeResults))}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">out of {MAX_MODE_SCORE}</p>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="h-4 w-full overflow-hidden rounded-full border-2 border-cyan-200 bg-white">
+                      <div
+                        aria-label="Overall average progress"
+                        className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
+                        style={{ width: `${getProgressPercent(calculateAverageScore(modeResults))}%` }}
+                      />
+                    </div>
+                    <p className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
+                      {getProgressPercent(calculateAverageScore(modeResults))}%
+                    </p>
                   </div>
-                  <p className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
-                    {getProgressPercent(calculateAverageScore(modeResults))}%
-                  </p>
+                </div>
+                <div className="rounded-[1.4rem] border-2 border-amber-200 bg-amber-50 px-4 py-4">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-amber-500" />
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Daily Challenges</p>
+                  </div>
+                  <p className="mt-1 text-3xl font-black text-amber-800">{formatNumber(dailyChallengeCount)}</p>
+                  <p className="mt-1 text-xs font-medium text-amber-700">{dailyChallengeCount === 1 ? 'challenge completed all time' : 'challenges completed all time'}</p>
                 </div>
               </div>
               <ol className="mt-5 space-y-3">
