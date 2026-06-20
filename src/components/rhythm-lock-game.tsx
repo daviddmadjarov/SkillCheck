@@ -116,7 +116,7 @@ export default function RhythmLockGame({
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = streak > 5 ? 'sawtooth' : streak > 2 ? 'triangle' : 'sine';
+    osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now);
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(Math.min(0.12 + streak * 0.01, 0.25), now + 0.01);
