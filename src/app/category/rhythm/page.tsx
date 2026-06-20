@@ -12,7 +12,7 @@ import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard'
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
-type RhythmMode = 'sync' | 'timer';
+type RhythmMode = 'sync' | 'timer' | 'overclock';
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) {
@@ -52,6 +52,10 @@ async function loadRhythmPageData() {
 function getRhythmMode(value: string | undefined): RhythmMode {
   if (value === 'timer') {
     return 'timer';
+  }
+
+  if (value === 'overclock') {
+    return 'overclock';
   }
 
   return 'sync';
@@ -131,6 +135,9 @@ export default async function RhythmPage({
               <Link className={tabClass(mode === 'timer')} href="/category/rhythm?mode=timer">
                 Stop the Timer
               </Link>
+              <Link className={tabClass(mode === 'overclock')} href="/category/rhythm?mode=overclock">
+                Overclock
+              </Link>
             </div>
           </section>
         )}
@@ -139,7 +146,7 @@ export default async function RhythmPage({
 
         {!isMultiplayerSession && !isDailyGame ? (
           <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : 'perfect-sync'} visible={true} />
+            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : mode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
           </Suspense>
         ) : null}
       </div>

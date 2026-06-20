@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { BetweenRoundCountdown } from '@/components/between-round-countdown';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { ResponseTimer } from '@/components/response-timer';
+import RhythmLockGame from '@/components/rhythm-lock-game';
 import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
-type RhythmMode = 'sync' | 'timer';
+type RhythmMode = 'sync' | 'timer' | 'overclock';
 
 type RhythmProtocolsProps = {
   isSignedIn: boolean;
@@ -35,6 +36,12 @@ const MODE_META = {
     description: 'Memorize the early timer movement, then stop exactly at the target second while the display fades away.',
     kicker: 'Blind Time Control',
     title: 'Stop the Timer',
+  },
+  overclock: {
+    accent: 'border-rose-300 bg-rose-100 text-rose-800',
+    description: 'Hit the moving target as the ball orbits the ring — 20 seconds of escalating speed and reflex intensity.',
+    kicker: 'Reflex Overdrive',
+    title: 'Overclock',
   },
 } as const;
 
@@ -774,9 +781,95 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
   );
 }
 
+function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
+  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('overclock');
+  const cd = useDuelCountdown(isMultiplayerSession);
+  const hasAutoStarted = useRef(false);
+
+  const [finalScore, setFinalScore] = useState<number | null>(null);
+  const [bestScore, setBestScore] = useState<number | null>(null);
+  const gameKey = useRef(0);
+  const [, forceRender] = useState(0);
+
+  useEffect(() => {
+    if (!cd.launched || hasAutoStarted.current) return;
+    hasAutoStarted.current = true;
+    // Duel auto-start will trigger via the game's idle overlay being replaced
+  }, [cd.launched]);
+
+  const handleGameComplete = useCallback((score: number) => {
+    setFinalScore(score);
+    setBestScore((prev) => (prev === null ? score : Math.max(prev, score)));
+
+    if (isSignedIn) {
+      void fetch('/api/scores/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testSlug: 'overclock', score, ...multiplayerMeta }),
+      }).then(() => {
+        emitTelemetryAssessment('overclock', score);
+        if (isMultiplayerSession) goToIntermission();
+      });
+    }
+  }, [isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission]);
+
+  const handleScoreUpdate = useCallback((_score: number) => {
+    // Could be used for live stat display
+  }, []);
+
+  const retry = useCallback(() => {
+    gameKey.current += 1;
+    setFinalScore(null);
+    forceRender((c) => c + 1);
+  }, []);
+
+  return (
+    <RhythmShell
+      title={MODE_META.overclock.title}
+      kicker={MODE_META.overclock.kicker}
+      description={MODE_META.overclock.description}
+      accent={MODE_META.overclock.accent}
+      isSignedIn={isSignedIn}
+      stats={[
+        { label: 'Time limit', value: '20s', detail: 'Race the clock — every millisecond counts.' },
+        { label: 'Streak bonus', value: '+0.25x', detail: 'Speed increases by 0.25 rad/s per consecutive hit.' },
+        { label: 'Last score', value: finalScore === null ? '--' : String(finalScore), detail: 'Points = total successful checks.' },
+        { label: 'Best score', value: bestScore === null ? '--' : String(bestScore), detail: bestScore === null ? 'Complete a run to set a local best.' : `Personal best this session.` },
+      ]}
+    >
+      <div className="space-y-4">
+        <div className="relative min-h-[24rem] sm:min-h-[28rem]">
+          {cd.active && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-[2rem]">
+              <div className="text-center">
+                {cd.phase === 'go' ? (
+                  <p className="text-7xl font-black text-emerald-400">GO</p>
+                ) : (
+                  <p className="text-8xl font-black text-white">{cd.value}</p>
+                )}
+              </div>
+            </div>
+          )}
+          <RhythmLockGame
+            key={gameKey.current}
+            timeLimit={20}
+            initialSpeed={2}
+            onGameComplete={handleGameComplete}
+            onScoreUpdate={handleScoreUpdate}
+          />
+        </div>
+      </div>
+    </RhythmShell>
+  );
+}
+
 export function RhythmProtocols({ isSignedIn, mode }: RhythmProtocolsProps) {
   if (mode === 'timer') {
     return <StopTimer isSignedIn={isSignedIn} />;
+  }
+
+  if (mode === 'overclock') {
+    return <OverclockGame isSignedIn={isSignedIn} />;
   }
 
   return <SyncTest isSignedIn={isSignedIn} />;

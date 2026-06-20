@@ -84,6 +84,13 @@ export const MULTIPLAYER_GAME_POOL: MultiplayerGame[] = [
     label: 'Click Speed',
     slug: 'mouse-cps',
   },
+  {
+    category: 'rhythm',
+    description: 'Reflex ring-tracking game with escalating speed.',
+    href: '/category/rhythm?mode=overclock',
+    label: 'Overclock',
+    slug: 'overclock',
+  },
   // ── Rhythm ──
   {
     category: 'rhythm',
