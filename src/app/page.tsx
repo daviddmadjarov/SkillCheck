@@ -523,7 +523,18 @@ export default async function Home({
 
   // ── Render the Aethelgard Monitoring Room when anomalous access is active ──
   if (hasAnomalousAccess && user) {
-    return <MonitoringRoom />;
+    return (
+      <MonitoringRoom
+        displayName={displayName}
+        initials={initials}
+        completedProtocols={completedProtocols}
+        email={user.email ?? null}
+        hasAnomalousAccess={hasAnomalousAccess}
+        profileMessage={profileMessage}
+        profileUsername={profile?.username ?? ''}
+        user={user}
+      />
+    );
   }
 
   return (
