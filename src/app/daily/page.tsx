@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CalendarDays, Trophy } from 'lucide-react';
@@ -16,7 +16,7 @@ type DailyChallenge = {
   userScore: number | null;
 };
 
-export default function DailyPage() {
+function DailyPageContent() {
   const searchParams = useSearchParams();
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -202,5 +202,21 @@ export default function DailyPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function DailyPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen px-4 py-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+          <section className="rounded-[2rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-6 shadow-[0_8px_0_rgba(253,230,138,1)] sm:p-8">
+            <p className="text-sm font-medium text-slate-500">Loading today's challenge…</p>
+          </section>
+        </div>
+      </main>
+    }>
+      <DailyPageContent />
+    </Suspense>
   );
 }
