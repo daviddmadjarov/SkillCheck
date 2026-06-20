@@ -90,6 +90,15 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     ? new Date(new Date(firstSubmittedAt).getTime() + getRoundTimeLimitSeconds(currentRoundSlug) * 1000).toISOString()
     : null;
 
+  // ── Forfeit check ──
+  const forfeitedRaw = Array.isArray(resolvedSearchParams.forfeited)
+    ? resolvedSearchParams.forfeited[0]
+    : resolvedSearchParams.forfeited;
+  const forfeitedMessage = Array.isArray(resolvedSearchParams.message)
+    ? resolvedSearchParams.message[0]
+    : resolvedSearchParams.message;
+  const isForfeit = forfeitedRaw === '1';
+
   // ── DNF check (from in-game timer expiry) ──
   // When dnf=1, the player's timer expired and they already submitted score=0.
   // Skip the server-side wait — treat the round as resolved for this player.
@@ -98,8 +107,9 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     : resolvedSearchParams.dnf;
   const isDnf = dnfRaw === '1';
 
-  // When DNF, we consider it ready to advance (the player already submitted 0)
-  const initialReadyToAdvance = isDnf || (resolvedRound > roundIndex);
+  // When DNF or forfeited, we consider it ready to advance immediately
+  // (the player already submitted 0 via DNF, or the match ended via forfeit)
+  const initialReadyToAdvance = isDnf || isForfeit || (resolvedRound > roundIndex);
 
   const nextRound = roundIndex + 1;
   const nextToken = lobby.game_order[nextRound] ?? null;
@@ -110,15 +120,6 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
       round: nextRound,
     })
     : null;
-
-  // ── Forfeit check ──
-  const forfeitedRaw = Array.isArray(resolvedSearchParams.forfeited)
-    ? resolvedSearchParams.forfeited[0]
-    : resolvedSearchParams.forfeited;
-  const forfeitedMessage = Array.isArray(resolvedSearchParams.message)
-    ? resolvedSearchParams.message[0]
-    : resolvedSearchParams.message;
-  const isForfeit = forfeitedRaw === '1';
 
   // When a forfeit happens, end the entire session immediately — don't advance to next round
   const finalNextHref = isForfeit ? null : nextHref;
