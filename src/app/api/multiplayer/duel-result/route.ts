@@ -97,16 +97,38 @@ export async function GET(request: NextRequest) {
 
   // Compute elo change for current user
   const currentElo = currentProfile?.elo_rating ?? null;
-
-  // We don't have a direct "before" snapshot, so we estimate from the winner's perspective.
-  // The winner's elo went up, loser's went down. The current user's elo IS the after value.
-  // For simplicity, we report current elo and note if they won or lost.
   const isCurrentWinner = effectiveWinnerUserId === user.id;
+
+  // Calculate elo delta by reverse-engineering from both players' after-match elo.
+  // The Elo function: delta = round(K * (1 - 1/(1 + 10^((loser_before - winner_before)/400))))
+  // After match: winner_after = winner_before + delta, loser_after = loser_before - delta
+  // So: loser_before - winner_before = (loser_after + delta) - (winner_after - delta)
+  //                                   = loser_after - winner_after + 2*delta
+  // We solve iteratively: delta starts at 16 (K/2) and converges in ~3 iterations.
+  let computedDelta: number | null = null;
+  const winnerAfter = resultPlayers[0]?.elo ?? null;
+  const loserAfter = resultPlayers[1]?.elo ?? null;
+  if (winnerAfter !== null && loserAfter !== null) {
+    const K = 32;
+    let delta = K / 2;
+    for (let i = 0; i < 5; i++) {
+      const ratingDiff = (loserAfter - winnerAfter + 2 * delta) / 400;
+      const expected = 1.0 / (1.0 + Math.pow(10, ratingDiff));
+      const newDelta = Math.round(K * (1.0 - expected));
+      if (newDelta === delta) break;
+      delta = newDelta;
+    }
+    computedDelta = delta;
+  }
+
+  // Get the current user's elo delta
+  const userEloDelta = isCurrentWinner ? computedDelta : (computedDelta !== null ? -computedDelta : null);
 
   return NextResponse.json({
     currentDisplayName,
     currentUserId: user.id,
     currentElo,
+    eloDelta: userEloDelta,
     forfeited: lobby.forfeited ?? false,
     forfeitedMessage: lobby.forfeited
       ? `Opponent has left the match. ${winnerDisplayName ?? 'You'} win!`

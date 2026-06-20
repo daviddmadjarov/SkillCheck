@@ -17,6 +17,7 @@ type DuelResult = {
   currentDisplayName: string | null;
   currentUserId: string;
   currentElo: number | null;
+  eloDelta: number | null;
   forfeited: boolean;
   forfeitedMessage: string | null;
   isCurrentWinner: boolean;
@@ -86,7 +87,7 @@ function DuelResultContent() {
     );
   }
 
-  const { winnerDisplayName, players, forfeited, forfeitedMessage, isCurrentWinner, currentElo } = result;
+  const { winnerDisplayName, players, forfeited, forfeitedMessage, isCurrentWinner, currentElo, eloDelta } = result;
   const winner = players[0];
   const runnerUp = players[1];
 
@@ -166,10 +167,10 @@ function DuelResultContent() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Your Elo Rating</p>
               <p className="mt-2 text-lg font-bold text-slate-800">
                 <span className={isCurrentWinner ? 'text-emerald-600' : 'text-rose-600'}>{currentElo}</span>
-                {isCurrentWinner ? (
-                  <span className="ml-2 text-sm text-emerald-500">(+ gained Elo)</span>
-                ) : (
-                  <span className="ml-2 text-sm text-rose-500">(- lost Elo)</span>
+                {eloDelta !== null && (
+                  <span className={`ml-2 text-sm font-bold ${isCurrentWinner ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    ({isCurrentWinner ? '+' : ''}{eloDelta})
+                  </span>
                 )}
               </p>
               <p className="mt-1 text-sm font-medium text-slate-500">
