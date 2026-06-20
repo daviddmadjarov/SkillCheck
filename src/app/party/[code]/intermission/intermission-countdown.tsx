@@ -40,6 +40,32 @@ export function IntermissionCountdown({
   const [deadlineAt, setDeadlineAt] = useState<string | null>(initialDeadlineAt);
   const [remaining, setRemaining] = useState(seconds);
 
+  // Live deadline countdown — ticks every second while waiting
+  const [deadlineRemainingSeconds, setDeadlineRemainingSeconds] = useState<number | null>(
+    initialDeadlineAt ? Math.max(0, Math.ceil((new Date(initialDeadlineAt).getTime() - Date.now()) / 1000)) : null,
+  );
+
+  // Tick the deadline timer every second — only when waiting
+  useEffect(() => {
+    if (readyToAdvance) {
+      setDeadlineRemainingSeconds(null);
+      return;
+    }
+
+    // If we have a deadline, tick it down live
+    if (deadlineAt) {
+      const tick = () => {
+        const remainingSecs = Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / 1000));
+        setDeadlineRemainingSeconds(remainingSecs);
+      };
+      tick();
+      const tickId = window.setInterval(tick, 1000);
+      return () => window.clearInterval(tickId);
+    }
+
+    setDeadlineRemainingSeconds(null);
+  }, [deadlineAt, readyToAdvance]);
+
   useEffect(() => {
     if (readyToAdvance) {
       return;
@@ -112,10 +138,6 @@ export function IntermissionCountdown({
     router.replace(target);
   }, [fallbackHref, nextHref, duelResultHref, readyToAdvance, remaining, router]);
 
-  const deadlineRemainingSeconds = deadlineAt
-    ? Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / 1000))
-    : null;
-
   return (
     <div className="rounded-[1.4rem] border-2 border-cyan-200 bg-cyan-50 p-4 text-center">
       <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Intermission</p>
@@ -126,13 +148,28 @@ export function IntermissionCountdown({
             : `Session complete. Returning in ${remaining}s`
           : `Waiting for players: ${submittedCount}/${playersCount}`}
       </p>
-      {!readyToAdvance ? (
+
+      {/* Live deadline timer — visible while waiting */}
+      {!readyToAdvance && deadlineRemainingSeconds !== null && (
+        <div className="mt-2">
+          <span
+            className={`inline-block rounded-full border-2 px-3 py-1 text-sm font-bold ${
+              deadlineRemainingSeconds <= 10
+                ? 'border-rose-300 bg-rose-100 text-rose-700 animate-pulse'
+                : 'border-amber-200 bg-amber-50 text-amber-700'
+            }`}
+          >
+            ⏱ Round timer: {deadlineRemainingSeconds}s
+          </span>
+        </div>
+      )}
+
+      {!readyToAdvance && deadlineRemainingSeconds === null && (
         <p className="mt-2 text-sm font-medium text-slate-600">
-          {deadlineRemainingSeconds !== null
-            ? `Round time limit for ${gameSlug}: ${deadlineRemainingSeconds}s left`
-            : 'Round timer starts when the first player submits.'}
+          Round timer starts when the first player submits.
         </p>
-      ) : null}
+      )}
+
       {!isDuel ? (
         <button
           className="mt-4 rounded-xl border-2 border-cyan-700 bg-cyan-500 px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_rgba(14,116,144,1)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-cyan-400 hover:shadow-[0_6px_0_rgba(14,116,144,1)] active:translate-y-0.5 active:shadow-[0_0px_0_rgba(14,116,144,1)]"

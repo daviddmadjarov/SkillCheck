@@ -40,14 +40,29 @@ export async function GET(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: players } = await (supabase as any)
     .from('multiplayer_lobby_players')
-    .select('id, display_name, user_id, score_total')
+    .select('id, display_name, user_id, score_total, forfeited')
     .eq('lobby_id', lobby.id)
     .order('score_total', { ascending: false })
     .order('joined_at', { ascending: true });
 
+  // Determine the winner:
+  // 1. If lobby has a winner_user_id, use that (set by process_duel_completion)
+  // 2. If lobby is forfeited, the winner is the player NOT marked as forfeited
+  // 3. Never fallback to players[0] — that's ambiguous when scores are tied
+  let effectiveWinnerUserId: string | null = null;
+
+  if (lobby.winner_user_id) {
+    effectiveWinnerUserId = lobby.winner_user_id;
+  } else if (lobby.forfeited) {
+    // Find the non-forfeited player — they're the winner
+    const nonForfeited = (players ?? []).find(
+      (p: { forfeited: boolean }) => !p.forfeited,
+    );
+    effectiveWinnerUserId = nonForfeited?.user_id ?? null;
+  }
+
   // Get the winner's display name
   let winnerDisplayName: string | null = null;
-  const effectiveWinnerUserId = lobby.winner_user_id ?? players?.[0]?.user_id ?? null;
   if (effectiveWinnerUserId) {
     const winnerPlayer = (players ?? []).find(
       (p: { display_name: string; user_id: string }) => p.user_id === effectiveWinnerUserId,
@@ -85,9 +100,10 @@ export async function GET(request: NextRequest) {
   const currentDisplayName = currentPlayer?.display_name ?? currentProfile?.username ?? null;
 
   const resultPlayers = (players ?? []).map(
-    (p: { display_name: string; id: string; score_total: number; user_id: string }, index: number) => ({
+    (p: { display_name: string; id: string; score_total: number; user_id: string; forfeited?: boolean }, index: number) => ({
       displayName: p.display_name,
       elo: eloByUserId.get(p.user_id) ?? null,
+      forfeited: p.forfeited ?? false,
       isLeading: index === 0,
       rank: index + 1,
       scoreTotal: p.score_total,

@@ -7,6 +7,7 @@ import { Swords, Trophy, RotateCcw, Home, TrendingUp, TrendingDown } from 'lucid
 type PlayerInfo = {
   displayName: string;
   elo: number | null;
+  forfeited: boolean;
   isLeading: boolean;
   rank: number;
   scoreTotal: number;
