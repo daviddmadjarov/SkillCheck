@@ -2,10 +2,11 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Swords, Trophy, RotateCcw, Home } from 'lucide-react';
+import { Swords, Trophy, RotateCcw, Home, TrendingUp, TrendingDown } from 'lucide-react';
 
 type PlayerInfo = {
   displayName: string;
+  elo: number | null;
   isLeading: boolean;
   rank: number;
   scoreTotal: number;
@@ -13,15 +14,15 @@ type PlayerInfo = {
 };
 
 type DuelResult = {
-  winnerDisplayName: string | null;
-  winnerUserId: string | null;
-  winnerElo: number | null;
-  players: PlayerInfo[];
+  currentDisplayName: string | null;
+  currentUserId: string;
+  currentElo: number | null;
   forfeited: boolean;
   forfeitedMessage: string | null;
-  currentUserId: string | null;
-  currentUserEloBefore: number | null;
-  currentDisplayName: string | null;
+  isCurrentWinner: boolean;
+  players: PlayerInfo[];
+  winnerDisplayName: string | null;
+  winnerUserId: string | null;
 };
 
 function DuelResultContent() {
@@ -85,10 +86,9 @@ function DuelResultContent() {
     );
   }
 
-  const { winnerDisplayName, players, forfeited, forfeitedMessage } = result;
+  const { winnerDisplayName, players, forfeited, forfeitedMessage, isCurrentWinner, currentElo } = result;
   const winner = players[0];
   const runnerUp = players[1];
-  const isWinner = result.currentUserId === result.winnerUserId;
 
   return (
     <main className="min-h-screen px-4 py-6">
@@ -113,7 +113,7 @@ function DuelResultContent() {
               </p>
             ) : (
               <p className="mt-3 text-base font-medium leading-6 text-slate-500">
-                {isWinner ? 'Great performance — you won the duel!' : 'Tough match — better luck next time.'}
+                {isCurrentWinner ? 'Great performance — you won the duel!' : 'Tough match — better luck next time.'}
               </p>
             )}
           </div>
@@ -129,43 +129,53 @@ function DuelResultContent() {
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {/* Winner card */}
             {winner && (
-              <div className={`rounded-[1.4rem] border-2 p-5 ${isWinner ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+              <div className={`rounded-[1.4rem] border-2 p-5 ${isCurrentWinner ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600">Winner</p>
                 <p className="mt-2 text-2xl font-black text-slate-800">{winner.displayName}</p>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   {winner.displayName === result.currentDisplayName ? '(You)' : ''} — {winner.scoreTotal} pts
                 </p>
+                {winner.elo !== null && (
+                  <p className="mt-1 text-sm font-bold text-emerald-600">
+                    Elo: {winner.elo} <TrendingUp className="inline h-4 w-4" />
+                  </p>
+                )}
               </div>
             )}
 
             {/* Runner-up card */}
             {runnerUp && (
-              <div className={`rounded-[1.4rem] border-2 p-5 ${!isWinner && runnerUp.userId === result.currentUserId ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
+              <div className={`rounded-[1.4rem] border-2 p-5 ${!isCurrentWinner ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Runner-up</p>
                 <p className="mt-2 text-2xl font-black text-slate-800">{runnerUp.displayName}</p>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                   {runnerUp.displayName === result.currentDisplayName ? '(You)' : ''} — {runnerUp.scoreTotal} pts
                 </p>
+                {runnerUp.elo !== null && (
+                  <p className="mt-1 text-sm font-bold text-rose-600">
+                    Elo: {runnerUp.elo} <TrendingDown className="inline h-4 w-4" />
+                  </p>
+                )}
               </div>
             )}
           </div>
 
-          {/* Elo changes */}
-          {result.winnerElo !== null && (
+          {/* Your Elo */}
+          {currentElo !== null && (
             <div className="mt-4 rounded-[1.2rem] border-2 border-cyan-200 bg-cyan-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Elo Rating</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Your Elo Rating</p>
               <p className="mt-2 text-lg font-bold text-slate-800">
-                Winner's new Elo: <span className="text-emerald-600">{result.winnerElo}</span>
-                {result.currentUserEloBefore !== null && !isWinner && (
-                  <span className="ml-4 text-rose-600">
-                    (was: {result.currentUserEloBefore})
-                  </span>
+                <span className={isCurrentWinner ? 'text-emerald-600' : 'text-rose-600'}>{currentElo}</span>
+                {isCurrentWinner ? (
+                  <span className="ml-2 text-sm text-emerald-500">(+ gained Elo)</span>
+                ) : (
+                  <span className="ml-2 text-sm text-rose-500">(- lost Elo)</span>
                 )}
               </p>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {isWinner
-                  ? `Your Elo is now ${result.winnerElo}. Keep dueling to climb the ranks!`
-                  : `The winner's Elo is now ${result.winnerElo}. Queue again to improve your rating.`}
+                {isCurrentWinner
+                  ? 'Your rating increased. Keep dueling to climb the ranks!'
+                  : 'Your rating adjusted. Queue again to improve.'}
               </p>
             </div>
           )}

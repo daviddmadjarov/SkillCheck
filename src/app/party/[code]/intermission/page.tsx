@@ -45,6 +45,22 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
     .order('score_total', { ascending: false })
     .order('joined_at', { ascending: true });
 
+  // Fetch elo for all players in the lobby
+  const eloPlayerIds = (players ?? []).map((p) => p.user_id).filter(Boolean);
+  const eloByUserId = new Map<string, number>();
+  if (eloPlayerIds.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profiles } = await (supabase as any)
+      .from('profiles')
+      .select('id, elo_rating')
+      .in('id', eloPlayerIds);
+    if (profiles) {
+      (profiles as Array<{ id: string; elo_rating: number | null }>).forEach((p) => {
+        if (p.elo_rating !== null) eloByUserId.set(p.id, p.elo_rating);
+      });
+    }
+  }
+
   const currentRoundSlug = getRoundSlugFromGameOrder(lobby.game_order, roundIndex);
   const resolvedRound = await resolveSynchronizedRoundIndex({
     gameOrder: lobby.game_order,
@@ -151,11 +167,12 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
         <section className="rounded-[1.8rem] border-2 border-slate-200 bg-white p-5 shadow-[0_6px_0_rgba(226,232,240,1)]">
           <div className="flex items-center gap-2 text-slate-700">
             <Trophy className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-bold">Current session ranking</span>
+            <span className="text-sm font-bold">Current Standings</span>
           </div>
           <div className="mt-4 space-y-3">
             {(players ?? []).map((entry, index) => {
               const isCurrent = entry.id === playerId;
+              const playerElo = eloByUserId.get(entry.user_id) ?? null;
 
               return (
                 <div
@@ -173,7 +190,12 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-black text-slate-800">{entry.display_name}</p>
+                      <p className="font-black text-slate-800">
+                        {entry.display_name}
+                        {playerElo !== null && (
+                          <span className="ml-2 text-sm font-bold text-slate-500">({playerElo})</span>
+                        )}
+                      </p>
                       <p className="text-sm font-medium text-slate-500">
                         {index === 0 ? 'Currently leading' : isCurrent ? 'You' : 'In session'}
                       </p>
