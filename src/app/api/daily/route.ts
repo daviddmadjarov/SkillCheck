@@ -33,6 +33,8 @@ export async function GET() {
 
   // Check if the current user has already submitted a score for today
   let userEntry: { score: number } | null = null;
+  let userRank: number | null = null;
+  let totalParticipants: number = 0;
 
   if (hasSupabaseEnv()) {
     try {
@@ -49,6 +51,22 @@ export async function GET() {
           .maybeSingle() as { data: { score: number } | null };
 
         userEntry = data;
+
+        // Calculate user's rank among all daily participants
+        if (userEntry) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { count: total } = await (supabase.from('daily_challenge_log' as any) as any)
+            .select('*', { count: 'exact', head: true })
+            .eq('challenge_date', challengeDate);
+          totalParticipants = total ?? 0;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { count: ahead } = await (supabase.from('daily_challenge_log' as any) as any)
+            .select('*', { count: 'exact', head: true })
+            .eq('challenge_date', challengeDate)
+            .gt('score', userEntry.score);
+          userRank = (ahead ?? 0) + 1;
+        }
       }
     } catch {
       // Silently handle — guest users can still see the daily challenge
@@ -64,5 +82,7 @@ export async function GET() {
     gameHref: game.href,
     completed: userEntry !== null,
     userScore: userEntry?.score ?? null,
+    userRank,
+    totalParticipants,
   });
 }

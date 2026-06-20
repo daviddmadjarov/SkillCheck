@@ -14,6 +14,8 @@ type DailyChallenge = {
   gameHref: string;
   completed: boolean;
   userScore: number | null;
+  userRank: number | null;
+  totalParticipants: number;
 };
 
 function DailyPageContent() {
@@ -169,6 +171,11 @@ function DailyPageContent() {
                     </p>
                   </div>
                 </div>
+                <p className="mt-2 text-sm font-bold text-emerald-700">
+                  {challenge.userRank !== null && challenge.totalParticipants > 0
+                    ? `You placed #${challenge.userRank} out of ${challenge.totalParticipants} participant${challenge.totalParticipants !== 1 ? 's' : ''}.`
+                    : 'Results will appear once other players complete today\'s challenge.'}
+                </p>
                 <p className="mt-3 text-sm font-medium leading-6 text-emerald-700">
                   You already played today's challenge. Each daily challenge is one attempt only — come back tomorrow for a new one!
                 </p>
