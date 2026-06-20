@@ -10,10 +10,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
  * (meaning the opponent finished or the timer ran out), and automatically
  * redirects to the intermission/scoreboard.
  *
- * CRITICAL: Only sends the leave/forfeit signal on actual tab/window close
- * (beforeunload event), NOT on React unmount from normal navigation.
- * This prevents false forfeits when a player finishes a game and routes
- * to the intermission page.
+ * CRITICAL: Detects navigation away from the game page (browser back/forward,
+ * clicking footer links, etc.) and immediately triggers a full forfeit via
+ * the heartbeat endpoint — this ends the entire match and crowns the opponent
+ * the winner. This is distinct from the round timer DNF (which only gives
+ * 0 points for one round and advances to the next).
  */
 export function MultiplayerSessionGuard() {
   const router = useRouter();
@@ -29,6 +30,24 @@ export function MultiplayerSessionGuard() {
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
   const mountedRef = useRef(true);
   const tabClosingRef = useRef(false);
+  const forfeitSentRef = useRef(false);
+
+  /**
+   * Sends a forfeit signal via the heartbeat endpoint with leave: true.
+   * This triggers process_duel_forfeit on the server which ends the match
+   * and awards victory to the opponent. Only fires once per mount.
+   */
+  function sendForfeit() {
+    if (forfeitSentRef.current || !lobbyCode) return;
+    forfeitSentRef.current = true;
+
+    fetch('/api/multiplayer/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lobbyCode, leave: true }),
+      keepalive: true,
+    }).catch(() => {});
+  }
 
   useEffect(() => {
     if (!isMultiplayer || !lobbyCode || !playerId || !gameSlug) return;
@@ -39,8 +58,41 @@ export function MultiplayerSessionGuard() {
     // Track tab/window close via beforeunload
     const handleBeforeUnload = () => {
       tabClosingRef.current = true;
+      sendForfeit();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // ── Browser back/forward navigation (popstate) ──
+    // Fires when the user clicks browser back/forward or uses swipe gestures.
+    // Triggers an instant full forfeit.
+    const handlePopState = () => {
+      if (!mountedRef.current || forfeitSentRef.current) return;
+      sendForfeit();
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    // ── Intercept clicks on <a> tags that navigate away ──
+    // Catches footer links (Imprint, TOS, Privacy, etc.) and any other
+    // internal navigation that leaves the game page.
+    function handleLinkClick(e: MouseEvent) {
+      const target = (e.target as HTMLElement).closest('a');
+      if (!target) return;
+
+      const href = target.getAttribute('href');
+      if (!href) return;
+
+      // Allow navigation to intermission (game completed normally)
+      if (href.includes('/intermission')) return;
+
+      // Allow navigation to duel result page
+      if (href.includes('/duel/result')) return;
+
+      // For any other link click, trigger forfeit
+      if (!forfeitSentRef.current) {
+        sendForfeit();
+      }
+    }
+    document.addEventListener('click', handleLinkClick, { capture: true });
 
     // ── Poll session status every 2s (round advancement) ──
     const statusInterval = window.setInterval(async () => {
@@ -94,17 +146,15 @@ export function MultiplayerSessionGuard() {
     return () => {
       mountedRef.current = false;
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('click', handleLinkClick, { capture: true });
       window.clearInterval(statusInterval);
 
-      // Only signal leave if the tab/window is actually closing,
+      // Only signal forfeit if the tab/window is actually closing,
       // NOT during normal app navigation (e.g., routing to intermission).
-      if (tabClosingRef.current && lobbyCode) {
-        fetch('/api/multiplayer/heartbeat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lobbyCode, leave: true }),
-          keepalive: true,
-        }).catch(() => {});
+      // The popstate and click handlers already handle non-tab abandonment.
+      if (tabClosingRef.current && lobbyCode && !forfeitSentRef.current) {
+        sendForfeit();
       }
     };
   }, [isMultiplayer, lobbyCode, playerId, gameSlug, round, router]);

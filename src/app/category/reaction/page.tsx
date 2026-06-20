@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { AudioReactionProtocol } from '@/app/category/reaction/audio-reaction-protocol';
 import { MultiReactionProtocol } from '@/app/category/reaction/multi-reaction-protocol';
 import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
+import { DuelRoundTimer } from '@/components/duel-round-timer';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -156,12 +157,20 @@ export default async function ReactionPage({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 sm:block">
-              {displayName}
+            <div className="hidden items-center gap-3 sm:flex">
+              <DuelRoundTimer />
+              <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+                {displayName}
+              </div>
             </div>
             {isMultiplayerSession ? (
-              <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
-                In Duel — Cannot leave
+              <div className="flex items-center gap-2">
+                <div className="sm:hidden">
+                  <DuelRoundTimer />
+                </div>
+                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
+                  In Duel — Cannot leave
+                </div>
               </div>
             ) : (
               <Link className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
