@@ -330,8 +330,10 @@ function CpsTester({isSignedIn}:{initialDuration?:5|10|15;isSignedIn:boolean}){
   const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('mouse-cps');
   const [duration]=useState(10);const [started,setStarted]=useState(false);const [finished,setFinished]=useState(false);const [clicks,setClicks]=useState(0);
   const [elapsedMs,setElapsedMs]=useState(0);const [startMs,setStartMs]=useState<number|null>(null);const [timestamps,setTimestamps]=useState<number[]>([]);
+  const [canRetry,setCanRetry]=useState(false);
   const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;handleClick();},[cd.launched]);//eslint-disable-line
+  useEffect(()=>{if(!finished){setCanRetry(false);return}const t=setTimeout(()=>setCanRetry(true),1500);return()=>clearTimeout(t)},[finished]);
   const secondsLeft=Math.max(0,duration-Math.floor(elapsedMs/1000));
   const peakCps=useMemo(()=>{if(!timestamps.length)return 0;let best=0;for(let i=0;i<timestamps.length;i++){let c=0;for(let j=i;j<timestamps.length&&timestamps[j]-timestamps[i]<=1000;j++)c++;best=Math.max(best,c)}return best},[timestamps]);
   const labScore=clamp(Math.round(((clicks/Math.max(duration,1)*0.75+peakCps*0.25)/20)*1000),0,1000);
@@ -342,7 +344,7 @@ function CpsTester({isSignedIn}:{initialDuration?:5|10|15;isSignedIn:boolean}){
       {cd.active&&<div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
       <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 sm:min-h-[28rem]">
         <button className={`absolute inset-0 z-10 flex h-full w-full cursor-pointer items-center justify-center rounded-[2rem] bg-white/80 text-center shadow-sm transition hover:bg-white ${finished?'pointer-events-none':''}`} onClick={handleClick} type="button"><span><span className="block text-5xl font-black tracking-tight text-slate-800">{clicks}</span><span className="mt-2 block text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{started?'Click as fast as possible':'Click to start'}</span></span></button>
-        {finished&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><button className="lab-button" onClick={()=>{setClicks(0);setStarted(false);setFinished(false);setElapsedMs(0);setStartMs(null);setTimestamps([])}} type="button">Start New Run</button></div>}
+        {finished&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-sm"><button className={`lab-button ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={()=>{setClicks(0);setStarted(false);setFinished(false);setElapsedMs(0);setStartMs(null);setTimestamps([])}} type="button">Start New Run</button></div>}
       </div>
     </div></div>
   </MouseShell>
