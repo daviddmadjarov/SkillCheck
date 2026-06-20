@@ -88,6 +88,22 @@ export function ProfilePanel({
     }
   };
 
+  const handleSeverUplink = async () => {
+    if (isWritingMetadata) return;
+    setIsWritingMetadata(true);
+
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      await supabase.auth.updateUser({ data: { anomalous_access: false } });
+      setAccessGranted(false);
+    } catch {
+      setAccessGranted(false);
+    } finally {
+      setIsWritingMetadata(false);
+    }
+  };
+
   const handleTerminalComplete = () => {
     setTerminalVisible(false);
   };
@@ -193,8 +209,18 @@ export function ProfilePanel({
           {soundEnabled ? 'Turn Sounds Off' : 'Turn Sounds On'}
         </button>
 
-        {/* ── Staff Access button (lore) ── */}
-        {showStaffAccess ? (
+        {/* ── Staff Access / Sever Uplink toggle (lore) ── */}
+        {accessGranted ? (
+          <button
+            type="button"
+            onClick={handleSeverUplink}
+            disabled={isWritingMetadata}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-rose-400 transition-all duration-150 hover:text-rose-600 hover:border-rose-400 border-rose-200 bg-rose-50/50"
+          >
+            <ShieldAlert className="h-3 w-3" />
+            {isWritingMetadata ? 'Sewering...' : 'Sever Uplink'}
+          </button>
+        ) : showStaffAccess ? (
           <button
             type="button"
             onClick={handleStaffAccess}
@@ -204,10 +230,6 @@ export function ProfilePanel({
             <ShieldAlert className="h-3 w-3" />
             {isWritingMetadata ? 'Accessing...' : 'Staff Access'}
           </button>
-        ) : accessGranted ? (
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-rose-400/60">
-            Diagnostic Override Active
-          </p>
         ) : completedProtocols > 0 ? (
           <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300/50">
             Protocols completed: {completedProtocols}/{REQUIRED_PROTOCOLS}
