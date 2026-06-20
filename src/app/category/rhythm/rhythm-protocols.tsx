@@ -784,17 +784,17 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
 function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('overclock');
   const cd = useDuelCountdown(isMultiplayerSession);
-  const hasAutoStarted = useRef(false);
 
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [bestScore, setBestScore] = useState<number | null>(null);
-  const gameKey = useRef(0);
-  const [, forceRender] = useState(0);
+  const [gameKey, setGameKey] = useState(0);
+  const [autoStart, setAutoStart] = useState(false);
 
+  // In duel/party: start game when countdown finishes
   useEffect(() => {
-    if (!cd.launched || hasAutoStarted.current) return;
-    hasAutoStarted.current = true;
-    // Duel auto-start will trigger via the game's idle overlay being replaced
+    if (cd.launched) {
+      setAutoStart(true);
+    }
   }, [cd.launched]);
 
   const handleGameComplete = useCallback((score: number) => {
@@ -818,9 +818,8 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   }, []);
 
   const retry = useCallback(() => {
-    gameKey.current += 1;
+    setGameKey((k) => k + 1);
     setFinalScore(null);
-    forceRender((c) => c + 1);
   }, []);
 
   return (
@@ -851,9 +850,10 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
             </div>
           )}
           <RhythmLockGame
-            key={gameKey.current}
+            key={gameKey}
             timeLimit={30}
             initialSpeed={2}
+            autoStart={autoStart}
             onGameComplete={handleGameComplete}
             onScoreUpdate={handleScoreUpdate}
           />
