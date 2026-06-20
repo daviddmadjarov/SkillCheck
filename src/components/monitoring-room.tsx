@@ -164,7 +164,7 @@ export function MonitoringRoom({
   return (
     <>
       {showLoreTerminal && <LoreTerminal variant={loreTerminalVariant} onComplete={handleLoreTerminalComplete} />}
-      <main className="flex min-h-full flex-col bg-[#060d18] text-slate-200">
+      <main className="flex flex-1 flex-col bg-[#060d18] text-slate-200">
         {/* Dark header bar */}
         <header className="sticky top-0 z-40 border-b border-cyan-900/50 bg-[#0a1628]/95 backdrop-blur-sm">
           <div className="mx-auto flex w-full max-w-[1240px] items-center justify-between px-4 py-3 sm:px-6">

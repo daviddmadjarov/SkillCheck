@@ -6,7 +6,7 @@ const footerLinkClassName =
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-cyan-900/50 bg-[#0a1628] px-4 pb-6 pt-8 sm:px-6">
+    <footer className="border-t border-cyan-900/50 bg-[#0a1628] px-4 pb-6 pt-8 sm:px-6">
       <div className="site-footer-shell mx-auto flex w-full max-w-[1240px] flex-col gap-4 rounded-[1.7rem] border-2 border-slate-700 bg-slate-900/80 px-4 py-4 shadow-[0_4px_0_rgba(30,41,59,1)] backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="space-y-1">
           <p className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-500">
