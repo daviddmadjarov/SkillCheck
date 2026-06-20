@@ -131,6 +131,44 @@ export async function GET(request: NextRequest) {
   // ── Normal match completion: all rounds resolved, trigger Elo processing ──
   if (isSessionFinished && lobby.status === 'live' && lobby.mode === 'duel' && !lobby.winner_user_id) {
     const duelPlayers = sessionPlayers ?? [];
+
+    // ── Check for tie: both players have the same total score ──
+    const isTie = duelPlayers.length >= 2 && duelPlayers[0].score_total === duelPlayers[1].score_total;
+
+    if (isTie) {
+      // Tie: mark lobby as finished but don't call process_duel_completion (no Elo change)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('multiplayer_lobbies')
+        .update({ status: 'finished', updated_at: new Date().toISOString() })
+        .eq('id', lobby.id);
+
+      lobby.status = 'finished';
+
+      const tieStandings = duelPlayers.map(
+        (p: { display_name: string; id: string; score_total: number; user_id: string }, index: number) => ({
+          displayName: p.display_name,
+          forfeited: false,
+          isLeading: false,
+          playerId: p.id,
+          rank: 1, // both rank 1 in a tie
+          scoreTotal: p.score_total,
+          userId: p.user_id,
+        }),
+      );
+
+      return NextResponse.json({
+        forfeited: false,
+        isSessionFinished: true,
+        isTie: true,
+        playersCount: duelPlayers.length,
+        readyToAdvance: true,
+        standings: tieStandings,
+        submittedCount: duelPlayers.length,
+        totalRounds: lobby.game_order.length,
+      });
+    }
+
     if (duelPlayers.length >= 2) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: completionResult } = await (supabase.rpc as any)('process_duel_completion', {

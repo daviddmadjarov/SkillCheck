@@ -45,13 +45,20 @@ export async function GET(request: NextRequest) {
     .order('score_total', { ascending: false })
     .order('joined_at', { ascending: true });
 
-  // Determine the winner:
-  // 1. If lobby has a winner_user_id, use that (set by process_duel_completion)
-  // 2. If lobby is forfeited, the winner is the player NOT marked as forfeited
-  // 3. Never fallback to players[0] — that's ambiguous when scores are tied
+  // ── Tie detection ──
+  // If both players have the same total score and there's no winner_user_id,
+  // it's a tie. No Elo changes.
+  const isTie = !lobby.winner_user_id
+    && !lobby.forfeited
+    && (players ?? []).length >= 2
+    && players[0].score_total === players[1].score_total;
+
+  // Determine the winner (only if not a tie):
   let effectiveWinnerUserId: string | null = null;
 
-  if (lobby.winner_user_id) {
+  if (isTie) {
+    effectiveWinnerUserId = null;
+  } else if (lobby.winner_user_id) {
     effectiveWinnerUserId = lobby.winner_user_id;
   } else if (lobby.forfeited) {
     // Find the non-forfeited player — they're the winner
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
     effectiveWinnerUserId = nonForfeited?.user_id ?? null;
   }
 
-  // Get the winner's display name
+  // Get the winner's display name (null for ties)
   let winnerDisplayName: string | null = null;
   if (effectiveWinnerUserId) {
     const winnerPlayer = (players ?? []).find(
@@ -113,7 +120,7 @@ export async function GET(request: NextRequest) {
 
   // Compute elo change for current user
   const currentElo = currentProfile?.elo_rating ?? null;
-  const isCurrentWinner = effectiveWinnerUserId === user.id;
+  const isCurrentWinner = !isTie && effectiveWinnerUserId === user.id;
 
   // Calculate elo delta by reverse-engineering from both players' after-match elo.
   // The Elo function: delta = round(K * (1 - 1/(1 + 10^((loser_before - winner_before)/400))))
@@ -144,12 +151,13 @@ export async function GET(request: NextRequest) {
     currentDisplayName,
     currentUserId: user.id,
     currentElo,
-    eloDelta: userEloDelta,
+    eloDelta: isTie ? 0 : userEloDelta,
     forfeited: lobby.forfeited ?? false,
     forfeitedMessage: lobby.forfeited
       ? `Opponent has left the match. ${winnerDisplayName ?? 'You'} win!`
       : null,
     isCurrentWinner,
+    isTie,
     players: resultPlayers,
     winnerDisplayName,
     winnerUserId: effectiveWinnerUserId,

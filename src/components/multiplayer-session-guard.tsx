@@ -29,7 +29,25 @@ export function MultiplayerSessionGuard() {
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
   const forfeitSentRef = useRef(false);
-  const intentionalNavRef = useRef(false); // true when we deliberately redirect to intermission/result
+
+  /**
+   * Forfeit flag that auto-clears after 800ms.
+   * Set to true when we deliberately navigate to intermission/result,
+   * so the same-event pagehide doesn't trigger forfeit.
+   * Auto-clears so future popstate (back button) does trigger forfeit.
+   */
+  const intentionalNavRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function setIntentionalNav() {
+    if (intentionalNavRef.current) clearTimeout(intentionalNavRef.current);
+    intentionalNavRef.current = setTimeout(() => {
+      intentionalNavRef.current = null;
+    }, 800);
+  }
+
+  function isIntentionalNav() {
+    return intentionalNavRef.current !== null;
+  }
 
   function sendForfeit() {
     if (forfeitSentRef.current || !lobbyCode) return;
@@ -47,34 +65,44 @@ export function MultiplayerSessionGuard() {
     if (!isMultiplayer || !lobbyCode || !playerId || !gameSlug) return;
 
     forfeitSentRef.current = false;
-    intentionalNavRef.current = false;
+    if (intentionalNavRef.current) {
+      clearTimeout(intentionalNavRef.current);
+      intentionalNavRef.current = null;
+    }
 
-    // ── beforeunload: fires on tab/window close ──
+    // ── beforeunload ──
     const handleBeforeUnload = () => {
       sendForfeit();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // ── pagehide: fires on tab close or navigation away.
-    // We skip forfeit if:
-    //   - intentionalNavRef is set (deliberate navigation to intermission/result)
-    //   - __skillcheck_dnf is set (timer expired, DNF submitted — not abandonment)
+    // ── pagehide ──
     const handlePageHide = () => {
-      if (intentionalNavRef.current) return;
+      if (isIntentionalNav()) return;
       if ((window as any).__skillcheck_dnf) return;
       sendForfeit();
     };
     window.addEventListener('pagehide', handlePageHide);
 
-    // ── popstate: fires on browser back/forward buttons ──
+    // ── visibilitychange ──
+    // Catches back-button on mobile browsers where pagehide may not fire
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Don't forfeit immediately — the user may just be switching tabs.
+        // But if they navigate away (back button), pagehide or popstate will fire.
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // ── popstate (browser back/forward) ──
     const handlePopState = () => {
-      if (intentionalNavRef.current) return;
+      if (isIntentionalNav()) return;
       if ((window as any).__skillcheck_dnf) return;
       sendForfeit();
     };
     window.addEventListener('popstate', handlePopState);
 
-    // ── Intercept clicks on <a> tags that navigate away ──
+    // ── Intercept <a> clicks ──
     function handleLinkClick(e: MouseEvent) {
       const target = (e.target as HTMLElement).closest('a');
       if (!target) return;
@@ -82,9 +110,8 @@ export function MultiplayerSessionGuard() {
       const href = target.getAttribute('href');
       if (!href) return;
 
-      // Allowed destinations — do not forfeit
-      if (href.includes('/intermission')) { intentionalNavRef.current = true; return; }
-      if (href.includes('/duel/result')) { intentionalNavRef.current = true; return; }
+      if (href.includes('/intermission')) { setIntentionalNav(); return; }
+      if (href.includes('/duel/result')) { setIntentionalNav(); return; }
 
       sendForfeit();
     }
@@ -117,7 +144,7 @@ export function MultiplayerSessionGuard() {
           if (payload.forfeitedMessage) {
             params.set('message', payload.forfeitedMessage);
           }
-          intentionalNavRef.current = true;
+          setIntentionalNav();
           router.push(`/party/${lobbyCode}/intermission?${params.toString()}`);
           return;
         }
@@ -127,7 +154,7 @@ export function MultiplayerSessionGuard() {
           params.set('game', gameSlug);
           params.set('player', playerId);
           params.set('round', String(round));
-          intentionalNavRef.current = true;
+          setIntentionalNav();
           router.push(`/party/${lobbyCode}/intermission?${params.toString()}`);
         }
       } catch {
@@ -138,9 +165,14 @@ export function MultiplayerSessionGuard() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('click', handleLinkClick, { capture: true });
       window.clearInterval(statusInterval);
+      if (intentionalNavRef.current) {
+        clearTimeout(intentionalNavRef.current);
+        intentionalNavRef.current = null;
+      }
     };
   }, [isMultiplayer, lobbyCode, playerId, gameSlug, round, router]);
 

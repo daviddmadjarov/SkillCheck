@@ -22,6 +22,7 @@ type DuelResult = {
   forfeited: boolean;
   forfeitedMessage: string | null;
   isCurrentWinner: boolean;
+  isTie: boolean;
   players: PlayerInfo[];
   winnerDisplayName: string | null;
   winnerUserId: string | null;
@@ -88,7 +89,7 @@ function DuelResultContent() {
     );
   }
 
-  const { winnerDisplayName, players, forfeited, forfeitedMessage, isCurrentWinner, currentElo, eloDelta } = result;
+  const { winnerDisplayName, players, forfeited, forfeitedMessage, isCurrentWinner, isTie, currentElo, eloDelta } = result;
   const winner = players[0];
   const runnerUp = players[1];
 
@@ -106,12 +107,16 @@ function DuelResultContent() {
             </div>
 
             <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-800">
-              {winnerDisplayName ?? 'Unknown'} Wins!
+              {isTie ? 'It\'s a Tie!' : `${winnerDisplayName ?? 'Unknown'} Wins!`}
             </h1>
 
             {forfeited && forfeitedMessage ? (
               <p className="mt-3 rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
                 {forfeitedMessage}
+              </p>
+            ) : isTie ? (
+              <p className="mt-3 text-base font-medium leading-6 text-slate-500">
+                Both players finished with the same total score. No Elo changes.
               </p>
             ) : (
               <p className="mt-3 text-base font-medium leading-6 text-slate-500">
@@ -162,22 +167,22 @@ function DuelResultContent() {
             )}
           </div>
 
-          {/* Your Elo */}
+          {/* Your Elo — no change on tie */}
           {currentElo !== null && (
             <div className="mt-4 rounded-[1.2rem] border-2 border-cyan-200 bg-cyan-50 p-4">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-700">Your Elo Rating</p>
               <p className="mt-2 text-lg font-bold text-slate-800">
                 <span className={isCurrentWinner ? 'text-emerald-600' : 'text-rose-600'}>{currentElo}</span>
-                {eloDelta !== null && (
+                {isTie ? (
+                  <span className="ml-2 text-sm font-bold text-slate-500">(0 — tie)</span>
+                ) : eloDelta !== null ? (
                   <span className={`ml-2 text-sm font-bold ${isCurrentWinner ? 'text-emerald-500' : 'text-rose-500'}`}>
                     ({isCurrentWinner ? '+' : ''}{eloDelta})
                   </span>
-                )}
+                ) : null}
               </p>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {isCurrentWinner
-                  ? 'Your rating increased. Keep dueling to climb the ranks!'
-                  : 'Your rating adjusted. Queue again to improve.'}
+                {isTie ? 'No Elo change — tied match.' : isCurrentWinner ? 'Your rating increased. Keep dueling to climb the ranks!' : 'Your rating adjusted. Queue again to improve.'}
               </p>
             </div>
           )}
