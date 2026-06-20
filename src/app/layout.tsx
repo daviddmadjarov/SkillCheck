@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SiteFooter } from './site-footer';
 import { ThemeProvider } from './theme-provider';
+import { SoundToggleProvider } from '@/lib/sound-toggle-context';
 import { CookieConsent } from '@/components/cookie-consent';
 import { InteractiveSounds } from '@/components/interactive-sounds';
 
@@ -25,12 +26,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="bg-dots min-h-screen">
         <ThemeProvider>
-          <InteractiveSounds />
-          <div className="flex min-h-screen flex-col">
-            <div className="flex-1">{children}</div>
-            <SiteFooter />
-          </div>
-          <CookieConsent />
+          <SoundToggleProvider>
+            <InteractiveSounds />
+            <div className="flex min-h-screen flex-col">
+              <div className="flex-1">{children}</div>
+              <SiteFooter />
+            </div>
+            <CookieConsent />
+          </SoundToggleProvider>
         </ThemeProvider>
       </body>
     </html>

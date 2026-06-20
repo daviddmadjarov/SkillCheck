@@ -6,6 +6,7 @@ import {
   playReturnToLabClick,
   playStartSound,
 } from '@/lib/audio/sounds';
+import { useSoundToggle } from '@/lib/sound-toggle-context';
 
 type CtxRef = { current: AudioContext | null };
 
@@ -155,10 +156,13 @@ function playClickSound(ctxRef: CtxRef) {
  * Drop it once anywhere inside the page layout.
  */
 export function InteractiveSounds() {
+  const { soundEnabled } = useSoundToggle();
   const ctxRef = useRef<AudioContext | null>(null);
   const currentHoveredRef = useRef<Element | null>(null);
 
   useEffect(() => {
+    if (!soundEnabled) return;
+
     const ctx = ctxRef;
     const currentHovered = currentHoveredRef;
 
@@ -213,7 +217,7 @@ export function InteractiveSounds() {
       document.removeEventListener('mouseout', handleMouseOut);
       document.removeEventListener('click', handleClick);
     };
-  }, []);
+  }, [soundEnabled]);
 
   return null;
 }

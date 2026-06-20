@@ -1,9 +1,10 @@
 'use client';
 
-import { LogOut, MoonStar, SunMedium, UserCircle2 } from 'lucide-react';
+import { LogOut, MoonStar, SunMedium, UserCircle2, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useTheme } from '@/app/theme-provider';
+import { useSoundToggle } from '@/lib/sound-toggle-context';
 
 type ProfileMessage = {
   tone: 'success' | 'error';
@@ -20,6 +21,7 @@ type ProfilePanelProps = {
 
 export function ProfilePanel({ displayName, email, profileMessage, username }: ProfilePanelProps) {
   const { theme, toggleTheme } = useTheme();
+  const { soundEnabled, toggleSound } = useSoundToggle();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -104,6 +106,15 @@ export function ProfilePanel({ displayName, email, profileMessage, username }: P
       >
         {isDarkMode ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
         {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+      </button>
+
+      <button
+        className={`flex w-full items-center justify-center gap-2 rounded-2xl border-2 px-6 py-3 font-bold transition-all duration-150 ${isDarkMode ? 'border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+        type="button"
+        onClick={toggleSound}
+      >
+        {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        {soundEnabled ? 'Turn Sounds Off' : 'Turn Sounds On'}
       </button>
 
       <form action="/auth/signout" method="post">
