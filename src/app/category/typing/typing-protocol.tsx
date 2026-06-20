@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
@@ -213,6 +213,22 @@ export function TypingProtocol({
   }
 
   const hiddenInputRef = useRef<HTMLInputElement | null>(null);
+  const wordsContainerRef = useRef<HTMLDivElement | null>(null);
+  const cursorAnchorRef = useRef<HTMLSpanElement | null>(null);
+
+  // Auto-scroll the words panel to keep the current typing position visible
+  useEffect(() => {
+    if (!started || finished) return;
+    // Use a small delay so the DOM has rendered after the state update
+    const id = setTimeout(() => {
+      const anchor = cursorAnchorRef.current;
+      const container = wordsContainerRef.current;
+      if (anchor && container) {
+        anchor.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 10);
+    return () => clearTimeout(id);
+  }, [input, started, finished]);
 
   function handleInputChange(nextValue: string) {
     if (finished) {
@@ -358,7 +374,7 @@ export function TypingProtocol({
             }
           }}
         />
-        <div className="mb-4 rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
+        <div ref={wordsContainerRef} className="mb-4 max-h-96 overflow-auto rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
           <div className={finished ? 'pointer-events-none blur-[2.5px]' : ''}>
           {visibleWords.map((word, wordIndex) => {
             const beforeWord = visibleWords.slice(0, wordIndex).join(' ');
@@ -371,14 +387,16 @@ export function TypingProtocol({
                   const typedChar = input[globalIndex];
 
                   let className = 'text-slate-400';
+                  let charRef: React.RefObject<HTMLSpanElement | null> | undefined;
                   if (typedChar !== undefined) {
                     className = typedChar === char ? 'text-slate-800' : 'text-rose-500';
                   } else if (globalIndex === input.length) {
                     className = 'border-b-2 border-cyan-500 text-slate-600';
+                    charRef = cursorAnchorRef;
                   }
 
                   return (
-                    <span key={`${globalIndex}-${charIndex}`} className={className}>
+                    <span key={`${globalIndex}-${charIndex}`} className={className} ref={charRef}>
                       {char}
                     </span>
                   );
