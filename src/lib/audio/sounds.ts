@@ -3,6 +3,11 @@
 type CtxRef = { current: AudioContext | null };
 
 function getCtx(ref: CtxRef) {
+  // Global mute: if the user has disabled sounds, never return a context
+  if (typeof window !== 'undefined' && window.localStorage.getItem('skillcheck-sound-enabled') === 'false') {
+    return null;
+  }
+
   if (!ref.current) {
     const AC = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return null;

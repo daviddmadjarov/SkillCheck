@@ -352,8 +352,13 @@ export default function DuelPage() {
   );
 }
 
-/** Ensure an AudioContext exists and return it */
+/** Ensure an AudioContext exists and return it.  Returns null when sounds are muted. */
 function ensureCtx(ctxRef: React.MutableRefObject<AudioContext | null>): AudioContext | null {
+  // Global mute check
+  if (typeof window !== 'undefined' && window.localStorage.getItem('skillcheck-sound-enabled') === 'false') {
+    return null;
+  }
+
   let ac = ctxRef.current;
   if (!ac) {
     const AC = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
