@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { reactionMsToLeaderboardScore } from '@/lib/scoring/reaction';
+import { playAimHit } from '@/lib/audio/sounds';
 import { randomShape, type SplitShapeDef } from './shapes';
 
 function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
@@ -19,6 +20,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
   const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);const [targetSeed,setTargetSeed]=useState(0);
   const [canRetry,setCanRetry]=useState(false);
   const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
+  const aimAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
 
@@ -30,7 +32,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
 
   function startRun(){setTimes([]);setRunning(true);setStartedAt(performance.now());spawnTarget()}
   function spawnTarget(){setTarget({x:Math.random()*64+18,y:Math.random()*64+18});setTargetSeed(c=>c+1)}
-  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
+  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(aimAudioRef,times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
 
   return <AimShell title="Aim Trainer" kicker="Precision warm-up" description="Click the target where it appears. Twenty-five hits complete the drill." accent="border-cyan-200 bg-cyan-50 text-cyan-900" isSignedIn={isSignedIn} stats={[{label:'Targets left',value:String(hitsLeft),detail:'Finish all 25 targets.'},{label:'Average reaction',value:avg===null?'--':`${avg} ms`,detail:'Average across all hits.'},{label:'Lab score',value:labScore===null?'--':String(labScore),detail:best!==null?`Best: ${best} ms.`:'Calculated from average.'},{label:'Status',value:isFinished?'Done':!running?'Ready':'Live',detail:isFinished?'Use Try again.':!running?'Click target.':'Click each target.'}]}>
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
@@ -54,6 +56,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   const [best,setBest]=useState<number|null>(null);const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);
   const [targetSeed,setTargetSeed]=useState(0);const [canRetry,setCanRetry]=useState(false);
   const velocity=useRef({x:0,y:0});const hasAutoStarted=useRef(false);const cd=useDuelCountdown(isMultiplayerSession);
+  const movingAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startRun()},[cd.launched]);//eslint-disable-line
 
@@ -109,6 +112,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
     const nt=[...times,rt];
     setTimes(nt);
     setHits(h=>h+1);
+    playAimHit(movingAudioRef,hits);
     if(hits+1>=25){finishRun(nt);return}
     setStartedAt(now);
     spawnTarget()
@@ -177,8 +181,7 @@ function edgePoint(shape: Point[], segIdx: number, frac: number): Point {
   return { x: a.x + (b.x - a.x) * frac, y: a.y + (b.y - a.y) * frac };
 }
 
-/** Split a polygon by a line through two interpolated edge points, return areas.
- *  Tries both contour directions and picks the split closer to 50/50. */
+/** Split a polygon by a line through two interpolated edge points, return areas. */
 function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: number, fracB: number): [number, number] {
   const n = shape.length;
   const pA = edgePoint(shape, idxA, fracA);
@@ -193,7 +196,6 @@ function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: num
     return pts;
   }
 
-  // Try both ways: A→B and B→A collecting contour vertices
   const betweenAB = walkForward(idxA, idxB);
   const betweenBA = walkForward(idxB, idxA);
 
@@ -202,7 +204,6 @@ function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: num
   const a1AB = polygonArea(poly1AB);
   const a2AB = polygonArea(poly2AB);
 
-  // Swap to try the other orientation
   const poly1BA: Point[] = [pA, pB, ...betweenBA];
   const poly2BA: Point[] = [pB, pA, ...betweenAB];
   const a1BA = polygonArea(poly1BA);
@@ -213,7 +214,6 @@ function splitAreasSmooth(shape: Point[], idxA: number, fracA: number, idxB: num
   const balAB = totalAB > 0 ? Math.abs(a1AB / totalAB - 0.5) : Infinity;
   const balBA = totalBA > 0 ? Math.abs(a1BA / totalBA - 0.5) : Infinity;
 
-  // Pick the split closer to 50/50 (that's the one the user intended)
   if (balBA < balAB && totalBA > 0) {
     return [a1BA, a2BA];
   }
@@ -226,8 +226,7 @@ function ptsToPath(pts: Point[]): string {
   return 'M' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L') + ' Z';
 }
 
-/** Score from 0-1000 based on deviation from 50/50, using exponential curve.
- *  1% deviation → ~982, 3% → ~850, 5% → ~635, 10% → ~162 */
+/** Score from 0-1000 based on deviation from 50/50 */
 function computeSplitScore(areaPctA: number, areaPctB: number): number {
   const deviation = Math.abs(50 - areaPctA);
   if (deviation <= 0.5) return 1000;
@@ -294,7 +293,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     setScores([]);
     setResult(null);
     hasSavedRef.current = false;
-    // Place point A somewhere random on contour, point B roughly opposite
     const half = Math.floor(s.pts.length / 2);
     const offset = Math.floor(Math.random() * s.pts.length);
     const a = offset % s.pts.length;
@@ -417,15 +415,10 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
 
           {(phase === 'playing' || phase === 'result' || phase === 'finished') && (
             <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-              {/* Shape outline */}
               <path d={shape.path} fill={shape.fill} fillOpacity="0.72" stroke={shape.stroke} strokeWidth="2.4"/>
-
-              {/* Split line */}
               {(phase === 'playing' || phase === 'result') && (
                 <line x1={pa.x} y1={pa.y} x2={pb.x} y2={pb.y} stroke="#0f172a" strokeDasharray={phase === 'result' ? 'none' : '4 4'} strokeWidth="2"/>
               )}
-
-              {/* Draggable dots (only in playing) */}
               {phase === 'playing' && (
                 <>
                   <circle cx={pa.x} cy={pa.y} r="5.5" fill="#3b82f6" stroke="#fff" strokeWidth="2.5" style={{cursor: 'grab'}}/>
@@ -435,7 +428,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             </svg>
           )}
 
-          {/* Invisible pointer hit zones for dragging */}
           {phase === 'playing' && (
             <div className="absolute inset-0" onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp}>
               <div className="absolute"
@@ -447,18 +439,13 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             </div>
           )}
 
-          {/* Result overlay */}
           {phase === 'result' && result && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg w-64">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{shape.label}</p>
                 <p className={`mt-1 text-4xl font-black tracking-tight ${colorClass(result.score)}`}>{result.score}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {result.pctA}% / {result.pctB}%
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Deviation: {Math.abs(50 - result.pctA).toFixed(1)}%
-                </p>
+                <p className="mt-1 text-sm text-slate-500">{result.pctA}% / {result.pctB}%</p>
+                <p className="mt-1 text-xs text-slate-400">Deviation: {Math.abs(50 - result.pctA).toFixed(1)}%</p>
                 <button className="lab-button mt-4" onClick={advanceRound} type="button">
                   {roundIdx + 1 >= TOTAL_ROUNDS ? 'See Final Score' : 'Next Shape'}
                 </button>
@@ -466,7 +453,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             </div>
           )}
 
-          {/* Finished overlay */}
           {phase === 'finished' && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
@@ -478,7 +464,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
             </div>
           )}
 
-          {/* Idle overlay */}
           {phase === 'idle' && !isMultiplayerSession && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 backdrop-blur-sm">
               <div className="rounded-[1.5rem] border-2 border-slate-200 bg-white px-6 py-5 text-center shadow-lg">
@@ -490,7 +475,6 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
           )}
         </div>
 
-        {/* Bottom bar */}
         {phase === 'playing' && (
           <div className="mt-4 flex justify-center">
             <button className="lab-button" onClick={submitSplit} type="button">Done</button>

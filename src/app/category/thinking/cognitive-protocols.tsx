@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
+import { playSliderMove } from '@/lib/audio/sounds';
 
 export type CognitiveMode = 'rotation' | 'estimation' | 'sequence';
 
@@ -832,6 +833,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
   const [lastActual, setLastActual] = useState('');
   const dotsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSavedRunRef = useRef(false);
+  const sliderAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(() => () => {
     if (dotsTimerRef.current) clearTimeout(dotsTimerRef.current);
@@ -927,7 +929,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
                   className="w-full accent-amber-500"
                   max={cfg.max}
                   min={cfg.min}
-                  onChange={(e) => setGuess(Number(e.target.value))}
+                  onChange={(e) => { setGuess(Number(e.target.value)); playSliderMove(sliderAudioRef); }}
                   step={cfg.step}
                   type="range"
                   value={guess}

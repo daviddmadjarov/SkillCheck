@@ -1,8 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Swords, Trophy, RotateCcw, Home, TrendingUp, TrendingDown } from 'lucide-react';
+import { playWinJingle, playLoseJingle } from '@/lib/audio/sounds';
 
 type PlayerInfo = {
   displayName: string;
@@ -32,6 +33,8 @@ function DuelResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const lobbyCode = searchParams.get('lobby');
+  const ctxRef = useRef<AudioContext | null>(null);
+  const playedRef = useRef(false);
 
   const [result, setResult] = useState<DuelResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,17 @@ function DuelResultContent() {
 
     loadResult();
   }, [lobbyCode]);
+
+  // Play win/lose jingle when result loads
+  useEffect(() => {
+    if (!result || playedRef.current) return;
+    playedRef.current = true;
+    if (result.isCurrentWinner) {
+      playWinJingle(ctxRef);
+    } else {
+      playLoseJingle(ctxRef);
+    }
+  }, [result]);
 
   if (loading) {
     return (

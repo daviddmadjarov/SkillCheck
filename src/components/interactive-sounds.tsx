@@ -1,6 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import {
+  playReturnToLabHover,
+  playReturnToLabClick,
+  playStartSound,
+} from '@/lib/audio/sounds';
 
 type CtxRef = { current: AudioContext | null };
 
@@ -166,7 +171,9 @@ export function InteractiveSounds() {
       if (!interactive || interactive === currentHovered.current) return;
       currentHovered.current = interactive;
 
-      if (interactive.hasAttribute('data-pitched-hover')) {
+      if (interactive.hasAttribute('data-return-to-lab')) {
+        playReturnToLabHover(ctx);
+      } else if (interactive.hasAttribute('data-pitched-hover')) {
         playPitchedHoverSound(ctx);
       } else {
         playHoverSound(ctx);
@@ -187,7 +194,14 @@ export function InteractiveSounds() {
       if (!target) return;
       const interactive = target.closest(selector);
       if (!interactive) return;
-      playClickSound(ctx);
+
+      if (interactive.hasAttribute('data-return-to-lab')) {
+        playReturnToLabClick(ctx);
+      } else if (interactive.hasAttribute('data-start-game')) {
+        playStartSound(ctx);
+      } else {
+        playClickSound(ctx);
+      }
     }
 
     document.addEventListener('mouseover', handleMouseOver, { passive: true });

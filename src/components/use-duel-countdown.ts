@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { playCountdownTick, playCountdownGo } from '@/lib/audio/sounds';
 
 export type CountdownState = {
   active: boolean;       // true during countdown
@@ -32,6 +33,7 @@ export function useDuelCountdown(isMultiplayer: boolean) {
 
     let cancelled = false;
     const steps = [3, 2, 1] as const;
+    const ctxRef: { current: AudioContext | null } = { current: null };
 
     async function run() {
       for (const n of steps) {
@@ -39,11 +41,13 @@ export function useDuelCountdown(isMultiplayer: boolean) {
         if (cancelled) return;
         setValue(n);
         setPhase('counting');
+        playCountdownTick(ctxRef);
       }
       await delay(200);
       if (cancelled) return;
       setValue(null);
       setPhase('go');
+      playCountdownGo(ctxRef);
       await delay(600);
       if (cancelled) return;
       setPhase(null);
