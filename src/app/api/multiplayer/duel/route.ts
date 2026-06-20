@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 
 import {
   buildMultiplayerSessionHref,
-  getMultiplayerGame,
-  getRandomMultiplayerGames,
+  getRandomDuelGames,
   parseMultiplayerSelectionToken,
   serializeMultiplayerSelection,
 } from '@/lib/multiplayer/catalog';
@@ -58,7 +57,7 @@ async function assignGamesToLobby(
   supabase: Awaited<ReturnType<typeof createClient>>,
   lobbyCode: string,
 ): Promise<string[]> {
-  const games = getRandomMultiplayerGames(DUEL_GAME_COUNT);
+  const games = getRandomDuelGames(DUEL_GAME_COUNT);
   const selectedGames = games.map((g) => g.slug);
   const gameOrder = selectedGames.map((slug) => serializeMultiplayerSelection(slug));
 

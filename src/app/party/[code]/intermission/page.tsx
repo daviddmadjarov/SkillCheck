@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Crown, Trophy } from 'lucide-react';
+import { Crown, Swords, Trophy } from 'lucide-react';
 
 import { buildMultiplayerSessionHref, parseMultiplayerSelectionToken } from '@/lib/multiplayer/catalog';
 import { getRoundSlugFromGameOrder, getRoundTimeLimitSeconds, resolveSynchronizedRoundIndex } from '@/lib/multiplayer/session';
@@ -98,34 +98,64 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
   const finalNextHref = isForfeit ? null : nextHref;
   const isSessionFinished = finalNextHref === null;
 
+  // Determine if this is a duel session to customize the ending screen
+  const isDuel = lobby.mode === 'duel';
+
   return (
     <main className="min-h-screen px-4 py-6">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <section className={`rounded-[2rem] border-2 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8 ${isForfeit ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50' : 'border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50'}`}>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="status-pill">{isForfeit ? 'Match Forfeited' : 'Session Leaderboard'}</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-800">{lobby.code}</h1>
-              {isForfeit && forfeitedMessage ? (
-                <p className="mt-2 max-w-2xl rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
-                  {forfeitedMessage}
-                </p>
+            <div className="w-full">
+              <p className="status-pill">
+                {isForfeit ? 'Match Forfeited' : isSessionFinished && isDuel ? 'Duel Complete' : 'Session Leaderboard'}
+              </p>
+
+              {/* Duel ending: show winner + elo */}
+              {isSessionFinished && isDuel ? (
+                <div className="mt-3">
+                  {isForfeit && forfeitedMessage ? (
+                    <p className="max-w-2xl rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
+                      {forfeitedMessage}
+                    </p>
+                  ) : (
+                    <DuelEndingDisplay
+                      players={players ?? []}
+                      currentPlayerId={playerId}
+                    />
+                  )}
+                </div>
               ) : (
-                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                  {isSessionFinished
-                    ? 'Final session standings are locked in. Great run.'
-                    : initialReadyToAdvance
-                      ? `Round ${roundIndex + 1} completed. Updated standings before the next game.`
-                      : `Round ${roundIndex + 1} submitted. Waiting for remaining players or round timeout.`}
-                </p>
+                <>
+                  {!isDuel && (
+                    <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-800">{lobby.code}</h1>
+                  )}
+                  {isForfeit && forfeitedMessage ? (
+                    <p className="mt-2 max-w-2xl rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-2 text-base font-bold leading-7 text-rose-700">
+                      {forfeitedMessage}
+                    </p>
+                  ) : (
+                    <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
+                      {isSessionFinished
+                        ? 'Final session standings are locked in. Great run.'
+                        : initialReadyToAdvance
+                          ? `Round ${roundIndex + 1} completed. Updated standings before the next game.`
+                          : `Round ${roundIndex + 1} submitted. Waiting for remaining players or round timeout.`}
+                    </p>
+                  )}
+                </>
               )}
             </div>
-            <Link
-              className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]"
-              href={`/party/${lobby.code}${lobby.mode === 'duel' ? '?mode=duel' : ''}`}
-            >
-              View Lobby
-            </Link>
+
+            {/* Only show View Lobby for non-duel sessions */}
+            {!isDuel ? (
+              <Link
+                className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]"
+                href={`/party/${lobby.code}`}
+              >
+                View Lobby
+              </Link>
+            ) : null}
           </div>
         </section>
 
@@ -178,11 +208,60 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
           initialPlayersCount={players?.length ?? 0}
           initialReadyToAdvance={initialReadyToAdvance}
           initialSubmittedCount={submittedIds.size}
+          isDuel={isDuel}
           lobbyCode={lobby.code}
           nextHref={finalNextHref}
           round={roundIndex}
         />
       </div>
     </main>
+  );
+}
+
+/**
+ * Client component that fetches and displays duel winner + elo changes
+ * for the current player.
+ */
+function DuelEndingDisplay({
+  players,
+  currentPlayerId,
+}: {
+  players: Array<{ display_name: string; score_total: number; user_id: string; id: string }>;
+  currentPlayerId: string;
+}) {
+  const currentPlayer = players.find((p) => p.id === currentPlayerId);
+  const winner = players[0];
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <Swords className="h-6 w-6 text-amber-500" />
+        <h1 className="text-4xl font-black tracking-tight text-slate-800">
+          {winner?.display_name ?? 'Unknown'} Wins!
+        </h1>
+      </div>
+      <p className="text-sm font-medium leading-6 text-slate-500">
+        The duel has concluded. Check your profile for updated Elo ratings.
+      </p>
+      <div className="flex flex-wrap gap-4">
+        {players.map((p, i) => (
+          <div
+            key={p.id}
+            className={`rounded-[1.2rem] border-2 px-4 py-3 ${
+              i === 0
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-slate-200 bg-slate-50'
+            }`}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+              {i === 0 ? 'Winner' : 'Runner-up'}
+              {p.id === currentPlayerId ? ' (You)' : ''}
+            </p>
+            <p className="mt-1 text-lg font-black text-slate-800">{p.display_name}</p>
+            <p className="text-sm font-medium text-slate-500">Score: {p.score_total}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

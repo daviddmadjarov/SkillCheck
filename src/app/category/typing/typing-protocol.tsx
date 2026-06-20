@@ -311,47 +311,50 @@ export function TypingProtocol({
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(Object.keys(LANGUAGE_LABELS) as LanguageKey[]).map((key) => (
-          <button
-            key={key}
-            className={`rounded-full border-2 px-4 py-2 text-sm font-bold ${language === key ? 'border-cyan-300 bg-cyan-100 text-cyan-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-            onClick={() => handleLanguageChange(key)}
-            type="button"
-          >
-            {LANGUAGE_LABELS[key]}
-          </button>
-        ))}
+      {!isMultiplayerSession ? (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(Object.keys(LANGUAGE_LABELS) as LanguageKey[]).map((key) => (
+            <button
+              key={key}
+              className={`rounded-full border-2 px-4 py-2 text-sm font-bold ${language === key ? 'border-cyan-300 bg-cyan-100 text-cyan-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              onClick={() => handleLanguageChange(key)}
+              type="button"
+            >
+              {LANGUAGE_LABELS[key]}
+            </button>
+          ))}
 
-        {[30, 60].map((value) => (
-          <button
-            key={value}
-            className={`rounded-full border-2 px-4 py-2 text-sm font-bold ${duration === value ? 'border-indigo-300 bg-indigo-100 text-indigo-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-            onClick={() => handleDurationChange(value as DurationSeconds)}
-            type="button"
-          >
-            {value}s
-          </button>
-        ))}
+          {[30, 60].map((value) => (
+            <button
+              key={value}
+              className={`rounded-full border-2 px-4 py-2 text-sm font-bold ${duration === value ? 'border-indigo-300 bg-indigo-100 text-indigo-800' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+              onClick={() => handleDurationChange(value as DurationSeconds)}
+              type="button"
+            >
+              {value}s
+            </button>
+          ))}
 
-        <button className="rounded-full border-2 border-slate-800 bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" onClick={() => resetRun()} type="button">
-          New words
-        </button>
-        {typeCd.active && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-            <div className="text-center">
-              {typeCd.phase === 'go' ? (
-                <p className="text-7xl font-black tracking-tight text-emerald-600">GO</p>
-              ) : (
-                <>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Typing Speed Test</p>
-                  <p className="mt-2 text-8xl font-black tracking-tighter text-slate-800">{typeCd.value}</p>
-                </>
-              )}
-            </div>
+          <button className="rounded-full border-2 border-slate-800 bg-slate-800 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700" onClick={() => resetRun()} type="button">
+            New words
+          </button>
+        </div>
+      ) : null}
+
+      {typeCd.active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+          <div className="text-center">
+            {typeCd.phase === 'go' ? (
+              <p className="text-7xl font-black tracking-tight text-emerald-600">GO</p>
+            ) : (
+              <>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Typing Speed Test</p>
+                <p className="mt-2 text-8xl font-black tracking-tighter text-slate-800">{typeCd.value}</p>
+              </>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="relative rounded-[1.7rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 sm:p-5" onClick={handlePanelClick}>
         {/* Invisible input to capture keyboard on mobile — pinned to top so browser doesn't scroll mid-panel */}

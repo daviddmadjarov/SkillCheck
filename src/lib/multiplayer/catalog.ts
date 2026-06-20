@@ -123,6 +123,13 @@ export const MULTIPLAYER_GAME_POOL: MultiplayerGame[] = [
   },
 ];
 
+/**
+ * Duel-specific game pool — excludes "Sequence Memory".
+ */
+export const DUEL_GAME_POOL: MultiplayerGame[] = MULTIPLAYER_GAME_POOL.filter(
+  (game) => game.slug !== 'sequence-memory',
+);
+
 const SLUG_TO_INDEX = new Map(MULTIPLAYER_GAME_POOL.map((game, index) => [game.slug, index] as const));
 
 export function getMultiplayerGame(slug: string) {
@@ -144,6 +151,20 @@ export function getRandomMultiplayerGames(count: number) {
   }
 
   return indices.slice(0, Math.min(count, indices.length)).map((index) => MULTIPLAYER_GAME_POOL[index]);
+}
+
+/**
+ * Picks random games from the duel-specific pool (no Sequence Memory).
+ */
+export function getRandomDuelGames(count: number) {
+  const indices = DUEL_GAME_POOL.map((_, index) => index);
+
+  for (let i = indices.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  return indices.slice(0, Math.min(count, indices.length)).map((index) => DUEL_GAME_POOL[index]);
 }
 
 export function shuffleMultiplayerGames(games: MultiplayerGame[]) {

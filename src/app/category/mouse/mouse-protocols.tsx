@@ -408,8 +408,13 @@ const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBo
 export function MouseProtocols({mode,isSignedIn,initialCpsDuration:_cps,initialTraceMode:_tm}:{mode:string;isSignedIn:boolean;initialCpsDuration?:number;initialTraceMode?:string}){
   const [traceMode,setTraceMode]=useState<TraceMode>('assist');
 
-  if(mode==='tracking')return <TrackingTest isSignedIn={isSignedIn}/>
-  if(mode==='cps')return <CpsTester isSignedIn={isSignedIn}/>
+  // In duel mode, symbol tracing is always forced to memory mode
+  // and the toggle buttons are locked (handled inside SymbolTracing).
+  if (mode === 'tracking') return <TrackingTest isSignedIn={isSignedIn}/>;
+  if (mode === 'cps') return <CpsTester isSignedIn={isSignedIn}/>;
 
-  return <SymbolTracing traceMode={traceMode} onSetTraceMode={setTraceMode} isSignedIn={isSignedIn}/>;
+  const { isMultiplayerSession } = useMultiplayerRoundFlow('mouse-symbol-tracing');
+  const forcedTraceMode: TraceMode = isMultiplayerSession ? 'memory' : traceMode;
+
+  return <SymbolTracing traceMode={forcedTraceMode} onSetTraceMode={setTraceMode} isSignedIn={isSignedIn}/>;
 }
