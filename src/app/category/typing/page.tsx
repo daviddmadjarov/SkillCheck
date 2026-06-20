@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
-import { DuelRoundTimer } from '@/components/duel-round-timer';
+import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 
 import { TypingProtocol } from './typing-protocol';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -77,7 +78,7 @@ export default async function TypingPage({
 
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-3 sm:flex">
-              <DuelRoundTimer />
+              <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
               <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
                 {displayName}
               </div>
@@ -85,7 +86,7 @@ export default async function TypingPage({
             {isMultiplayerSession ? (
               <div className="flex items-center gap-2">
                 <div className="sm:hidden">
-                  <DuelRoundTimer />
+                  <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
                 <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
                   In Duel — Cannot leave

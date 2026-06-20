@@ -8,6 +8,8 @@ type IntermissionCountdownProps = {
   gameSlug: string;
   lobbyCode: string;
   nextHref: string | null;
+  /** When set, overrides fallbackHref for finished duels */
+  duelResultHref?: string | null;
   round: number;
   initialPlayersCount: number;
   initialSubmittedCount: number;
@@ -22,6 +24,7 @@ export function IntermissionCountdown({
   gameSlug,
   lobbyCode,
   nextHref,
+  duelResultHref,
   round,
   initialPlayersCount,
   initialSubmittedCount,
@@ -104,8 +107,10 @@ export function IntermissionCountdown({
       return;
     }
 
-    router.replace(nextHref ?? fallbackHref);
-  }, [fallbackHref, nextHref, readyToAdvance, remaining, router]);
+    // Priority: nextHref → duelResultHref → fallbackHref
+    const target = nextHref ?? duelResultHref ?? fallbackHref;
+    router.replace(target);
+  }, [fallbackHref, nextHref, duelResultHref, readyToAdvance, remaining, router]);
 
   const deadlineRemainingSeconds = deadlineAt
     ? Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / 1000))

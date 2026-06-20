@@ -181,7 +181,8 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
         </section>
 
         <IntermissionCountdown
-          fallbackHref={duelResultHref ?? `/party/${lobby.code}${isDuel ? '?mode=duel' : ''}`}
+          fallbackHref={`/party/${lobby.code}${isDuel ? '?mode=duel' : ''}`}
+          duelResultHref={duelResultHref}
           gameSlug={currentRoundSlug ?? gameSlug}
           initialDeadlineAt={initialDeadlineAt}
           initialPlayersCount={players?.length ?? 0}

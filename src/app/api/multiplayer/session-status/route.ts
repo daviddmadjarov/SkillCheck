@@ -33,16 +33,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Lobby not found.' }, { status: 404 });
   }
 
-  // ── Forfeit detection ──
+  // ── Finished / forfeited detection ──
   if (lobby.forfeited || lobby.status === 'finished') {
-    // Get the winner info
-    const { data: winnerPlayer } = await supabase
-      .from('multiplayer_lobby_players')
-      .select('display_name, user_id')
-      .eq('lobby_id', lobby.id)
-      .eq('user_id', lobby.winner_user_id)
-      .maybeSingle();
-
     // Get all players with scores for final standings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: finishedPlayers } = await (supabase as any)
@@ -52,14 +44,7 @@ export async function GET(request: NextRequest) {
       .order('score_total', { ascending: false })
       .order('joined_at', { ascending: true });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: eloResult } = await (supabase as any)
-      .from('profiles')
-      .select('elo_rating')
-      .eq('id', lobby.winner_user_id)
-      .maybeSingle();
-
-    const forfeitedStandings = (finishedPlayers ?? []).map(
+    const finishedStandings = (finishedPlayers ?? []).map(
       (p: { display_name: string; forfeited: boolean; id: string; score_total: number; user_id: string }, index: number) => ({
         displayName: p.display_name,
         forfeited: p.forfeited,
@@ -71,19 +56,53 @@ export async function GET(request: NextRequest) {
       }),
     );
 
+    // For actual forfeits, get winner info
+    let winnerDisplayName: string | null = null;
+    let winnerElo: number | null = null;
+
+    if (lobby.forfeited && lobby.winner_user_id) {
+      const { data: winnerPlayer } = await supabase
+        .from('multiplayer_lobby_players')
+        .select('display_name, user_id')
+        .eq('lobby_id', lobby.id)
+        .eq('user_id', lobby.winner_user_id)
+        .maybeSingle();
+      winnerDisplayName = winnerPlayer?.display_name ?? null;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: eloData } = await (supabase as any)
+        .from('profiles')
+        .select('elo_rating')
+        .eq('id', lobby.winner_user_id)
+        .maybeSingle();
+      winnerElo = eloData?.elo_rating ?? null;
+    }
+
+    // For normal match completion (not forfeited), return readyToAdvance without forfeited flag
+    if (lobby.status === 'finished' && !lobby.forfeited) {
+      return NextResponse.json({
+        forfeited: false,
+        isSessionFinished: true,
+        playersCount: finishedPlayers?.length ?? 0,
+        readyToAdvance: true,
+        standings: finishedStandings,
+        submittedCount: finishedPlayers?.length ?? 0,
+        totalRounds: lobby.game_order.length,
+      });
+    }
+
+    // Actual forfeit
     return NextResponse.json({
       forfeited: true,
-      forfeitedMessage: lobby.forfeited
-        ? `Opponent has left the match. ${winnerPlayer?.display_name ?? 'You'} win!`
-        : 'Match has ended.',
+      forfeitedMessage: `Opponent has left the match. ${winnerDisplayName ?? 'You'} win!`,
       isSessionFinished: true,
       playersCount: finishedPlayers?.length ?? 0,
       readyToAdvance: true,
-      standings: forfeitedStandings,
+      standings: finishedStandings,
       submittedCount: 0,
       totalRounds: lobby.game_order.length,
-      winnerDisplayName: winnerPlayer?.display_name ?? null,
-      winnerElo: eloResult?.elo_rating ?? null,
+      winnerDisplayName,
+      winnerElo,
     });
   }
 
