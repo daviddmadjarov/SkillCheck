@@ -38,6 +38,7 @@ export function ProfilePanel({
   const [mounted, setMounted] = useState(false);
   const [emailHidden, setEmailHidden] = useState(false);
   const [terminalVisible, setTerminalVisible] = useState(false);
+  const [terminalVariant, setTerminalVariant] = useState<'access' | 'sever'>('access');
   const [accessGranted, setAccessGranted] = useState(hasAnomalousAccess);
   const [isWritingMetadata, setIsWritingMetadata] = useState(false);
 
@@ -78,10 +79,11 @@ export function ProfilePanel({
       const supabase = createClient();
       await supabase.auth.updateUser({ data: { anomalous_access: true } });
       setAccessGranted(true);
+      setTerminalVariant('access');
       setTerminalVisible(true);
     } catch {
-      // Fallback: still show terminal even if supabase call fails
       setAccessGranted(true);
+      setTerminalVariant('access');
       setTerminalVisible(true);
     } finally {
       setIsWritingMetadata(false);
@@ -97,8 +99,12 @@ export function ProfilePanel({
       const supabase = createClient();
       await supabase.auth.updateUser({ data: { anomalous_access: false } });
       setAccessGranted(false);
+      setTerminalVariant('sever');
+      setTerminalVisible(true);
     } catch {
       setAccessGranted(false);
+      setTerminalVariant('sever');
+      setTerminalVisible(true);
     } finally {
       setIsWritingMetadata(false);
     }
@@ -110,7 +116,7 @@ export function ProfilePanel({
 
   return (
     <>
-      {terminalVisible && <LoreTerminal onComplete={handleTerminalComplete} />}
+      {terminalVisible && <LoreTerminal variant={terminalVariant} onComplete={handleTerminalComplete} />}
 
       <div className={`space-y-4 rounded-[1.6rem] border-2 p-4 ${isDarkMode ? 'border-slate-700 bg-slate-950 text-slate-100 shadow-[0_10px_0_rgba(15,23,42,0.65)]' : 'border-cyan-200 bg-cyan-50 shadow-[0_10px_0_rgba(186,230,253,0.8)]'}`}>
         {profileMessage ? (
