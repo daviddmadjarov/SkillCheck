@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
-import { playSliderMove } from '@/lib/audio/sounds';
+import { playSliderMove, playCorrectChime, playWrongBuzz } from '@/lib/audio/sounds';
 
 export type CognitiveMode = 'rotation' | 'estimation' | 'sequence';
 
@@ -368,6 +368,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
   const ROUNDS = 4;
   const cd = useDuelCountdown(isMultiplayerSession);
   const hasAutoStarted = useRef(false);
+  const rotationAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     if (!cd.launched || hasAutoStarted.current) return;
@@ -427,6 +428,11 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
     setLastOk(ok);
     if (ok) setCorrectCount(c => c + 1);
     setPhase('reveal');
+    if (ok) {
+      playCorrectChime(rotationAudioRef);
+    } else {
+      playWrongBuzz(rotationAudioRef);
+    }
   }
 
   function advance() {

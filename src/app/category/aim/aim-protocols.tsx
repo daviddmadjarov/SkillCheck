@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMultiplayerRoundFlow } from '@/lib/multiplayer/client';
 import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { reactionMsToLeaderboardScore } from '@/lib/scoring/reaction';
-import { playAimHit } from '@/lib/audio/sounds';
+import { playAimHit, playSplitSnap } from '@/lib/audio/sounds';
 import { randomShape, type SplitShapeDef } from './shapes';
 
 function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
@@ -250,6 +250,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   const hasAutoStarted = useRef(false);
   const usedLabels = useRef<Set<string>>(new Set());
   const cd = useDuelCountdown(isMultiplayerSession);
+  const splitAudioRef = useRef<AudioContext | null>(null);
 
   useEffect(()=>{if(!cd.launched||hasAutoStarted.current)return;hasAutoStarted.current=true;startGame()},[cd.launched]);//eslint-disable-line
 
@@ -363,6 +364,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     setResult({ pctA, pctB, score });
     setScores(prev => [...prev, score]);
     setPhase('result');
+    playSplitSnap(splitAudioRef);
   }
 
   function advanceRound() {
