@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CalendarDays, Trophy } from 'lucide-react';
 
@@ -16,11 +17,23 @@ type DailyChallenge = {
 };
 
 export default function DailyPage() {
+  const searchParams = useSearchParams();
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
   const redirectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const justCompleted = searchParams.get('completed') === '1';
+  const hasStartedRedirectRef = useRef(false);
+
+  // Strip ?completed=1 from the URL on first mount so bookmarking or
+  // returning to this URL won't trigger a second redirect.
+  useEffect(() => {
+    if (justCompleted) {
+      window.history.replaceState({}, '', '/daily');
+    }
+  }, [justCompleted]);
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true);
@@ -47,12 +60,16 @@ export default function DailyPage() {
     fetchChallenge();
   }, [fetchChallenge]);
 
-  // ── Auto-redirect to home after showing daily completion ──
+  // ── Auto-redirect to home after completing a daily challenge ──
+  // Only triggers on the immediate return from the game (URL has ?completed=1).
+  // After the URL is stripped in the effect above, this won't re-trigger.
   useEffect(() => {
-    if (!challenge?.completed || redirectCountdown !== null) return;
+    if (hasStartedRedirectRef.current) return;
+    if (!justCompleted || !challenge?.completed || redirectCountdown !== null) return;
 
+    hasStartedRedirectRef.current = true;
     setRedirectCountdown(3);
-  }, [challenge?.completed, redirectCountdown]);
+  }, [justCompleted, challenge?.completed, redirectCountdown]);
 
   useEffect(() => {
     if (redirectCountdown === null) return;
@@ -155,7 +172,7 @@ export default function DailyPage() {
                 <p className="mt-3 text-sm font-medium leading-6 text-emerald-700">
                   You already played today's challenge. Each daily challenge is one attempt only — come back tomorrow for a new one!
                 </p>
-                {redirectCountdown !== null && redirectCountdown > 0 && (
+                {justCompleted && redirectCountdown !== null && redirectCountdown > 0 && (
                   <p className="mt-3 text-sm font-semibold text-emerald-600">
                     Redirecting to home page in {redirectCountdown} second{redirectCountdown !== 1 ? 's' : ''}…
                   </p>

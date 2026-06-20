@@ -44,6 +44,7 @@ export function useMultiplayerRoundFlow(defaultGameSlug?: string) {
   const meta = useMultiplayerSubmissionMeta(defaultGameSlug);
 
   const isMultiplayerSession = Boolean(meta.multiplayerLobbyCode && meta.multiplayerPlayerId && meta.multiplayerGameSlug);
+  const isDailyGame = meta.daily && !isMultiplayerSession;
 
   function goToIntermission() {
     if (!isMultiplayerSession || !meta.multiplayerLobbyCode || !meta.multiplayerPlayerId || !meta.multiplayerGameSlug) {
@@ -58,9 +59,16 @@ export function useMultiplayerRoundFlow(defaultGameSlug?: string) {
     router.push(`/party/${meta.multiplayerLobbyCode}/intermission?${params.toString()}`);
   }
 
+  function goToDailyResult() {
+    if (!isDailyGame) return;
+    router.push('/daily?completed=1');
+  }
+
   return {
     goToIntermission,
+    goToDailyResult,
     isMultiplayerSession,
+    isDailyGame,
     meta,
   };
 }

@@ -5,10 +5,11 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
+import { DailyGameBadge } from '@/components/daily-game-banner';
 import { RhythmProtocols } from './rhythm-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
-type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
+type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
 type RhythmMode = 'sync' | 'timer';
 
@@ -73,6 +74,7 @@ export default async function RhythmPage({
   const { displayName, isSignedIn } = await loadRhythmPageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
+  const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -109,6 +111,8 @@ export default async function RhythmPage({
                   {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
+            ) : isDailyGame ? (
+              <Suspense fallback={null}><DailyGameBadge /></Suspense>
             ) : (
               <Link className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
                 Return to Lab

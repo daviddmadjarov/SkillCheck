@@ -94,7 +94,7 @@ export function TypingProtocol({
   initialLanguage = 'english',
   isSignedIn,
 }: TypingProtocolProps) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('typing-speed');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('typing-speed');
   const typeCd = useDuelCountdown(isMultiplayerSession);
   const typeHasAutoStarted = useRef(false);
 
@@ -186,8 +186,12 @@ export function TypingProtocol({
         body: JSON.stringify({ testSlug: 'typing-speed', score: metrics.labScore, ...multiplayerMeta }),
       });
 
-      if (response.ok && isMultiplayerSession) {
-        goToIntermission();
+      if (response.ok) {
+        if (isMultiplayerSession) {
+          goToIntermission();
+        } else if (multiplayerMeta.daily) {
+          goToDailyResult();
+        }
       }
     })();
   }, [finished, goToIntermission, isMultiplayerSession, isSignedIn, metrics.labScore, multiplayerMeta]);

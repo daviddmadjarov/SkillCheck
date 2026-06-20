@@ -5,11 +5,12 @@ import { AudioReactionProtocol } from '@/app/category/reaction/audio-reaction-pr
 import { MultiReactionProtocol } from '@/app/category/reaction/multi-reaction-protocol';
 import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
+import { DailyGameBadge } from '@/components/daily-game-banner';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
-type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
+type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
 type ReactionMode = 'time' | 'audio' | 'multi';
 
@@ -142,6 +143,7 @@ export default async function ReactionPage({
   const { attempts, audioAttempts, multiAttempts, bestScore, audioBestScore, multiBestScore, displayName, isSignedIn } = await loadReactionPageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
+  const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -178,6 +180,8 @@ export default async function ReactionPage({
                   {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
+            ) : isDailyGame ? (
+              <Suspense fallback={null}><DailyGameBadge /></Suspense>
             ) : (
               <Link className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
                 Return to Lab
