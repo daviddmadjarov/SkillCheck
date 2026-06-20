@@ -36,7 +36,7 @@ type Phase = 'idle' | 'playing' | 'finished';
 /* ── Component ──────────────────────────── */
 
 export default function RhythmLockGame({
-  timeLimit = 20,
+  timeLimit = 30,
   initialSpeed = BASE_SPEED,
   onGameComplete,
   onScoreUpdate,
@@ -134,24 +134,32 @@ export default function RhythmLockGame({
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── Target: red half-circle on the OUTSIDE of the ring ──
+    // ── Target: filled red half-circle on the OUTSIDE of the ring ──
     const ta = targetAngleRef.current;
-    const targetOuterR = ringR + TARGET_RADIUS_OUTER * 0.6;
+    // Center the half-circle right on the ring edge; it protrudes outward naturally
+    const hx = Math.cos(ta) * ringR;
+    const hy = Math.sin(ta) * ringR;
 
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(ta);
+    // Draw half-circle that faces outward (positive Y after rotation = outward)
     ctx.beginPath();
-    ctx.arc(
-      Math.cos(ta) * targetOuterR,
-      Math.sin(ta) * targetOuterR,
-      TARGET_RADIUS_OUTER,
-      ta - Math.PI / 2 - TARGET_HALF_ANGLE,
-      ta - Math.PI / 2 + TARGET_HALF_ANGLE,
-    );
-    ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth = TARGET_RADIUS_OUTER * 1.4;
+    ctx.arc(0, 0, TARGET_RADIUS_OUTER, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath();
+    ctx.fillStyle = '#dc2626';
     ctx.shadowColor = '#dc2626';
     ctx.shadowBlur = GLOW_BLUR;
-    ctx.stroke();
+    ctx.fill();
     ctx.shadowBlur = 0;
+    // Thin border
+    ctx.beginPath();
+    ctx.arc(0, 0, TARGET_RADIUS_OUTER, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath();
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
 
     // ── Ball ──
     const ba = angleRef.current;
