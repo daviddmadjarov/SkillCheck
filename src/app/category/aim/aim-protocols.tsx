@@ -15,7 +15,7 @@ function AimShell({title,kicker,description,accent,isSignedIn,stats,children}:{t
 }
 
 function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
-  const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-trainer');
+  const {goToIntermission,goToDailyResult,isMultiplayerSession,isDailyGame,meta:mm}=useMultiplayerRoundFlow('aim-trainer');
   const [target,setTarget]=useState<Point>({x:50,y:50});const [times,setTimes]=useState<number[]>([]);const [best,setBest]=useState<number|null>(null);
   const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);const [targetSeed,setTargetSeed]=useState(0);
   const [canRetry,setCanRetry]=useState(false);
@@ -31,7 +31,7 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
 
   function startRun(){setTimes([]);setRunning(true);setStartedAt(performance.now());spawnTarget()}
   function spawnTarget(){setTarget({x:Math.random()*64+18,y:Math.random()*64+18});setTargetSeed(c=>c+1)}
-  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
+  function click(){if(!running){startRun();return}const now=performance.now();const rt=startedAt===null?null:Math.round(now-startedAt);if(rt!==null){const nt=[...times,rt];setTimes(nt);playAimHit(times.length);if(nt.length>=25){const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);setBest(c=>c===null?av:Math.min(c,av));if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-trainer',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});setRunning(false);setStartedAt(null);return}}setStartedAt(now);spawnTarget()}
 
   return <AimShell title="Aim Trainer" kicker="Precision warm-up" description="Click the target where it appears. Twenty-five hits complete the drill." accent="border-cyan-200 bg-cyan-50 text-cyan-900" isSignedIn={isSignedIn} stats={[{label:'Targets left',value:String(hitsLeft),detail:'Finish all 25 targets.'},{label:'Average reaction',value:avg===null?'--':`${avg} ms`,detail:'Average across all hits.'},{label:'Lab score',value:labScore===null?'--':String(labScore),detail:best!==null?`Best: ${best} ms.`:'Calculated from average.'},{label:'Status',value:isFinished?'Done':!running?'Ready':'Live',detail:isFinished?'Use Try again.':!running?'Click target.':'Click each target.'}]}>
     <div className="space-y-4"><div className="relative min-h-[24rem] cursor-pointer overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
@@ -44,13 +44,13 @@ function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
           {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
       </button>
-      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className={`lab-button ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
+      {isFinished&&!mm.daily&&<div className="absolute inset-0 flex items-center justify-center"><button className={`lab-button ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
     </div></div>
   </AimShell>
 }
 
 function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
-  const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-moving-targets');
+  const {goToIntermission,goToDailyResult,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-moving-targets');
   const [target,setTarget]=useState<Point>({x:50,y:50});const [hits,setHits]=useState(0);const [times,setTimes]=useState<number[]>([]);
   const [best,setBest]=useState<number|null>(null);const [startedAt,setStartedAt]=useState<number|null>(null);const [running,setRunning]=useState(false);
   const [targetSeed,setTargetSeed]=useState(0);const [canRetry,setCanRetry]=useState(false);
@@ -97,7 +97,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
   function finishRun(nt:number[]){
     const av=Math.round(nt.reduce((a,b)=>a+b,0)/nt.length);
     setBest(c=>c===null?av:Math.min(c,av));
-    if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-moving-targets',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()});
+    if(isSignedIn)fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-moving-targets',score:reactionMsToLeaderboardScore(av),...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission();else if(r.ok&&mm.daily)goToDailyResult()});
     setRunning(false);
     setStartedAt(null);
   }
@@ -125,7 +125,7 @@ function MovingTargets({isSignedIn}:{isSignedIn:boolean}){
           {!running && !isFinished && !isMultiplayerSession && <span className="mt-3 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">CLICK TO START</span>}
         </span>
       </button>
-      {isFinished&&<div className="absolute inset-0 flex items-center justify-center"><button className={`rounded-2xl border-b-4 border-emerald-800 bg-emerald-600 px-6 py-3 font-bold text-white ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
+      {isFinished&&!mm.daily&&<div className="absolute inset-0 flex items-center justify-center"><button className={`rounded-2xl border-b-4 border-emerald-800 bg-emerald-600 px-6 py-3 font-bold text-white ${!canRetry?'opacity-50 pointer-events-none':''}`} disabled={!canRetry} onClick={startRun} type="button">Try again</button></div>}
     </div></div>
   </AimShell>
 }
@@ -233,7 +233,7 @@ function computeSplitScore(areaPctA: number, areaPctB: number): number {
 }
 
 function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
-  const {goToIntermission,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-perfect-split');
+  const {goToIntermission,goToDailyResult,isMultiplayerSession,meta:mm}=useMultiplayerRoundFlow('aim-perfect-split');
   const TOTAL_ROUNDS = 4;
   const [phase, setPhase] = useState<'idle' | 'playing' | 'result' | 'finished'>('idle');
   const [roundIdx, setRoundIdx] = useState(0);
@@ -257,7 +257,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
   useEffect(() => {
     if (!isSignedIn || phase !== 'finished' || labScore === null || hasSavedRef.current) return;
     hasSavedRef.current = true;
-    fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { if(r.ok && isMultiplayerSession) goToIntermission(); });
+    fetch('/api/scores/submit', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ testSlug:'aim-perfect-split', score: labScore, ...mm }) }).then(r => { if(r.ok && isMultiplayerSession) goToIntermission(); else if(r.ok && mm.daily) goToDailyResult(); });
   }, [phase, isSignedIn, labScore, isMultiplayerSession, goToIntermission, mm]);
 
   const posARef = useRef({ idx: 0, frac: 0 });
@@ -458,7 +458,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Run complete</p>
                 <p className="mt-3 text-4xl font-black text-slate-800">{labScore ?? '--'}</p>
                 <p className="mt-1 text-sm text-slate-500">Avg: {avgScore} · Total: {scores.reduce((a,b)=>a+b,0)}</p>
-                <button className="lab-button mt-4" onClick={startGame} type="button">Start New Run</button>
+                {!mm.daily && <button className="lab-button mt-4" onClick={startGame} type="button">Start New Run</button>}
               </div>
             </div>
           )}

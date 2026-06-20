@@ -10,6 +10,7 @@ type TypingProtocolProps = {
   initialDuration?: DurationSeconds;
   initialLanguage?: LanguageKey;
   isSignedIn: boolean;
+  isDailyGame?: boolean;
 };
 
 type LanguageKey = 'english' | 'german' | 'spanish';
@@ -94,6 +95,7 @@ export function TypingProtocol({
   initialDuration = 30,
   initialLanguage = 'english',
   isSignedIn,
+  isDailyGame = false,
 }: TypingProtocolProps) {
   const { goToIntermission, goToDailyResult, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('typing-speed');
   const typeCd = useDuelCountdown(isMultiplayerSession);
@@ -325,7 +327,7 @@ export function TypingProtocol({
         </div>
       </div>
 
-      {!isMultiplayerSession ? (
+      {!isMultiplayerSession && !isDailyGame ? (
         <div className="mb-4 flex flex-wrap gap-2">
           {(Object.keys(LANGUAGE_LABELS) as LanguageKey[]).map((key) => (
             <button

@@ -121,7 +121,7 @@ export default async function RhythmPage({
           </div>
         </div>
 
-        {isMultiplayerSession ? null : (
+        {isMultiplayerSession || isDailyGame ? null : (
           <section className="lab-card p-4 sm:p-5">
             <div className="flex flex-wrap gap-2">
               <Link className={tabClass(mode === 'sync')} href="/category/rhythm?mode=sync">

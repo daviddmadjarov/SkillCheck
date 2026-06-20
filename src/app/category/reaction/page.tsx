@@ -190,7 +190,7 @@ export default async function ReactionPage({
           </div>
         </div>
 
-        {isMultiplayerSession ? null : (
+        {isMultiplayerSession || isDailyGame ? null : (
           <section className="lab-card p-4 sm:p-5">
             <div className="flex flex-wrap gap-2">
               <Link className={tabClass(mode === 'time')} href="/category/reaction?mode=time">

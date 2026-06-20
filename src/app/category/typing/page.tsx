@@ -113,6 +113,7 @@ export default async function TypingPage({
           initialDuration={initialDuration}
           initialLanguage={initialLanguage}
           isSignedIn={isSignedIn}
+          isDailyGame={isDailyGame}
         />
       </div>
     </main>
