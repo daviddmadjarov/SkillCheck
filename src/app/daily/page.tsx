@@ -194,7 +194,7 @@ function DailyPageContent() {
 
             <Link
               className="inline-block w-full rounded-2xl border-2 border-slate-200 bg-white px-6 py-3 text-center text-sm font-bold text-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-100"
-              href="/"
+              href="/?leaderboard=daily"
             >
               View Daily Leaderboard on the home page
             </Link>
