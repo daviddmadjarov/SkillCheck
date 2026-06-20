@@ -9,7 +9,7 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
-type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string };
+type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
 
 type ReactionMode = 'time' | 'audio' | 'multi';
 
@@ -141,6 +141,7 @@ export default async function ReactionPage({
   const mode = getReactionMode(resolvedSearchParams.mode);
   const { attempts, audioAttempts, multiAttempts, bestScore, audioBestScore, multiBestScore, displayName, isSignedIn } = await loadReactionPageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
+  const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -169,8 +170,12 @@ export default async function ReactionPage({
                 <div className="sm:hidden">
                   <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
-                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
-                  In Duel — Cannot leave
+                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
             ) : (

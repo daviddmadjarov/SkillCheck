@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { LobbyActions } from './lobby-actions';
 import { LobbyRefresher } from './lobby-refresher';
+import { PartyAutoStart } from './party-auto-start';
 
 
 type PartyPageProps = {
@@ -58,6 +59,7 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
   const nextGameHref = currentPlayer && nextToken
     ? buildMultiplayerSessionHref(parseMultiplayerSelectionToken(nextToken), {
       lobbyCode: lobby.code,
+      mode: lobby.mode,
       playerId: currentPlayer.id,
       round: nextRound,
     })
@@ -65,6 +67,14 @@ export default async function PartyLobbyPage({ params, searchParams }: PartyPage
 
   return (
     <main className="min-h-screen px-4 py-6">
+      {!isDuel && isJoined ? (
+        <PartyAutoStart
+          initialStatus={lobby.status}
+          isJoined={isJoined}
+          lobbyCode={lobby.code}
+          nextGameHref={nextGameHref}
+        />
+      ) : null}
       <LobbyRefresher />
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
         <section className="rounded-[2rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-6 shadow-[0_8px_0_rgba(165,243,252,1)] sm:p-8">

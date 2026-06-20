@@ -26,8 +26,11 @@ export function MultiplayerSessionGuard() {
   const roundRaw = searchParams.get('round');
   const parsedRound = Number(roundRaw);
   const round = Number.isFinite(parsedRound) && parsedRound >= 0 ? Math.floor(parsedRound) : 0;
+  const modeParam = searchParams.get('mp_mode');
+  const isDuelSession = modeParam === 'duel';
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
+  const shouldForfeitOnLeave = isDuelSession;
   const forfeitSentRef = useRef(false);
 
   /**
@@ -56,7 +59,7 @@ export function MultiplayerSessionGuard() {
     fetch('/api/multiplayer/heartbeat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lobbyCode, leave: true }),
+      body: JSON.stringify({ lobbyCode, leave: shouldForfeitOnLeave }),
       keepalive: true,
     }).catch(() => {});
   }

@@ -8,7 +8,7 @@ import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { RhythmProtocols } from './rhythm-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
-type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string };
+type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
 
 type RhythmMode = 'sync' | 'timer';
 
@@ -72,6 +72,7 @@ export default async function RhythmPage({
   const mode = getRhythmMode(resolvedSearchParams.mode);
   const { displayName, isSignedIn } = await loadRhythmPageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
+  const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -100,8 +101,12 @@ export default async function RhythmPage({
                 <div className="sm:hidden">
                   <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
-                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
-                  In Duel — Cannot leave
+                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
             ) : (

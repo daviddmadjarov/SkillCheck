@@ -116,6 +116,7 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
   const nextHref = nextToken
     ? buildMultiplayerSessionHref(parseMultiplayerSelectionToken(nextToken), {
       lobbyCode: lobby.code,
+      mode: lobby.mode,
       playerId,
       round: nextRound,
     })

@@ -170,21 +170,7 @@ export function IntermissionCountdown({
         </p>
       )}
 
-      {!isDuel ? (
-        <button
-          className="mt-4 rounded-xl border-2 border-cyan-700 bg-cyan-500 px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_rgba(14,116,144,1)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-cyan-400 hover:shadow-[0_6px_0_rgba(14,116,144,1)] active:translate-y-0.5 active:shadow-[0_0px_0_rgba(14,116,144,1)]"
-          onClick={() => {
-            if (!readyToAdvance) {
-              return;
-            }
-
-            router.replace(nextHref ?? fallbackHref);
-          }}
-          type="button"
-        >
-          {readyToAdvance ? (nextHref ? 'Continue now' : 'Back to lobby') : 'Waiting for all players'}
-        </button>
-      ) : null}
+      
     </div>
   );
 }

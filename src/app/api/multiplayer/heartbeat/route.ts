@@ -35,8 +35,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing lobby code.' }, { status: 400 });
   }
 
-  // ── Player is leaving — trigger instant forfeit ──
+  // Look up lobby mode to determine if forfeit should apply
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: lobbyInfo } = await (supabase as any)
+    .from('multiplayer_lobbies')
+    .select('mode')
+    .eq('code', lobbyCode)
+    .maybeSingle();
+
+  const isDuelLobby = lobbyInfo?.mode === 'duel';
+
+  // ── Player is leaving — only trigger forfeit for duel lobbies ──
   if (body?.leave) {
+    if (!isDuelLobby) {
+      // Party lobbies: just acknowledge the leave, no forfeit needed
+      return NextResponse.json({ action: 'left' }, { status: 200 });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: leaveResult, error: leaveError } = await (supabase.rpc as any)('process_duel_forfeit', {
       p_lobby_code: lobbyCode,

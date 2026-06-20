@@ -235,6 +235,8 @@ export function buildMultiplayerSessionHref(
     lobbyCode: string;
     playerId: string;
     round: number;
+    /** 'duel' or 'party' — adds a mode query param for client-side disambiguation */
+    mode?: string;
   },
 ) {
   const game = getMultiplayerGame(selection.slug);
@@ -254,6 +256,10 @@ export function buildMultiplayerSessionHref(
   url.searchParams.set('lobby', options.lobbyCode);
   url.searchParams.set('player', options.playerId);
   url.searchParams.set('round', String(Math.max(0, options.round)));
+
+  if (options.mode) {
+    url.searchParams.set('mp_mode', options.mode);
+  }
 
   return `${url.pathname}${url.search}`;
 }

@@ -8,7 +8,7 @@ import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { TypingProtocol } from './typing-protocol';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
-type SearchParams = { duration?: string; language?: string; lobby?: string; game?: string; player?: string; round?: string };
+type SearchParams = { duration?: string; language?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) {
@@ -53,6 +53,7 @@ export default async function TypingPage({
   const resolvedSearchParams = (await searchParams) ?? {};
   const { displayName, isSignedIn } = await loadTypingPageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
+  const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
 
   const initialDuration = resolvedSearchParams.duration === '60' ? 60 : 30;
   const initialLanguage = resolvedSearchParams.language === 'german'
@@ -88,8 +89,12 @@ export default async function TypingPage({
                 <div className="sm:hidden">
                   <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
-                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
-                  In Duel — Cannot leave
+                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
             ) : (

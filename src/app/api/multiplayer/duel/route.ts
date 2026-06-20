@@ -78,6 +78,7 @@ function buildGameUrl(playerId: string, lobbyCode: string, gameOrder: string[]):
   if (!slug) return null;
   return buildMultiplayerSessionHref(parseMultiplayerSelectionToken(slug), {
     lobbyCode,
+    mode: 'duel',
     playerId,
     round: 0,
   });

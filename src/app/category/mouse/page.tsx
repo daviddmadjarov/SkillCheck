@@ -8,7 +8,7 @@ import { MouseProtocols } from './mouse-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 
-type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string };
+type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string };
 
 type MouseMode = 'symbol' | 'cps' | 'tracking';
 
@@ -82,6 +82,7 @@ export default async function MousePage({
       : 10;
   const { displayName, isSignedIn } = await loadMousePageData();
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
+  const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -110,8 +111,12 @@ export default async function MousePage({
                 <div className="sm:hidden">
                   <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
-                <div className="rounded-2xl border-2 border-rose-300 bg-rose-50 px-6 py-3 text-sm font-bold text-rose-600">
-                  In Duel — Cannot leave
+                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
             ) : (

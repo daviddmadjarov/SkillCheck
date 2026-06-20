@@ -4,11 +4,14 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 
+export type MultiplayerSessionMode = 'duel' | 'party' | null;
+
 export type MultiplayerSubmissionMeta = {
   multiplayerGameSlug: string | null;
   multiplayerLobbyCode: string | null;
   multiplayerPlayerId: string | null;
   multiplayerRound: number;
+  multiplayerMode: MultiplayerSessionMode;
   daily: boolean;
 };
 
@@ -22,12 +25,15 @@ export function useMultiplayerSubmissionMeta(defaultGameSlug?: string): Multipla
     const parsedRound = Number(searchParams.get('round'));
     const multiplayerRound = Number.isFinite(parsedRound) && parsedRound >= 0 ? Math.floor(parsedRound) : 0;
     const daily = searchParams.get('daily') === 'true';
+    const modeParam = searchParams.get('mp_mode');
+    const multiplayerMode: MultiplayerSessionMode = modeParam === 'duel' ? 'duel' : modeParam === 'party' ? 'party' : null;
 
     return {
       multiplayerGameSlug,
       multiplayerLobbyCode,
       multiplayerPlayerId,
       multiplayerRound,
+      multiplayerMode,
       daily,
     };
   }, [defaultGameSlug, searchParams]);
