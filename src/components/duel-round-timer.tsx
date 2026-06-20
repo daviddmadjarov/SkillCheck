@@ -34,7 +34,7 @@ export function DuelRoundTimer({ gameSlug, lobbyCode, playerId, round }: DuelRou
           if (!hasExpiredRef.current) {
             hasExpiredRef.current = true;
 
-            // Submit DNF (score = 0) so the opponent can continue to next round
+            // Submit DNF (score = 0) for this round
             fetch('/api/scores/submit', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -47,15 +47,16 @@ export function DuelRoundTimer({ gameSlug, lobbyCode, playerId, round }: DuelRou
                 multiplayerRound: round,
                 daily: false,
               }),
-            }).catch(() => {
-              // Ignore – the server will resolve the round anyway
-            });
+            }).catch(() => {});
 
-            // Redirect to intermission
+            // Redirect to intermission with dnf=1 — tells intermission
+            // to skip the old server-side deadline and advance to 3-2-1
+            // countdown for the next round immediately.
             const params = new URLSearchParams();
             params.set('game', gameSlug);
             params.set('player', playerId);
             params.set('round', String(round));
+            params.set('dnf', '1');
             window.location.href = `/party/${lobbyCode}/intermission?${params.toString()}`;
           }
           return 0;

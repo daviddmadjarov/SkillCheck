@@ -7,14 +7,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
  * This component mounts inside game pages during multiplayer sessions.
  *
  * It polls session-status to detect when the round has advanced on the server
- * (meaning the opponent finished or the timer ran out), and automatically
- * redirects to the intermission/scoreboard.
+ * and automatically redirects to the intermission/scoreboard.
  *
- * CRITICAL: Detects navigation away from the game page (browser back/forward,
- * clicking footer links, etc.) and immediately triggers a full forfeit via
- * the heartbeat endpoint — this ends the entire match and crowns the opponent
- * the winner. This is distinct from the round timer DNF (which only gives
- * 0 points for one round and advances to the next).
+ * CRITICAL: Detects navigation away from the game page (clicking footer links,
+ * browser back/forward, tab closing) and immediately triggers a full forfeit
+ * via the heartbeat endpoint — ending the match and crowning the opponent winner.
+ *
+ * This is distinct from the round timer DNF (which only gives 0 points for one
+ * round and advances to the next).
  */
 export function MultiplayerSessionGuard() {
   const router = useRouter();
@@ -28,15 +28,9 @@ export function MultiplayerSessionGuard() {
   const round = Number.isFinite(parsedRound) && parsedRound >= 0 ? Math.floor(parsedRound) : 0;
 
   const isMultiplayer = Boolean(lobbyCode && playerId && gameSlug);
-  const mountedRef = useRef(true);
-  const tabClosingRef = useRef(false);
   const forfeitSentRef = useRef(false);
+  const intentionalNavRef = useRef(false); // true when we deliberately redirect to intermission/result
 
-  /**
-   * Sends a forfeit signal via the heartbeat endpoint with leave: true.
-   * This triggers process_duel_forfeit on the server which ends the match
-   * and awards victory to the opponent. Only fires once per mount.
-   */
   function sendForfeit() {
     if (forfeitSentRef.current || !lobbyCode) return;
     forfeitSentRef.current = true;
@@ -52,28 +46,32 @@ export function MultiplayerSessionGuard() {
   useEffect(() => {
     if (!isMultiplayer || !lobbyCode || !playerId || !gameSlug) return;
 
-    mountedRef.current = true;
-    tabClosingRef.current = false;
+    forfeitSentRef.current = false;
+    intentionalNavRef.current = false;
 
-    // Track tab/window close via beforeunload
+    // ── beforeunload: fires on tab/window close ──
     const handleBeforeUnload = () => {
-      tabClosingRef.current = true;
       sendForfeit();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // ── Browser back/forward navigation (popstate) ──
-    // Fires when the user clicks browser back/forward or uses swipe gestures.
-    // Triggers an instant full forfeit.
+    // ── pagehide: fires on tab close or navigation away.
+    // We check intentionalNavRef — if we deliberately navigated to
+    // intermission, this ref is true and we skip forfeit.
+    const handlePageHide = () => {
+      if (intentionalNavRef.current) return;
+      sendForfeit();
+    };
+    window.addEventListener('pagehide', handlePageHide);
+
+    // ── popstate: fires on browser back/forward buttons ──
     const handlePopState = () => {
-      if (!mountedRef.current || forfeitSentRef.current) return;
+      if (intentionalNavRef.current) return;
       sendForfeit();
     };
     window.addEventListener('popstate', handlePopState);
 
     // ── Intercept clicks on <a> tags that navigate away ──
-    // Catches footer links (Imprint, TOS, Privacy, etc.) and any other
-    // internal navigation that leaves the game page.
     function handleLinkClick(e: MouseEvent) {
       const target = (e.target as HTMLElement).closest('a');
       if (!target) return;
@@ -81,23 +79,16 @@ export function MultiplayerSessionGuard() {
       const href = target.getAttribute('href');
       if (!href) return;
 
-      // Allow navigation to intermission (game completed normally)
-      if (href.includes('/intermission')) return;
+      // Allowed destinations — do not forfeit
+      if (href.includes('/intermission')) { intentionalNavRef.current = true; return; }
+      if (href.includes('/duel/result')) { intentionalNavRef.current = true; return; }
 
-      // Allow navigation to duel result page
-      if (href.includes('/duel/result')) return;
-
-      // For any other link click, trigger forfeit
-      if (!forfeitSentRef.current) {
-        sendForfeit();
-      }
+      sendForfeit();
     }
     document.addEventListener('click', handleLinkClick, { capture: true });
 
-    // ── Poll session status every 2s (round advancement) ──
+    // ── Poll session status every 2s ──
     const statusInterval = window.setInterval(async () => {
-      if (!mountedRef.current) return;
-
       try {
         const response = await fetch(
           `/api/multiplayer/session-status?lobby=${encodeURIComponent(lobbyCode)}&round=${round}`,
@@ -114,7 +105,6 @@ export function MultiplayerSessionGuard() {
 
         if (!payload) return;
 
-        // ── Forfeit detected (opponent left) ──
         if (payload.forfeited) {
           const params = new URLSearchParams();
           if (gameSlug) params.set('game', gameSlug);
@@ -124,18 +114,17 @@ export function MultiplayerSessionGuard() {
           if (payload.forfeitedMessage) {
             params.set('message', payload.forfeitedMessage);
           }
-
+          intentionalNavRef.current = true;
           router.push(`/party/${lobbyCode}/intermission?${params.toString()}`);
           return;
         }
 
-        // ── Round advance (normal) ──
         if (payload.readyToAdvance) {
           const params = new URLSearchParams();
           params.set('game', gameSlug);
           params.set('player', playerId);
           params.set('round', String(round));
-
+          intentionalNavRef.current = true;
           router.push(`/party/${lobbyCode}/intermission?${params.toString()}`);
         }
       } catch {
@@ -144,18 +133,11 @@ export function MultiplayerSessionGuard() {
     }, 2000);
 
     return () => {
-      mountedRef.current = false;
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('click', handleLinkClick, { capture: true });
       window.clearInterval(statusInterval);
-
-      // Only signal forfeit if the tab/window is actually closing,
-      // NOT during normal app navigation (e.g., routing to intermission).
-      // The popstate and click handlers already handle non-tab abandonment.
-      if (tabClosingRef.current && lobbyCode && !forfeitSentRef.current) {
-        sendForfeit();
-      }
     };
   }, [isMultiplayer, lobbyCode, playerId, gameSlug, round, router]);
 

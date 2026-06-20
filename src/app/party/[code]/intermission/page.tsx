@@ -73,7 +73,17 @@ export default async function IntermissionPage({ params, searchParams }: Intermi
   const initialDeadlineAt = currentRoundSlug && firstSubmittedAt
     ? new Date(new Date(firstSubmittedAt).getTime() + getRoundTimeLimitSeconds(currentRoundSlug) * 1000).toISOString()
     : null;
-  const initialReadyToAdvance = resolvedRound > roundIndex;
+
+  // ── DNF check (from in-game timer expiry) ──
+  // When dnf=1, the player's timer expired and they already submitted score=0.
+  // Skip the server-side wait — treat the round as resolved for this player.
+  const dnfRaw = Array.isArray(resolvedSearchParams.dnf)
+    ? resolvedSearchParams.dnf[0]
+    : resolvedSearchParams.dnf;
+  const isDnf = dnfRaw === '1';
+
+  // When DNF, we consider it ready to advance (the player already submitted 0)
+  const initialReadyToAdvance = isDnf || (resolvedRound > roundIndex);
 
   const nextRound = roundIndex + 1;
   const nextToken = lobby.game_order[nextRound] ?? null;
