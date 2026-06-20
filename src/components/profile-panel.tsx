@@ -1,7 +1,7 @@
 'use client';
 
-import { LogOut, MoonStar, SunMedium, UserCircle2, Volume2, VolumeX } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Eye, EyeOff, LogOut, MoonStar, SunMedium, UserCircle2, Volume2, VolumeX } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useTheme } from '@/app/theme-provider';
 import { useSoundToggle } from '@/lib/sound-toggle-context';
@@ -19,10 +19,28 @@ type ProfilePanelProps = {
   username: string;
 };
 
+const EMAIL_HIDDEN_KEY = 'skillcheck-email-hidden';
+
 export function ProfilePanel({ displayName, email, profileMessage, username }: ProfilePanelProps) {
   const { theme, toggleTheme } = useTheme();
   const { soundEnabled, toggleSound } = useSoundToggle();
   const [mounted, setMounted] = useState(false);
+  const [emailHidden, setEmailHidden] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(EMAIL_HIDDEN_KEY);
+    if (stored === 'true') {
+      setEmailHidden(true);
+    }
+  }, []);
+
+  const toggleEmailHidden = useCallback(() => {
+    setEmailHidden((prev) => {
+      const next = !prev;
+      window.localStorage.setItem(EMAIL_HIDDEN_KEY, next ? 'true' : 'false');
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -68,9 +86,26 @@ export function ProfilePanel({ displayName, email, profileMessage, username }: P
             <p className={`mt-2 text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
               {displayName}
             </p>
-            <p className={`mt-1 break-all text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
-              {email ?? 'No gmail available'}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className={`break-all text-sm font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                {email && !emailHidden ? email : emailHidden ? 'Hidden' : 'No gmail available'}
+              </p>
+              {email ? (
+                <button
+                  className={`flex shrink-0 items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-150 ${
+                    isDarkMode
+                      ? 'border-slate-600 bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                  }`}
+                  type="button"
+                  onClick={toggleEmailHidden}
+                  title={emailHidden ? 'Show email' : 'Hide email from stream'}
+                >
+                  {emailHidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {emailHidden ? 'Show' : 'Hide'}
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className={`flex h-12 w-12 items-center justify-center rounded-full ${isDarkMode ? 'bg-slate-800 text-cyan-300 shadow-[0_3px_0_rgba(51,65,85,1)]' : 'bg-white text-cyan-700 shadow-[0_3px_0_rgba(186,230,253,1)]'}`}>
             <UserCircle2 className="h-7 w-7" />
