@@ -41,6 +41,10 @@ export function ProfilePanel({
   const [terminalVariant, setTerminalVariant] = useState<'access' | 'sever'>('access');
   const [accessGranted, setAccessGranted] = useState(hasAnomalousAccess);
   const [isWritingMetadata, setIsWritingMetadata] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const COOLDOWN_MS = 5000;
+
+  const isOnCooldown = () => Date.now() < cooldownUntil;
 
   useEffect(() => {
     const stored = window.localStorage.getItem(EMAIL_HIDDEN_KEY);
@@ -71,8 +75,9 @@ export function ProfilePanel({
   const showStaffAccess = !accessGranted && completedProtocols >= REQUIRED_PROTOCOLS;
 
   const handleStaffAccess = async () => {
-    if (isWritingMetadata) return;
+    if (isWritingMetadata || isOnCooldown()) return;
     setIsWritingMetadata(true);
+    setCooldownUntil(Date.now() + COOLDOWN_MS);
 
     try {
       const { createClient } = await import('@/lib/supabase/client');
@@ -91,8 +96,9 @@ export function ProfilePanel({
   };
 
   const handleSeverUplink = async () => {
-    if (isWritingMetadata) return;
+    if (isWritingMetadata || isOnCooldown()) return;
     setIsWritingMetadata(true);
+    setCooldownUntil(Date.now() + COOLDOWN_MS);
 
     try {
       const { createClient } = await import('@/lib/supabase/client');
