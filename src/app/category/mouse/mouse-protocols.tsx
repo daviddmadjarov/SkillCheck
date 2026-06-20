@@ -314,9 +314,9 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
 
         {phase==='idle'&&!isMultiplayerSession&&<div className="absolute inset-0 z-20 flex items-center justify-center bg-white/70"><button className="lab-button" onClick={startTraceRun} type="button">Start Tracing</button></div>}
 
-        {phase==='tracing'&&<div className="absolute left-1/2 top-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-slate-200 bg-white/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-slate-500 shadow-sm uppercase">{symbol.label}</span></div>}
+        {phase==='tracing'&&<div className="absolute left-1/2 top-[18px] z-10 -translate-x-1/2"><span className="rounded-full border-2 border-slate-200 bg-white/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-slate-500 shadow-sm uppercase">{symbol.label}</span></div>}
 
-        {phase==='tracing'&&traceMode==='memory'&&<div className="absolute left-1/2 bottom-3 z-10 -translate-x-1/2"><span className="rounded-full border-2 border-amber-200 bg-amber-50/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-amber-700 shadow-sm uppercase">Draw from memory</span></div>}
+        {phase==='tracing'&&traceMode==='memory'&&<div className="absolute left-1/2 bottom-[18px] z-10 -translate-x-1/2"><span className="rounded-full border-2 border-amber-200 bg-amber-50/90 px-4 py-1.5 text-xs font-bold tracking-[0.18em] text-amber-700 shadow-sm uppercase">Draw from memory</span></div>}
 
         {phase==='reveal'&&result&&<div className="absolute inset-0 z-20 flex items-center justify-center"><div className="rounded-[1.5rem] border-2 border-slate-200 bg-white/90 px-5 py-4 text-center shadow-lg backdrop-blur-sm"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{symbol.label}</p><p className={`mt-3 text-2xl font-black ${result.accuracy>=70?'text-emerald-600':'text-amber-600'}`}>{result.accuracy}% Accuracy</p><p className="mt-1 text-sm text-slate-500">Score: {result.labScore}</p><button className="mt-3 lab-button" onClick={advanceRound} type="button">{roundIdx+1>=ROUNDS?'See Final Score':'Next Symbol'}</button></div></div>}
 
@@ -407,13 +407,13 @@ const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBo
 
 export function MouseProtocols({mode,isSignedIn,initialCpsDuration:_cps,initialTraceMode:_tm}:{mode:string;isSignedIn:boolean;initialCpsDuration?:number;initialTraceMode?:string}){
   const [traceMode,setTraceMode]=useState<TraceMode>('assist');
+  const { isMultiplayerSession } = useMultiplayerRoundFlow('mouse-symbol-tracing');
 
   // In duel mode, symbol tracing is always forced to memory mode
   // and the toggle buttons are locked (handled inside SymbolTracing).
   if (mode === 'tracking') return <TrackingTest isSignedIn={isSignedIn}/>;
   if (mode === 'cps') return <CpsTester isSignedIn={isSignedIn}/>;
 
-  const { isMultiplayerSession } = useMultiplayerRoundFlow('mouse-symbol-tracing');
   const forcedTraceMode: TraceMode = isMultiplayerSession ? 'memory' : traceMode;
 
   return <SymbolTracing traceMode={forcedTraceMode} onSetTraceMode={setTraceMode} isSignedIn={isSignedIn}/>;
