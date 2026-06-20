@@ -15,13 +15,21 @@ export default function DuelPage() {
   const [playingCount, setPlayingCount] = useState<number>(0);
   const [opponentName, setOpponentName] = useState<string | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
+  const prevStateRef = useRef<DuelState>('idle');
 
-  // ── Queue sound ──
-  // Play a single sub-bass thump when entering the queue (no repeating ping).
+  // ── Queue sounds ──
+  // Play a sub-bass thump when entering the queue (louder + longer).
+  // Play a reversed (rising) thump when cancelling the queue.
   useEffect(() => {
+    // Play on entering waiting state
     if (state === 'waiting') {
       playQueueThump(ctxRef);
     }
+    // Play cancel sound when transitioning from waiting → idle
+    if (state === 'idle' && prevStateRef.current === 'waiting') {
+      playQueueThumpReverse(ctxRef);
+    }
+    prevStateRef.current = state;
   }, [state]);
 
   async function handleQueue() {
@@ -344,31 +352,61 @@ export default function DuelPage() {
   );
 }
 
-/** Single sub-bass thump played once when entering the queue. */
-function playQueueThump(ctxRef: React.MutableRefObject<AudioContext | null>) {
+/** Ensure an AudioContext exists and return it */
+function ensureCtx(ctxRef: React.MutableRefObject<AudioContext | null>): AudioContext | null {
   let ac = ctxRef.current;
   if (!ac) {
     const AC = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return null;
     ac = new AC();
     ctxRef.current = ac;
   }
   if (ac.state === 'suspended') {
     ac.resume().catch(() => {});
   }
+  return ac;
+}
 
+/** Sub-bass thump played when entering the queue (louder + longer). */
+function playQueueThump(ctxRef: React.MutableRefObject<AudioContext | null>) {
+  const ac = ensureCtx(ctxRef);
+  if (!ac) return;
   const now = ac.currentTime;
+
+  // Main sub-bass body — louder (0.12) and longer (0.6 s)
   const osc = ac.createOscillator();
   const g = ac.createGain();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(180, now);
-  osc.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+  osc.frequency.exponentialRampToValueAtTime(70, now + 0.45);
   g.gain.setValueAtTime(0.001, now);
-  g.gain.linearRampToValueAtTime(0.07, now + 0.008);
-  g.gain.linearRampToValueAtTime(0.04, now + 0.1);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  g.gain.linearRampToValueAtTime(0.12, now + 0.01);
+  g.gain.setValueAtTime(0.12, now + 0.15);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
   osc.connect(g);
   g.connect(ac.destination);
   osc.start(now);
-  osc.stop(now + 0.4);
+  osc.stop(now + 0.65);
+}
+
+/** Reversed (rising) thump played when cancelling the queue. */
+function playQueueThumpReverse(ctxRef: React.MutableRefObject<AudioContext | null>) {
+  const ac = ensureCtx(ctxRef);
+  if (!ac) return;
+  const now = ac.currentTime;
+
+  // Rising pitch instead of falling — the "reverse" of the queue thump
+  const osc = ac.createOscillator();
+  const g = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(70, now);
+  osc.frequency.exponentialRampToValueAtTime(180, now + 0.45);
+  g.gain.setValueAtTime(0.001, now);
+  g.gain.linearRampToValueAtTime(0.08, now + 0.01);
+  g.gain.setValueAtTime(0.08, now + 0.15);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  osc.connect(g);
+  g.connect(ac.destination);
+  osc.start(now);
+  osc.stop(now + 0.55);
 }
