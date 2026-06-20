@@ -21,6 +21,7 @@ import { LeaderboardScroll } from '@/components/leaderboard-scroll';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 import { GameModeCard } from '@/components/game-mode-card';
+import { MonitoringRoom } from '@/components/monitoring-room';
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
   { id: 'aim', title: 'Aim Assessment', icon: Crosshair, desc: 'Targeting and precision drills', color: 'text-blue-500', bg: 'bg-blue-100' },
@@ -520,6 +521,11 @@ export default async function Home({
   const authMessage = getAuthMessage(resolvedSearchParams);
   const profileMessage = getProfileMessage(resolvedSearchParams);
 
+  // ── Render the Aethelgard Monitoring Room when anomalous access is active ──
+  if (hasAnomalousAccess && user) {
+    return <MonitoringRoom />;
+  }
+
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">
@@ -667,6 +673,7 @@ export default async function Home({
                     desc={cat.desc}
                     color={cat.color}
                     bg={cat.bg}
+                    hasAnomalousAccess={hasAnomalousAccess}
                   />
                 ))}
               </div>

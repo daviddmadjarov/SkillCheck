@@ -38,13 +38,14 @@ type GameModeCardProps = {
   desc: string;
   color: string;
   bg: string;
+  hasAnomalousAccess?: boolean;
 };
 
-export function GameModeCard({ href, iconKey, title, desc, color, bg }: GameModeCardProps) {
+export function GameModeCard({ href, iconKey, title, desc, color, bg, hasAnomalousAccess }: GameModeCardProps) {
   const Icon = ICON_MAP[iconKey];
   const loreTitle = LORE_LABELS[title] ?? title;
 
-  const { displayText, isGlitching } = useLoreGlitch(title, loreTitle);
+  const { displayText, isGlitching } = useLoreGlitch(title, loreTitle, hasAnomalousAccess !== undefined ? { hasAccessOverride: hasAnomalousAccess } : undefined);
 
   return (
     <Link href={href} className="lab-card-interactive min-h-[126px] p-5">

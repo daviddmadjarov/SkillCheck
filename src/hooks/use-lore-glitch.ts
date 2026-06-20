@@ -27,6 +27,8 @@ type GlitchOptions = {
   minPause?: number;
   /** Max pause between glitches in ms.  Default 20000 */
   maxPause?: number;
+  /** Bypass the async metadata lookup with a known value (server-passed prop) */
+  hasAccessOverride?: boolean;
 };
 
 export function useLoreGlitch(
@@ -40,17 +42,20 @@ export function useLoreGlitch(
     maxDuration = 1200,
     minPause = 6000,
     maxPause = 20000,
+    hasAccessOverride,
   } = options ?? {};
 
   const [displayText, setDisplayText] = useState(originalText);
   const [isGlitching, setIsGlitching] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(hasAccessOverride ?? false);
 
   const hoveredRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Detect anomalous_access from Supabase metadata via the session
+  // (only if no override was provided via props)
   useEffect(() => {
+    if (hasAccessOverride !== undefined) return;
     let cancelled = false;
 
     (async () => {
@@ -68,7 +73,7 @@ export function useLoreGlitch(
     })();
 
     return () => { cancelled = true; };
-  }, []);
+  }, [hasAccessOverride]);
 
   // Periodic random glitch when anomalous_access is active
   useEffect(() => {
