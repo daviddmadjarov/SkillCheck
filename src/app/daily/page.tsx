@@ -13,6 +13,7 @@ type DailyChallenge = {
   gameCategory: string;
   gameHref: string;
   completed: boolean;
+  isSignedIn: boolean;
   userScore: number | null;
   userRank: number | null;
   totalParticipants: number;
@@ -185,7 +186,7 @@ function DailyPageContent() {
                   </p>
                 )}
               </div>
-            ) : (
+            ) : challenge.isSignedIn ? (
               <>
                 <p className="text-sm font-bold leading-6 text-slate-600">
                   One attempt per day. Make it count!
@@ -197,6 +198,18 @@ function DailyPageContent() {
                   Play Today's Challenge
                 </Link>
               </>
+            ) : (
+              <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 px-6 py-5">
+                <p className="text-sm font-bold leading-6 text-amber-700">
+                  Sign in to play the daily challenge.
+                </p>
+                <Link
+                  className="mt-3 inline-block rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 text-sm font-bold text-white"
+                  href="/auth/login"
+                >
+                  Sign in
+                </Link>
+              </div>
             )}
 
             <Link

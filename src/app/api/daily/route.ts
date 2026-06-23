@@ -36,11 +36,15 @@ export async function GET() {
   let userRank: number | null = null;
   let totalParticipants: number = 0;
 
+  let isSignedIn = false;
+
   if (hasSupabaseEnv()) {
     try {
       const supabase = await createClient();
       const { data: userResult } = await supabase.auth.getUser();
       const user = userResult?.user;
+
+      isSignedIn = user !== null;
 
       if (user) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,6 +85,7 @@ export async function GET() {
     gameCategory: game.category,
     gameHref: game.href,
     completed: userEntry !== null,
+    isSignedIn,
     userScore: userEntry?.score ?? null,
     userRank,
     totalParticipants,
