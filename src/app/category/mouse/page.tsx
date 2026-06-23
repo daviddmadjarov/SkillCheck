@@ -9,64 +9,38 @@ import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard'
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
+import { CategoryShell } from '@/components/category-shell';
+import type { ModeOption } from '@/components/mode-picker';
 
 type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
 type MouseMode = 'symbol' | 'cps' | 'tracking';
 
+const MOUSE_MODES: ModeOption[] = [
+  { id: 'symbol', label: 'Symbol Tracing', shortLabel: 'Tracing', description: 'Trajectory perfection' },
+  { id: 'tracking', label: 'Tracking Test', shortLabel: 'Track', description: 'Moving target' },
+  { id: 'cps', label: 'CPS Tester', shortLabel: 'CPS', description: 'Click speed' },
+];
+
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
-  if (!user) {
-    return 'Guest Researcher';
-  }
-
+  if (!user) return 'Guest Researcher';
   const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
-
   return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
 async function loadMousePageData() {
-  if (!hasSupabaseEnv()) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
+  if (!hasSupabaseEnv()) return { displayName: 'Guest Researcher', isSignedIn: false };
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
   const user = userResult.user;
-
-  if (!user) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
-  return {
-    displayName: getDisplayName(user),
-    isSignedIn: true,
-  };
+  if (!user) return { displayName: 'Guest Researcher', isSignedIn: false };
+  return { displayName: getDisplayName(user), isSignedIn: true };
 }
 
 function getMouseMode(value: string | undefined): MouseMode {
-  if (value === 'cps') {
-    return 'cps';
-  }
-
-  if (value === 'tracking') {
-    return 'tracking';
-  }
-
+  if (value === 'cps') return 'cps';
+  if (value === 'tracking') return 'tracking';
   return 'symbol';
-}
-
-function tabClass(isActive: boolean) {
-  if (isActive) {
-    return 'rounded-full border-2 border-cyan-300 bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-800';
-  }
-
-  return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50';
 }
 
 function getStatsSlug(mode: MouseMode): string {
@@ -92,6 +66,7 @@ export default async function MousePage({
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
   const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
+  const isSessionLocked = isMultiplayerSession || isDailyGame;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -138,34 +113,26 @@ export default async function MousePage({
           </div>
         </div>
 
-        {isMultiplayerSession || isDailyGame ? null : (
-          <section className="lab-card p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
-              <Link className={tabClass(mode === 'symbol')} href="/category/mouse?mode=symbol">
-                Symbol Tracing
-              </Link>
-              <Link className={tabClass(mode === 'tracking')} href="/category/mouse?mode=tracking">
-                Tracking Test
-              </Link>
-              <Link className={tabClass(mode === 'cps')} href="/category/mouse?mode=cps">
-                CPS Tester
-              </Link>
-            </div>
-          </section>
-        )}
-
-        <MouseProtocols
-          initialCpsDuration={initialCpsDuration}
-          initialTraceMode={initialTraceMode}
-          isSignedIn={isSignedIn}
-          mode={mode}
+        <CategoryShell
+          initialMode={mode}
+          modes={MOUSE_MODES}
+          isSessionLocked={isSessionLocked}
+          gameComponent={(activeMode) => (
+            <MouseProtocols
+              initialCpsDuration={initialCpsDuration}
+              initialTraceMode={initialTraceMode}
+              isSignedIn={isSignedIn}
+              mode={activeMode as MouseMode}
+            />
+          )}
+          statistics={(activeMode) =>
+            !isSessionLocked ? (
+              <Suspense fallback={null}>
+                <GameStatistics testSlug={getStatsSlug(activeMode as MouseMode)} visible={true} />
+              </Suspense>
+            ) : null
+          }
         />
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
-          </Suspense>
-        ) : null}
       </div>
     </main>
   );

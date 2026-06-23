@@ -7,12 +7,20 @@ import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
+import { CategoryShell } from '@/components/category-shell';
+import type { ModeOption } from '@/components/mode-picker';
 import { CognitiveProtocols } from './cognitive-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
 type ThinkingMode = 'rotation' | 'estimation' | 'sequence';
+
+const THINKING_MODES: ModeOption[] = [
+  { id: 'rotation', label: 'Mental Rotation', shortLabel: 'Rotation', description: 'Spatial reasoning' },
+  { id: 'estimation', label: 'Estimation Challenge', shortLabel: 'Estimate', description: 'Perceptual precision' },
+  { id: 'sequence', label: 'Sequence Memory', shortLabel: 'Sequence', description: 'Working memory' },
+];
 
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
   if (!user) return 'Guest Researcher';
@@ -35,12 +43,6 @@ function getMode(value: string | undefined): ThinkingMode {
   return 'rotation';
 }
 
-function tabClass(isActive: boolean) {
-  return isActive
-    ? 'rounded-full border-2 border-cyan-300 bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-800'
-    : 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50';
-}
-
 export default async function ThinkingPage({
   searchParams,
 }: {
@@ -52,6 +54,7 @@ export default async function ThinkingPage({
   const isMultiplayerSession = Boolean(resolved.lobby);
   const isDuelSession = resolved.mp_mode === 'duel';
   const isDailyGame = resolved.daily === 'true' && !isMultiplayerSession;
+  const isSessionLocked = isMultiplayerSession || isDailyGame;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -101,29 +104,21 @@ export default async function ThinkingPage({
           </div>
         </div>
 
-        {isMultiplayerSession || isDailyGame ? null : (
-          <section className="lab-card p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
-              <Link className={tabClass(mode === 'rotation')} href="/category/thinking?mode=rotation">
-                Mental Rotation
-              </Link>
-              <Link className={tabClass(mode === 'estimation')} href="/category/thinking?mode=estimation">
-                Estimation Challenge
-              </Link>
-              <Link className={tabClass(mode === 'sequence')} href="/category/thinking?mode=sequence">
-                Sequence Memory
-              </Link>
-            </div>
-          </section>
-        )}
-
-        <CognitiveProtocols isSignedIn={isSignedIn} mode={mode} />
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'estimation' ? 'estimation-challenge' : mode === 'sequence' ? 'sequence-memory' : 'mental-rotation'} visible={true} />
-          </Suspense>
-        ) : null}
+        <CategoryShell
+          initialMode={mode}
+          modes={THINKING_MODES}
+          isSessionLocked={isSessionLocked}
+          gameComponent={(activeMode) => (
+            <CognitiveProtocols isSignedIn={isSignedIn} mode={activeMode as ThinkingMode} />
+          )}
+          statistics={(activeMode) =>
+            !isSessionLocked ? (
+              <Suspense fallback={null}>
+                <GameStatistics testSlug={activeMode === 'estimation' ? 'estimation-challenge' : activeMode === 'sequence' ? 'sequence-memory' : 'mental-rotation'} visible={true} />
+              </Suspense>
+            ) : null
+          }
+        />
       </div>
     </main>
   );

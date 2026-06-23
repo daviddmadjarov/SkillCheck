@@ -7,6 +7,8 @@ import { ReactionProtocol } from '@/app/category/reaction/reaction-protocol';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
+import { CategoryShell } from '@/components/category-shell';
+import type { ModeOption } from '@/components/mode-picker';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -15,27 +17,24 @@ type SearchParams = { mode?: string; lobby?: string; game?: string; player?: str
 
 type ReactionMode = 'time' | 'audio' | 'multi';
 
+const REACTION_MODES: ModeOption[] = [
+  { id: 'time', label: 'Reaction Time', shortLabel: 'Visual', description: 'Visual signal' },
+  { id: 'audio', label: 'Audio Reaction', shortLabel: 'Audio', description: 'Sound signal' },
+  { id: 'multi', label: 'Multi-Reaction', shortLabel: 'Multi', description: 'Complex pattern' },
+];
+
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
-  if (!user) {
-    return 'Guest Researcher';
-  }
-
+  if (!user) return 'Guest Researcher';
   const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
-
   return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
 async function loadReactionPageData() {
   if (!hasSupabaseEnv()) {
     return {
-      attempts: 0,
-      audioAttempts: 0,
-      multiAttempts: 0,
-      bestScore: null as number | null,
-      audioBestScore: null as number | null,
-      multiBestScore: null as number | null,
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
+      attempts: 0, audioAttempts: 0, multiAttempts: 0,
+      bestScore: null as number | null, audioBestScore: null as number | null, multiBestScore: null as number | null,
+      displayName: 'Guest Researcher', isSignedIn: false,
     };
   }
 
@@ -45,14 +44,9 @@ async function loadReactionPageData() {
 
   if (!user) {
     return {
-      attempts: 0,
-      audioAttempts: 0,
-      multiAttempts: 0,
-      bestScore: null as number | null,
-      audioBestScore: null as number | null,
-      multiBestScore: null as number | null,
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
+      attempts: 0, audioAttempts: 0, multiAttempts: 0,
+      bestScore: null as number | null, audioBestScore: null as number | null, multiBestScore: null as number | null,
+      displayName: 'Guest Researcher', isSignedIn: false,
     };
   }
 
@@ -60,78 +54,27 @@ async function loadReactionPageData() {
     { data: bestRows },
     { data: audioBestRows },
     { data: multiBestRows },
-    attemptsResult,
-    audioAttemptsResult,
-    multiAttemptsResult,
+    attemptsResult, audioAttemptsResult, multiAttemptsResult,
   ] = await Promise.all([
-    supabase
-      .from('score_submissions')
-      .select('score')
-      .eq('user_id', user.id)
-      .eq('test_slug', 'reaction-time')
-      .order('score', { ascending: false })
-      .limit(1),
-    supabase
-      .from('score_submissions')
-      .select('score')
-      .eq('user_id', user.id)
-      .eq('test_slug', 'audio-reaction')
-      .order('score', { ascending: false })
-      .limit(1),
-    supabase
-      .from('score_submissions')
-      .select('score')
-      .eq('user_id', user.id)
-      .eq('test_slug', 'multi-reaction')
-      .order('score', { ascending: false })
-      .limit(1),
-    supabase
-      .from('score_submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('test_slug', 'reaction-time'),
-    supabase
-      .from('score_submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('test_slug', 'audio-reaction'),
-    supabase
-      .from('score_submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('test_slug', 'multi-reaction'),
+    supabase.from('score_submissions').select('score').eq('user_id', user.id).eq('test_slug', 'reaction-time').order('score', { ascending: false }).limit(1),
+    supabase.from('score_submissions').select('score').eq('user_id', user.id).eq('test_slug', 'audio-reaction').order('score', { ascending: false }).limit(1),
+    supabase.from('score_submissions').select('score').eq('user_id', user.id).eq('test_slug', 'multi-reaction').order('score', { ascending: false }).limit(1),
+    supabase.from('score_submissions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('test_slug', 'reaction-time'),
+    supabase.from('score_submissions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('test_slug', 'audio-reaction'),
+    supabase.from('score_submissions').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('test_slug', 'multi-reaction'),
   ]);
 
   return {
-    attempts: attemptsResult.count ?? 0,
-    audioAttempts: audioAttemptsResult.count ?? 0,
-    multiAttempts: multiAttemptsResult.count ?? 0,
-    bestScore: bestRows?.[0]?.score ?? null,
-    audioBestScore: audioBestRows?.[0]?.score ?? null,
-    multiBestScore: multiBestRows?.[0]?.score ?? null,
-    displayName: getDisplayName(user),
-    isSignedIn: true,
+    attempts: attemptsResult.count ?? 0, audioAttempts: audioAttemptsResult.count ?? 0, multiAttempts: multiAttemptsResult.count ?? 0,
+    bestScore: bestRows?.[0]?.score ?? null, audioBestScore: audioBestRows?.[0]?.score ?? null, multiBestScore: multiBestRows?.[0]?.score ?? null,
+    displayName: getDisplayName(user), isSignedIn: true,
   };
 }
 
 function getReactionMode(value: string | undefined): ReactionMode {
-  if (value === 'audio') {
-    return 'audio';
-  }
-
-  if (value === 'multi') {
-    return 'multi';
-  }
-
+  if (value === 'audio') return 'audio';
+  if (value === 'multi') return 'multi';
   return 'time';
-}
-
-function tabClass(isActive: boolean) {
-  if (isActive) {
-    return 'rounded-full border-2 border-cyan-300 bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-800 html[data-theme="dark"]:border-cyan-700 html[data-theme="dark"]:bg-cyan-900 html[data-theme="dark"]:text-cyan-300';
-  }
-
-  return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 html[data-theme="dark"]:border-slate-700 html[data-theme="dark"]:bg-slate-900 html[data-theme="dark"]:text-slate-300 html[data-theme="dark"]:hover:bg-slate-800';
 }
 
 function getStatsSlug(mode: ReactionMode): string {
@@ -151,6 +94,7 @@ export default async function ReactionPage({
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
   const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
+  const isSessionLocked = isMultiplayerSession || isDailyGame;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -197,43 +141,24 @@ export default async function ReactionPage({
           </div>
         </div>
 
-        {isMultiplayerSession || isDailyGame ? null : (
-          <section className="lab-card p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
-              <Link className={tabClass(mode === 'time')} href="/category/reaction?mode=time">
-                Reaction Time
-              </Link>
-              <Link className={tabClass(mode === 'audio')} href="/category/reaction?mode=audio">
-                Audio Reaction
-              </Link>
-              <Link className={tabClass(mode === 'multi')} href="/category/reaction?mode=multi">
-                Multi-Reaction
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {mode === 'audio' ? (
-          <AudioReactionProtocol initialAttempts={audioAttempts} initialBestScore={audioBestScore} isSignedIn={isSignedIn} />
-        ) : mode === 'multi' ? (
-          <MultiReactionProtocol
-            initialAttempts={multiAttempts}
-            initialBestScore={multiBestScore}
-            isSignedIn={isSignedIn}
-          />
-        ) : (
-          <ReactionProtocol
-            initialAttempts={attempts}
-            initialBestScore={bestScore}
-            isSignedIn={isSignedIn}
-          />
-        )}
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
-          </Suspense>
-        ) : null}
+        <CategoryShell
+          initialMode={mode}
+          modes={REACTION_MODES}
+          isSessionLocked={isSessionLocked}
+          gameComponent={(activeMode) => {
+            const m = activeMode as ReactionMode;
+            if (m === 'audio') return <AudioReactionProtocol initialAttempts={audioAttempts} initialBestScore={audioBestScore} isSignedIn={isSignedIn} />;
+            if (m === 'multi') return <MultiReactionProtocol initialAttempts={multiAttempts} initialBestScore={multiBestScore} isSignedIn={isSignedIn} />;
+            return <ReactionProtocol initialAttempts={attempts} initialBestScore={bestScore} isSignedIn={isSignedIn} />;
+          }}
+          statistics={(activeMode) =>
+            !isSessionLocked ? (
+              <Suspense fallback={null}>
+                <GameStatistics testSlug={getStatsSlug(activeMode as ReactionMode)} visible={true} />
+              </Suspense>
+            ) : null
+          }
+        />
       </div>
     </main>
   );

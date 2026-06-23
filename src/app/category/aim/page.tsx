@@ -5,68 +5,48 @@ import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
+import { GameStatistics } from '@/components/game-statistics';
+import { CategoryShell } from '@/components/category-shell';
+import type { ModeOption } from '@/components/mode-picker';
 
 import { AimProtocols } from './aim-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
-import { GameStatistics } from '@/components/game-statistics';
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
 type AimMode = 'trainer' | 'moving' | 'split';
 
+const AIM_MODES: ModeOption[] = [
+  { id: 'trainer', label: 'Aim Trainer', shortLabel: 'Trainer', description: 'Precision warm-up' },
+  { id: 'moving', label: 'Moving Targets', shortLabel: 'Moving', description: 'Motion reading' },
+  { id: 'split', label: 'Perfect Split', shortLabel: 'Split', description: 'Geometric precision' },
+];
+
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
-  if (!user) {
-    return 'Guest Researcher';
-  }
-
+  if (!user) return 'Guest Researcher';
   const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
-
   return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
 async function loadAimPageData() {
-  if (!hasSupabaseEnv()) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
+  if (!hasSupabaseEnv()) return { displayName: 'Guest Researcher', isSignedIn: false };
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
   const user = userResult.user;
-
-  if (!user) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
-  return {
-    displayName: getDisplayName(user),
-    isSignedIn: true,
-  };
+  if (!user) return { displayName: 'Guest Researcher', isSignedIn: false };
+  return { displayName: getDisplayName(user), isSignedIn: true };
 }
 
 function getAimMode(value: string | undefined): AimMode {
-  if (value === 'moving') {
-    return 'moving';
-  }
-
-  if (value === 'split') {
-    return 'split';
-  }
-
+  if (value === 'moving') return 'moving';
+  if (value === 'split') return 'split';
   return 'trainer';
 }
 
-function tabClass(isActive: boolean) {
-  if (isActive) {
-    return 'rounded-full border-2 border-cyan-300 bg-cyan-100 px-4 py-2 text-sm font-bold text-cyan-800';
-  }
-
-  return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50';
+function getStatsSlug(mode: AimMode): string {
+  if (mode === 'moving') return 'aim-moving-targets';
+  if (mode === 'split') return 'aim-perfect-split';
+  return 'aim-trainer';
 }
 
 export default async function AimPage({
@@ -80,6 +60,7 @@ export default async function AimPage({
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
   const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
+  const isSessionLocked = isMultiplayerSession || isDailyGame;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -126,29 +107,21 @@ export default async function AimPage({
           </div>
         </div>
 
-        {isMultiplayerSession || isDailyGame ? null : (
-          <section className="lab-card p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
-              <Link className={tabClass(mode === 'trainer')} href="/category/aim?mode=trainer">
-                Aim Trainer
-              </Link>
-              <Link className={tabClass(mode === 'moving')} href="/category/aim?mode=moving">
-                Moving Targets
-              </Link>
-              <Link className={tabClass(mode === 'split')} href="/category/aim?mode=split">
-                Perfect Split
-              </Link>
-            </div>
-          </section>
-        )}
-
-        <AimProtocols mode={mode} isSignedIn={isSignedIn} />
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} />
-          </Suspense>
-        ) : null}
+        <CategoryShell
+          initialMode={mode}
+          modes={AIM_MODES}
+          isSessionLocked={isSessionLocked}
+          gameComponent={(activeMode) => (
+            <AimProtocols mode={activeMode} isSignedIn={isSignedIn} />
+          )}
+          statistics={(activeMode) =>
+            !isSessionLocked ? (
+              <Suspense fallback={null}>
+                <GameStatistics testSlug={getStatsSlug(activeMode as AimMode)} visible={true} />
+              </Suspense>
+            ) : null
+          }
+        />
       </div>
     </main>
   );

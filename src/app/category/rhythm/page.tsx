@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
+import { CategoryShell } from '@/components/category-shell';
+import type { ModeOption } from '@/components/mode-picker';
 import { RhythmProtocols } from './rhythm-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
@@ -14,59 +16,31 @@ type SearchParams = { mode?: string; lobby?: string; game?: string; player?: str
 
 type RhythmMode = 'sync' | 'timer' | 'overclock';
 
+const RHYTHM_MODES: ModeOption[] = [
+  { id: 'sync', label: 'Perfect Sync', shortLabel: 'Sync', description: 'Beat matching' },
+  { id: 'timer', label: 'Stop the Timer', shortLabel: 'Timer', description: 'Internal clock' },
+  { id: 'overclock', label: 'Overclock', shortLabel: 'Overclock', description: 'Speed calibration' },
+];
+
 function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null) {
-  if (!user) {
-    return 'Guest Researcher';
-  }
-
+  if (!user) return 'Guest Researcher';
   const metadata = user.user_metadata as Record<string, string | undefined> | undefined;
-
   return metadata?.user_name ?? metadata?.full_name ?? user.email?.split('@')[0] ?? 'Researcher';
 }
 
 async function loadRhythmPageData() {
-  if (!hasSupabaseEnv()) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
+  if (!hasSupabaseEnv()) return { displayName: 'Guest Researcher', isSignedIn: false };
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
   const user = userResult.user;
-
-  if (!user) {
-    return {
-      displayName: 'Guest Researcher',
-      isSignedIn: false,
-    };
-  }
-
-  return {
-    displayName: getDisplayName(user),
-    isSignedIn: true,
-  };
+  if (!user) return { displayName: 'Guest Researcher', isSignedIn: false };
+  return { displayName: getDisplayName(user), isSignedIn: true };
 }
 
 function getRhythmMode(value: string | undefined): RhythmMode {
-  if (value === 'timer') {
-    return 'timer';
-  }
-
-  if (value === 'overclock') {
-    return 'overclock';
-  }
-
+  if (value === 'timer') return 'timer';
+  if (value === 'overclock') return 'overclock';
   return 'sync';
-}
-
-function tabClass(isActive: boolean) {
-  if (isActive) {
-    return 'rounded-full border-2 border-violet-300 bg-violet-100 px-4 py-2 text-sm font-bold text-violet-800';
-  }
-
-  return 'rounded-full border-2 border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50';
 }
 
 export default async function RhythmPage({
@@ -80,6 +54,7 @@ export default async function RhythmPage({
   const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
   const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
   const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
+  const isSessionLocked = isMultiplayerSession || isDailyGame;
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
@@ -126,29 +101,21 @@ export default async function RhythmPage({
           </div>
         </div>
 
-        {isMultiplayerSession || isDailyGame ? null : (
-          <section className="lab-card p-4 sm:p-5">
-            <div className="flex flex-wrap gap-2">
-              <Link className={tabClass(mode === 'sync')} href="/category/rhythm?mode=sync">
-                Sync Test
-              </Link>
-              <Link className={tabClass(mode === 'timer')} href="/category/rhythm?mode=timer">
-                Stop the Timer
-              </Link>
-              <Link className={tabClass(mode === 'overclock')} href="/category/rhythm?mode=overclock">
-                Overclock
-              </Link>
-            </div>
-          </section>
-        )}
-
-        <RhythmProtocols isSignedIn={isSignedIn} mode={mode} />
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : mode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
-          </Suspense>
-        ) : null}
+        <CategoryShell
+          initialMode={mode}
+          modes={RHYTHM_MODES}
+          isSessionLocked={isSessionLocked}
+          gameComponent={(activeMode) => (
+            <RhythmProtocols isSignedIn={isSignedIn} mode={activeMode as RhythmMode} />
+          )}
+          statistics={(activeMode) =>
+            !isSessionLocked ? (
+              <Suspense fallback={null}>
+                <GameStatistics testSlug={activeMode === 'timer' ? 'stop-timer' : activeMode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
+              </Suspense>
+            ) : null
+          }
+        />
       </div>
     </main>
   );
