@@ -12,7 +12,7 @@ function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
 export type Point = { x: number; y: number };
 
 function AimShell({title,kicker,description,accent,isSignedIn,stats,children}:{title:string;kicker:string;description:string;accent:string;isSignedIn:boolean;stats:{label:string;value:string;detail:string}[],children:React.ReactNode}){
-  return <section className="lab-card p-3 sm:p-4"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p><h2 className="text-xl font-black tracking-tight text-slate-800 sm:text-2xl" title={description}>{title}</h2><p className={`inline-flex rounded-full border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div><div className="rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div></div>{children}<div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:min-h-[140px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-800 sm:text-2xl">{s.value}</p><p className="text-xs font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
+  return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div><div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div></div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
 }
 
 function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
@@ -404,21 +404,27 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
     return 'text-rose-600';
   }
 
-  return <AimShell title="Perfect Split" kicker="Geometric precision" description="Drag two dots along the shape's edge to split it as evenly as possible." accent="border-amber-200 bg-amber-50 text-amber-900"
-    isSignedIn={isSignedIn}
-    stats={[
-      { label: 'Round', value: phase === 'idle' ? '--' : `${Math.min(roundIdx + 1, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`, detail: 'Four shapes per run.' },
-      { label: 'Shape', value: phase === 'idle' ? '--' : shape.label, detail: 'Random shape each round.' },
-      { label: 'Avg Lab Score', value: avgScore === null ? '--' : String(avgScore), detail: 'Average across all rounds.' },
-      { label: 'Total Lab Score', value: labScore === null ? '--' : String(scores.reduce((a,b)=>a+b,0)), detail: 'Sum of all round scores.' },
-    ]}>
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
-          {phase === 'idle' ? 'Press start' : phase === 'playing' ? `Split the ${shape.label}` : phase === 'result' ? `Round ${roundIdx + 1} result` : 'Run complete'}
+  // ── PerfectSplit custom compact layout (instead of using AimShell) ──
+  return (
+    <section className="lab-card p-4 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">Perfect Split</h2>
+          <p className="border-amber-200 bg-amber-50 text-amber-900 mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">Geometric precision</p>
+        </div>
+        <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>
+      </div>
+
+      <div className="mt-3">
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+            {phase === 'idle' ? 'Press start' : phase === 'playing' ? `Split the ${shape.label}` : phase === 'result' ? `Round ${roundIdx + 1} result` : 'Run complete'}
+          </div>
         </div>
       </div>
-      <div className="relative">
+
+      <div className="relative mt-3">
         <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-40 sm:pb-80 touch-none select-none">
           {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
 
@@ -490,8 +496,23 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
           </div>
         )}
       </div>
-    </div>
-  </AimShell>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Round', value: phase === 'idle' ? '--' : `${Math.min(roundIdx + 1, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}`, detail: 'Four shapes per run.' },
+          { label: 'Shape', value: phase === 'idle' ? '--' : shape.label, detail: 'Random shape each round.' },
+          { label: 'Avg Lab Score', value: avgScore === null ? '--' : String(avgScore), detail: 'Average across all rounds.' },
+          { label: 'Total Lab Score', value: labScore === null ? '--' : String(scores.reduce((a,b)=>a+b,0)), detail: 'Sum of all round scores.' },
+        ].map(s => (
+          <div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p>
+            <p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export function AimProtocols({mode,isSignedIn}:{mode:string;isSignedIn:boolean}){

@@ -166,26 +166,28 @@ function RhythmShell({
   title: string;
 }) {
   return (
-    <section className="lab-card p-3 sm:p-4">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+    <section className="lab-card p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Rhythm Category</p>
-          <h2 className="text-xl font-black tracking-tight text-slate-800 sm:text-2xl" title={description}>{title}</h2>
-          <p className={`inline-flex rounded-full border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
+          <p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
         </div>
-        <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+        <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
           {isSignedIn ? 'Leaderboard sync optional' : 'Guest mode'}
         </div>
       </div>
 
+      <p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>
+
       {children}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:min-h-[140px]">
+          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
-            <p className="text-lg font-black text-slate-800 sm:text-2xl">{stat.value}</p>
-            <p className="text-xs font-medium text-slate-500">{stat.detail}</p>
+            <p className="mt-2 text-3xl font-black text-slate-800">{stat.value}</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{stat.detail}</p>
           </div>
         ))}
       </div>
@@ -807,7 +809,6 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   const [gameKey, setGameKey] = useState(0);
   const [autoStart, setAutoStart] = useState(false);
 
-  // In duel/party: start game when countdown finishes
   useEffect(() => {
     if (cd.launched) {
       setAutoStart(true);
@@ -817,7 +818,6 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   const handleGameComplete = useCallback((score: number) => {
     setFinalScore(score);
     setBestScore((prev) => (prev === null ? score : Math.max(prev, score)));
-
     if (isMultiplayerSession) {
       goToIntermission();
     } else if (isSignedIn) {
@@ -831,29 +831,27 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
     }
   }, [isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission]);
 
-  const handleScoreUpdate = useCallback((_score: number) => {
-    // Could be used for live stat display
-  }, []);
+  const handleScoreUpdate = useCallback((_score: number) => {}, []);
 
   const retry = useCallback(() => {
     setGameKey((k) => k + 1);
     setFinalScore(null);
   }, []);
 
+  // ── OverclockGame custom compact layout (no description paragraph) ──
   return (
-    <RhythmShell
-      title={MODE_META.overclock.title}
-      kicker={MODE_META.overclock.kicker}
-      description={MODE_META.overclock.description}
-      accent={MODE_META.overclock.accent}
-      isSignedIn={isSignedIn}
-      stats={[
-        { label: 'Time limit', value: '30s', detail: 'Race the clock — every millisecond counts.' },
-        { label: 'Streak bonus', value: '+0.25x', detail: 'Speed increases by 0.25 rad/s per consecutive hit.' },
-        { label: 'Last score', value: finalScore === null ? '--' : String(finalScore), detail: 'Points = total successful checks.' },
-        { label: 'Best score', value: bestScore === null ? '--' : String(bestScore), detail: bestScore === null ? 'Complete a run to set a local best.' : `Personal best this session.` },
-      ]}
-    >
+    <section className="lab-card p-4 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Rhythm Category</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{MODE_META.overclock.title}</h2>
+          <p className="border-rose-300 bg-rose-100 text-rose-800 mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">{MODE_META.overclock.kicker}</p>
+        </div>
+        <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+          {isSignedIn ? 'Leaderboard sync optional' : 'Guest mode'}
+        </div>
+      </div>
+
       <div className="space-y-4">
         <div className="relative min-h-[24rem] sm:min-h-[28rem]">
           {cd.active && (
@@ -877,7 +875,22 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
           />
         </div>
       </div>
-    </RhythmShell>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Time limit', value: '30s', detail: 'Race the clock — every millisecond counts.' },
+          { label: 'Streak bonus', value: '+0.25x', detail: 'Speed increases by 0.25 rad/s per consecutive hit.' },
+          { label: 'Last score', value: finalScore === null ? '--' : String(finalScore), detail: 'Points = total successful checks.' },
+          { label: 'Best score', value: bestScore === null ? '--' : String(bestScore), detail: bestScore === null ? 'Complete a run to set a local best.' : `Personal best this session.` },
+        ].map((s) => (
+          <div key={s.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p>
+            <p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p>
+            <p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
