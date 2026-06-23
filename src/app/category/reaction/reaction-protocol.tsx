@@ -173,7 +173,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
 
         <button
           className={`flex min-h-[18rem] w-full cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-7 text-center transition sm:min-h-[20rem] sm:px-6 sm:py-8 ${arenaTone}`}
-          onClick={handleArenaClick}
+          onPointerDown={handleArenaClick}
           type="button"
         >
           <span className="text-4xl font-black tracking-tight sm:text-6xl">{arenaTitle}</span>

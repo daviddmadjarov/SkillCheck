@@ -741,7 +741,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Timer</p>
                   <p className="mt-1 text-5xl font-black tracking-tight text-slate-800">{visibleSeconds}s</p>
                 </div>
-                <button className="lab-button" onClick={stopRound} type="button">Stop Now</button>
+                <button className="lab-button" onPointerDown={stopRound} type="button">Stop Now</button>
               </>
             )}
           </div>
