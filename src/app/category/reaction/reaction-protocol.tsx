@@ -59,7 +59,14 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
 
   function saveResult(avgMs: number) {
     if (isDailyGame) {
-      goToDailyResult();
+      void (async () => {
+        await fetch('/api/reaction-results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reactionMs: avgMs, ...multiplayerMeta }),
+        }).catch(() => {});
+        goToDailyResult();
+      })();
       return;
     }
     if (!isSignedIn) return;

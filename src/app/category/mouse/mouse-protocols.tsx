@@ -215,7 +215,7 @@ function SymbolTracing({traceMode,onSetTraceMode,isSignedIn}:{traceMode:TraceMod
   const symbol=TRACE_SYMBOLS[symbolIdx];
   const avgScore=scores.length===0?null:Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
 
-  useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;if(isDailyGame){goToDailyResult();return}fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{emitTelemetryAssessment('mouse-symbol-tracing',avgScore as number);if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToDailyResult,goToIntermission,isDailyGame,isMultiplayerSession,isSignedIn,phase,mm]);
+  useEffect(()=>{if(!isSignedIn||phase!=='finished'||avgScore===null||hsrf.current)return;hsrf.current=true;if(isDailyGame){fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(()=>{goToDailyResult()});return}fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'mouse-symbol-tracing',score:avgScore,...mm})}).then(r=>{emitTelemetryAssessment('mouse-symbol-tracing',avgScore as number);if(r.ok&&isMultiplayerSession)goToIntermission()})},[avgScore,goToDailyResult,goToIntermission,isDailyGame,isMultiplayerSession,isSignedIn,phase,mm]);
 
   useEffect(()=>{return()=>{if(memTimerRef.current)clearInterval(memTimerRef.current)}},[]);
 
@@ -395,7 +395,7 @@ sr.targetX=fx;sr.targetY=fy;setTarget({x:fx,y:fy});
 const isHitNow=dist({x:sr.cursorX,y:sr.cursorY},{x:fx,y:fy})<6.5;
 setIsInside(isHitNow);
 if(isHitNow){ti=Math.min(TOTAL,ti+dt);setTimeInsideMs(ti)}
-if(elapsed>=TOTAL){setRunning(false);setRunComplete(true);if(isDailyGame){goToDailyResult();return}if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};// Track cursor position in ref every frame via pointermove
+if(elapsed>=TOTAL){setRunning(false);setRunComplete(true);if(isDailyGame){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(()=>{goToDailyResult()});return}if(isSignedIn){const fs=Math.round((ti/TOTAL)*1000);fetch('/api/scores/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({testSlug:'aim-tracking-test',score:fs,...mm})}).then(r=>{if(r.ok&&isMultiplayerSession)goToIntermission()})}return}requestAnimationFrame(up)};// Track cursor position in ref every frame via pointermove
 const h=(e:PointerEvent)=>{const a=arenaRef.current;if(!a)return;const r=a.getBoundingClientRect();sr.cursorX=clamp(((e.clientX-r.left)/r.width)*100,0,100);sr.cursorY=clamp(((e.clientY-r.top)/r.height)*100,0,100)};window.addEventListener('pointermove',h,{passive:true});requestAnimationFrame(up);return()=>window.removeEventListener('pointermove',h)},[running]);
   function startRun(p?:{x:number;y:number}|null){
     // Random initial velocity in a random direction

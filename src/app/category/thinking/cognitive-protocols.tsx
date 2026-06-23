@@ -395,7 +395,16 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
 
     hasSavedRunRef.current = true;
 
-    if (isDailyGame) { goToDailyResult(); return; }
+    if (isDailyGame) {
+      void fetch('/api/scores/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testSlug: 'mental-rotation', score: labScore, ...multiplayerMeta }),
+      }).then(() => {
+        goToDailyResult();
+      });
+      return;
+    }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
@@ -405,7 +414,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
       emitTelemetryAssessment('mental-rotation', labScore as number);
       if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToDailyResult, goToIntermission, isMultiplayerSession]);
 
   function nextRound(idx: number) {
     const r = makeRotRound(lastFamilyIdx.current);
@@ -862,7 +871,16 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
 
     hasSavedRunRef.current = true;
 
-    if (isDailyGame) { goToDailyResult(); return; }
+    if (isDailyGame) {
+      void fetch('/api/scores/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testSlug: 'estimation-challenge', score: labScore, ...multiplayerMeta }),
+      }).then(() => {
+        goToDailyResult();
+      });
+      return;
+    }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
@@ -872,7 +890,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
       emitTelemetryAssessment('estimation-challenge', labScore as number);
       if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToDailyResult, goToIntermission, isMultiplayerSession]);
 
   function startRound(idx: number) {
     if (dotsTimerRef.current) clearTimeout(dotsTimerRef.current);
@@ -1079,7 +1097,16 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
 
     hasSavedRunRef.current = true;
 
-    if (isDailyGame) { goToDailyResult(); return; }
+    if (isDailyGame) {
+      void fetch('/api/scores/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testSlug: 'sequence-memory', score: labScore, ...multiplayerMeta }),
+      }).then(() => {
+        goToDailyResult();
+      });
+      return;
+    }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
@@ -1089,7 +1116,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
       emitTelemetryAssessment('sequence-memory', labScore);
       if (isMultiplayerSession) goToIntermission();
     });
-  }, [isSignedIn, labScore, phase, multiplayerMeta, goToIntermission, isMultiplayerSession]);
+  }, [isSignedIn, labScore, phase, multiplayerMeta, goToDailyResult, goToIntermission, isMultiplayerSession]);
 
   // Drive the showing animation via effect so it reacts to phase changes
   useEffect(() => {

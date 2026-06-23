@@ -59,7 +59,13 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
   }
 
   function saveResult(avgMs: number) {
-    if (isDailyGame) { goToDailyResult(); return; }
+    if (isDailyGame) {
+      void (async () => {
+        await fetch('/api/reaction-results', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ reactionMs: avgMs, testSlug: 'audio-reaction', ...multiplayerMeta }) }).catch(() => {});
+        goToDailyResult();
+      })();
+      return;
+    }
     if (!isSignedIn) return;
     startSaving(async () => {
       const res = await fetch('/api/reaction-results', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ reactionMs: avgMs, testSlug: 'audio-reaction', ...multiplayerMeta }) });

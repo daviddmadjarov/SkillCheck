@@ -663,7 +663,16 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
       const score = clamp(Math.round(1000 - Math.max(0, avg - 50) * 0.25), 0, 1000);
       setBestScore((current) => (current === null ? score : Math.max(current, score)));
 
-      if (isDailyGame) { goToDailyResult(); return; }
+      if (isDailyGame) {
+        void fetch('/api/scores/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ testSlug: 'stop-timer', score, ...multiplayerMeta }),
+        }).then(() => {
+          goToDailyResult();
+        });
+        return;
+      }
 
       if (isSignedIn) {
         void fetch('/api/scores/submit', {
