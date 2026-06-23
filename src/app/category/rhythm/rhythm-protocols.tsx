@@ -841,18 +841,18 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   // ── OverclockGame custom compact layout (no description paragraph) ──
   return (
     <section className="lab-card p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Rhythm Category</p>
-          <h2 className="text-xl font-black tracking-tight text-slate-800 sm:text-2xl">{MODE_META.overclock.title}</h2>
-          <p className="border-rose-300 bg-rose-100 text-rose-800 mt-1 inline-flex rounded-full border-2 px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.18em]">{MODE_META.overclock.kicker}</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{MODE_META.overclock.title}</h2>
+          <p className="border-rose-300 bg-rose-100 text-rose-800 mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]">{MODE_META.overclock.kicker}</p>
         </div>
-        <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+        <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
           {isSignedIn ? 'Leaderboard sync optional' : 'Guest mode'}
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="space-y-4">
         <div className="relative min-h-[24rem] sm:min-h-[28rem]">
           {cd.active && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-[2rem]">
