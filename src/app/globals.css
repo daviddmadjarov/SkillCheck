@@ -215,10 +215,6 @@
       color: #ffffff !important;
     }
 
-    .bg-gradient-to-br {
-      @apply bg-gradient-to-br;
-    }
-
     .from-rose-50 {
       --tw-gradient-from: #2d1419;
       --tw-gradient-to: rgba(45, 20, 25, 0);
@@ -292,11 +288,6 @@
 
     .text-3xl.font-black { color: #f1f5f9 !important; }
     .text-sm.font-medium.leading-6.text-slate-500 { color: #cbd5e1 !important; }
-
-    .bg-cyan-50 {
-      background-color: #0d2e3d !important;
-      color: #cbd5e1 !important;
-    }
 
     [class*="bg-cyan-50"] { background-color: #0d2e3d !important; }
     .text-cyan-900 { color: #06b6d4 !important; }
@@ -627,11 +618,10 @@ html[data-staff-access] .site-footer-link:hover {
     width: 96px !important;
   }
 
-  /* Tracking test target */
+  /* Tracking test target — already sized via JS constant */
   [id="tracking-test-arena"] .absolute[style] > span {
-    /* Already sized via JS constant, but ensure visibility */
+    visibility: visible;
   }
-
   /* Split test handles */
   .h-8.w-8.rounded-full.border-4 {
     height: 2.75rem !important;

@@ -51,12 +51,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ action: 'left' }, { status: 200 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: leaveResult, error: leaveError } = await (supabase.rpc as any)('process_duel_forfeit', {
-      p_lobby_code: lobbyCode,
-      p_checking_user_id: null,
-      p_leave_user_id: user.id,
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: leaveResult, error: leaveError } = await (supabase.rpc as any)('process_duel_forfeit', {
+        p_lobby_code: lobbyCode,
+        p_checking_user_id: null,
+        p_leaving_user_id: user.id,
+      });
 
     if (leaveError) {
       return NextResponse.json({ action: 'left' }, { status: 200 });
