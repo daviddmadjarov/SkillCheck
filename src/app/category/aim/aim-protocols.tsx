@@ -12,7 +12,19 @@ function clamp(v:number,lo:number,hi:number){return Math.min(hi,Math.max(lo,v))}
 export type Point = { x: number; y: number };
 
 function AimShell({title,kicker,description,accent,isSignedIn,stats,children}:{title:string;kicker:string;description:string;accent:string;isSignedIn:boolean;stats:{label:string;value:string;detail:string}[],children:React.ReactNode}){
-  return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div><div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div></div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
+  return <section className="lab-card p-4 sm:p-6">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Aim Category</p>
+        <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
+        <p className={`mt-2 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`} title={description}>{kicker}</p>
+      </div>
+      <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 shrink-0">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>
+    </div>
+    <p className="mt-2 mb-0 text-xs font-medium leading-5 text-slate-400">{description}</p>
+    {children}
+    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:min-h-[120px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-1 text-2xl font-black text-slate-800">{s.value}</p><p className="mt-0.5 text-xs font-medium text-slate-500">{s.detail}</p></div>)}</div>
+  </section>
 }
 
 function AimTrainer({isSignedIn}:{isSignedIn:boolean}){
@@ -419,7 +431,7 @@ function PerfectSplit({isSignedIn}:{isSignedIn:boolean}){
         </div>
       </div>
       <div className="relative">
-        <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 pb-40 sm:pb-80 touch-none select-none">
+        <div ref={boardRef} className="relative mx-auto aspect-square w-full max-w-[38rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-4 touch-none select-none">
           {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase==='go'?<p className="text-7xl font-black text-emerald-600">GO</p>:<p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
 
           {(phase === 'playing' || phase === 'result' || phase === 'finished') && (

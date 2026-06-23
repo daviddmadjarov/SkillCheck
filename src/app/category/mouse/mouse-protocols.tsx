@@ -41,7 +41,19 @@ function smoothPath(pts: Point[]): string {
 }
 
 function MouseShell({title,kicker,description,accent,isSignedIn,stats,children,modeButtons}:{title:string;kicker:string;description:string;accent:string;isSignedIn:boolean;stats:{label:string;value:string;detail:string}[];children:ReactNode;modeButtons?:ReactNode}){
-  return <section className="lab-card p-4 sm:p-6"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mouse Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2><p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p></div>{modeButtons?modeButtons:<div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>}</div><p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>{children}<div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}</div></section>
+  return <section className="lab-card p-4 sm:p-6">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Mouse Category</p>
+        <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
+        <p className={`mt-2 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`} title={description}>{kicker}</p>
+      </div>
+      {modeButtons ? modeButtons : <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 shrink-0">{isSignedIn?'Leaderboard sync active':'Guest mode'}</div>}
+    </div>
+    <p className="mt-2 mb-0 text-xs font-medium leading-5 text-slate-400">{description}</p>
+    {children}
+    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:min-h-[120px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-1 text-2xl font-black text-slate-800">{s.value}</p><p className="mt-0.5 text-xs font-medium text-slate-500">{s.detail}</p></div>)}</div>
+  </section>
 }
 
 const TRACE_SYMBOLS:TraceSymbol[]=[
