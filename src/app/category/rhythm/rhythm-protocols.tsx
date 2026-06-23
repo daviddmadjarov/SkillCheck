@@ -525,7 +525,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
 }
 
 function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('stop-timer');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('stop-timer');
   const TOTAL_ROUNDS = 4;
   const cd = useDuelCountdown(isMultiplayerSession);
   const hasAutoStarted = useRef(false);
@@ -662,6 +662,8 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
       const avg = Math.round(nextErrors.reduce((sum, e) => sum + e, 0) / nextErrors.length);
       const score = clamp(Math.round(1000 - Math.max(0, avg - 50) * 0.25), 0, 1000);
       setBestScore((current) => (current === null ? score : Math.max(current, score)));
+
+      if (isDailyGame) { goToDailyResult(); return; }
 
       if (isSignedIn) {
         void fetch('/api/scores/submit', {

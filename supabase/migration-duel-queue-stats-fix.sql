@@ -15,7 +15,10 @@
 -- PART 1: Fix process_duel_forfeit — accept explicit leaving user
 -- =============================================================================
 
+-- Drop ALL existing versions (there may be a 2-param and a 3-param variant)
 DROP FUNCTION IF EXISTS public.process_duel_forfeit(text, uuid);
+DROP FUNCTION IF EXISTS public.process_duel_forfeit(text, uuid, uuid);
+DROP FUNCTION IF EXISTS public.process_duel_forfeit(text, uuid, text);
 
 CREATE OR REPLACE FUNCTION public.process_duel_forfeit(
   p_lobby_code text,
@@ -175,6 +178,53 @@ $$;
 -- with p_leaving_user_id as the third parameter.
 
 -- =============================================================================
--- PART 3: Grant permissions
+-- PART 3: One-time cleanup — immediately mark all abandoned duel lobbies as finished
+-- =============================================================================
+-- These are stale lobbies that were stuck in 'live' status because the
+-- heartbeat forfeit calls were silently failing (parameter name mismatch).
+-- Without this cleanup, ghost-players would persist even after the function fix.
+DO $$
+DECLARE
+  v_cleaned_lobbies int;
+  v_cleaned_queue int;
+  v_ghost_players int;
+BEGIN
+  -- Mark any duel lobby older than 10 minutes as finished (abandoned matches)
+  UPDATE multiplayer_lobbies
+  SET status = 'finished',
+      forfeited = true,
+      updated_at = now()
+  WHERE mode = 'duel'
+    AND status = 'live'
+    AND created_at < now() - interval '10 minutes';
+
+  GET DIAGNOSTICS v_cleaned_lobbies = ROW_COUNT;
+
+  -- Count how many ghost-players were associated with those lobbies
+  SELECT count(*)::int INTO v_ghost_players
+  FROM multiplayer_lobby_players mlp
+  INNER JOIN multiplayer_lobbies ml ON ml.id = mlp.lobby_id
+  WHERE ml.mode = 'duel' AND ml.status = 'finished' AND ml.forfeited = true
+    AND ml.updated_at = now();
+
+  -- Clean up stale matched queue entries pointing to cleaned lobbies
+  DELETE FROM multiplayer_queue
+  WHERE queue_type = 'duel'
+    AND status = 'matched'
+    AND matched_code IN (
+      SELECT code FROM multiplayer_lobbies
+      WHERE mode = 'duel' AND status = 'finished' AND forfeited = true
+        AND updated_at = now()
+    );
+
+  GET DIAGNOSTICS v_cleaned_queue = ROW_COUNT;
+
+  RAISE NOTICE 'Cleanup: % abandoned lobbies marked finished, % ghost-players freed, % stale queue entries removed',
+    v_cleaned_lobbies, v_ghost_players, v_cleaned_queue;
+END;
+$$;
+
+-- =============================================================================
+-- PART 4: Grant permissions
 -- =============================================================================
 GRANT EXECUTE ON FUNCTION public.process_duel_forfeit(text, uuid, uuid) TO authenticated;

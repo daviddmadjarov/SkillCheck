@@ -7,7 +7,7 @@ import { useDuelCountdown } from '@/components/use-duel-countdown';
 import { emitTelemetryAssessment } from '@/lib/lore/telemetry';
 
 export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSignedIn }: { initialAttempts: number; initialBestScore: number | null; isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('audio-reaction');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('audio-reaction');
   const [phase, setPhase] = useState<'idle' | 'waiting' | 'ready' | 'clicked' | 'too-soon' | 'finished'>('idle');
   const [reactionMs, setReactionMs] = useState<number | null>(null);
   const [attempts, setAttempts] = useState(initialAttempts);
@@ -59,6 +59,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
   }
 
   function saveResult(avgMs: number) {
+    if (isDailyGame) { goToDailyResult(); return; }
     if (!isSignedIn) return;
     startSaving(async () => {
       const res = await fetch('/api/reaction-results', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ reactionMs: avgMs, testSlug: 'audio-reaction', ...multiplayerMeta }) });

@@ -17,7 +17,7 @@ type ReactionProtocolProps = {
 type Phase = 'idle' | 'waiting' | 'ready' | 'clicked' | 'too-soon' | 'finished';
 
 export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtocolProps) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('reaction-time');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('reaction-time');
   const [phase, setPhase] = useState<Phase>(isMultiplayerSession ? 'idle' : 'idle');
   const [reactionMs, setReactionMs] = useState<number | null>(null);
   const [attempts, setAttempts] = useState(initialAttempts);
@@ -58,6 +58,10 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
   }
 
   function saveResult(avgMs: number) {
+    if (isDailyGame) {
+      goToDailyResult();
+      return;
+    }
     if (!isSignedIn) return;
     void (async () => {
       const response = await fetch('/api/reaction-results', {

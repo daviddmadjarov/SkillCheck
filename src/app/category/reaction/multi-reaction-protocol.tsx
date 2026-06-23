@@ -12,7 +12,7 @@ const IDLE_STY = ['border-rose-200 bg-rose-50 text-rose-400','border-blue-200 bg
 const ACTIVE_STY = ['border-rose-400 bg-rose-300 text-rose-900 shadow-[0_0_28px_rgba(244,63,94,0.45)]','border-blue-400 bg-blue-300 text-blue-900 shadow-[0_0_28px_rgba(59,130,246,0.45)]','border-amber-400 bg-amber-300 text-amber-900 shadow-[0_0_28px_rgba(245,158,11,0.45)]','border-emerald-400 bg-emerald-300 text-emerald-900 shadow-[0_0_28px_rgba(16,185,129,0.45)]'];
 
 export function MultiReactionProtocol({ initialAttempts, isSignedIn }: { initialAttempts: number; initialBestScore: number | null; isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('multi-reaction');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('multi-reaction');
   const [phase, setPhase] = useState<GamePhase>('idle');
   const [activeBtn, setActiveBtn] = useState<number | null>(null);
   const [curRound, setCurRound] = useState(0);
@@ -39,7 +39,7 @@ export function MultiReactionProtocol({ initialAttempts, isSignedIn }: { initial
     timeoutRef.current = setTimeout(() => { const b = Math.floor(Math.random()*NUM_BUTTONS); readyAtRef.current = performance.now(); setActiveBtn(b); setPhase('active'); }, extra + MIN_RD + Math.random()*(MAX_RD-MIN_RD));
   }
   function startGame() { setPhase('waiting'); setCurRound(0); setTimes([]); setActiveBtn(null); sched(0); }
-  function save(avg: number) { if (!isSignedIn) return; startSaving(async () => { const r = await fetch('/api/reaction-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reactionMs: avg, testSlug:'multi-reaction',...multiplayerMeta})}); const p = (await r.json().catch(()=>null)) as {ok?:boolean; score?:number}|null; if (!r.ok||!p?.ok||typeof p.score!=='number') return; const s=p.score; setAttempts(c=>c+1); setBest(c=>c===null?s:Math.max(c,s)); emitTelemetryAssessment('multi-reaction', s); if (isMultiplayerSession) goToIntermission(); }); }
+  function save(avg: number) { if (isDailyGame) { goToDailyResult(); return; } if (!isSignedIn) return; startSaving(async () => { const r = await fetch('/api/reaction-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reactionMs: avg, testSlug:'multi-reaction',...multiplayerMeta})}); const p = (await r.json().catch(()=>null)) as {ok?:boolean; score?:number}|null; if (!r.ok||!p?.ok||typeof p.score!=='number') return; const s=p.score; setAttempts(c=>c+1); setBest(c=>c===null?s:Math.max(c,s)); emitTelemetryAssessment('multi-reaction', s); if (isMultiplayerSession) goToIntermission(); }); }
 
   function click(i: number) {
     if (cd.active) return;

@@ -365,7 +365,7 @@ function makeRotRound(lastFamilyIdx: number): RotRound {
 }
 
 function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('mental-rotation');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('mental-rotation');
   const ROUNDS = 4;
   const cd = useDuelCountdown(isMultiplayerSession);
   const hasAutoStarted = useRef(false);
@@ -394,6 +394,8 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
     }
 
     hasSavedRunRef.current = true;
+
+    if (isDailyGame) { goToDailyResult(); return; }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
@@ -824,7 +826,7 @@ function EstVisual({ dotsHidden, task }: { dotsHidden: boolean; task: EstTask })
 }
 
 function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('estimation-challenge');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('estimation-challenge');
   const ROUNDS = 4;
   const estCd = useDuelCountdown(isMultiplayerSession);
   const estHasAutoStarted = useRef(false);
@@ -859,6 +861,8 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
     }
 
     hasSavedRunRef.current = true;
+
+    if (isDailyGame) { goToDailyResult(); return; }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
@@ -1053,7 +1057,7 @@ function useSeqAudio() {
 }
 
 function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('sequence-memory');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('sequence-memory');
   const [phase, setPhase] = useState<'idle' | 'showing' | 'input' | 'wrong'>('idle');
   const [sequence, setSequence] = useState<number[]>([]);
   const [inputSoFar, setInputSoFar] = useState<number[]>([]);
@@ -1074,6 +1078,8 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
     }
 
     hasSavedRunRef.current = true;
+
+    if (isDailyGame) { goToDailyResult(); return; }
 
     void fetch('/api/scores/submit', {
       method: 'POST',
