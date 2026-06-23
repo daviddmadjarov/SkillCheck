@@ -21,17 +21,17 @@ function tabClass(isActive: boolean, accent: 'cyan' | 'violet') {
       : 'border-cyan-300 bg-cyan-100 text-cyan-800 dark:border-cyan-700 dark:bg-cyan-900 dark:text-cyan-300';
 
   const base =
-    'rounded-full border-2 px-4 py-2 text-sm font-bold transition active:translate-y-0.5';
+    'rounded-full border-2 px-3 py-1.5 text-xs sm:text-sm font-bold transition active:translate-y-0.5 leading-tight';
 
   if (isActive) {
     return `${base} ${activeColors}`;
   }
-  return `${base} border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800`;
+  return `${base} border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300`;
 }
 
 export function CategoryModeTabs({ modes, activeMode, accent = 'cyan' }: CategoryModeTabsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-1.5 sm:gap-2">
       {modes.map((mode) => (
         <Link
           key={mode.id}

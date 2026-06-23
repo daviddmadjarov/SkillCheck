@@ -78,16 +78,36 @@ export default async function RhythmPage({
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       {isMultiplayerSession ? <MultiplayerSessionGuard /> : null}
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 sm:gap-5">
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:flex-nowrap sm:items-center sm:px-6">
-          <div className="min-w-0 shrink-0">
-            <p className="status-pill">Rhythm Category</p>
-            <h1 className="mt-1 text-xl font-black tracking-tight text-slate-800 sm:text-2xl">
-              Rhythm Sync
-            </h1>
+        <div className="flex flex-col gap-3 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:flex-row sm:items-center sm:px-6">
+          <div className="flex items-center justify-between gap-3 sm:shrink-0 sm:min-w-0">
+            <div className="min-w-0">
+              <p className="status-pill">Rhythm Category</p>
+              <h1 className="mt-1 text-xl font-black tracking-tight text-slate-800 sm:text-2xl">
+                Rhythm Sync
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 sm:hidden shrink-0">
+              <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
+              {isMultiplayerSession ? (
+                <div className={`rounded-2xl border-2 px-3 py-1.5 text-xs font-bold whitespace-nowrap ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel' : 'In Party'}
+                </div>
+              ) : isDailyGame ? (
+                <Suspense fallback={null}><DailyGameBadge /></Suspense>
+              ) : (
+                <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-3 py-1.5 font-bold text-xs text-white shadow-[0_3px_0_rgba(15,23,42,1)] transition-all duration-150 active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
+                  Back
+                </Link>
+              )}
+            </div>
           </div>
 
           {isMultiplayerSession || isDailyGame ? null : (
-            <div className="flex-1 flex justify-center sm:justify-center">
+            <div className="flex justify-center sm:flex-1 sm:justify-center">
               <CategoryModeTabs
                 accent="violet"
                 modes={[
@@ -100,7 +120,7 @@ export default async function RhythmPage({
             </div>
           )}
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
             <div className="hidden items-center gap-2 sm:flex">
               <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
               <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-600">
@@ -108,17 +128,12 @@ export default async function RhythmPage({
               </div>
             </div>
             {isMultiplayerSession ? (
-              <div className="flex items-center gap-2">
-                <div className="sm:hidden">
-                  <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
-                </div>
-                <div className={`rounded-2xl border-2 px-5 py-2 text-sm font-bold whitespace-nowrap ${
-                  isDuelSession
-                    ? 'border-rose-300 bg-rose-50 text-rose-600'
-                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
-                }`}>
-                  {isDuelSession ? 'In Duel' : 'In Party'}
-                </div>
+              <div className={`rounded-2xl border-2 px-5 py-2 text-sm font-bold whitespace-nowrap ${
+                isDuelSession
+                  ? 'border-rose-300 bg-rose-50 text-rose-600'
+                  : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+              }`}>
+                {isDuelSession ? 'In Duel' : 'In Party'}
               </div>
             ) : isDailyGame ? (
               <Suspense fallback={null}><DailyGameBadge /></Suspense>
