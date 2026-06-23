@@ -26,7 +26,7 @@ function tabClass(isActive: boolean, accent: 'cyan' | 'violet') {
   if (isActive) {
     return `${base} ${activeColors}`;
   }
-  return `${base} border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300`;
+  return `${base} mode-tab-inactive dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300`;
 }
 
 export function CategoryModeTabs({ modes, activeMode, accent = 'cyan' }: CategoryModeTabsProps) {

@@ -158,6 +158,15 @@
 }
 
 @layer utilities {
+  .mode-tab-inactive {
+    background-color: #ffffff !important;
+    color: #64748b !important;
+    border-color: #e2e8f0 !important;
+  }
+  .mode-tab-inactive:hover {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+  }
   .lab-card {
     @apply bg-white border-2 border-slate-200 rounded-3xl shadow-[0_4px_0_rgba(226,232,240,1)] transition-all duration-150;
   }
