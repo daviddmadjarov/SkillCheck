@@ -9,7 +9,7 @@ import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard'
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
-import { CategoryShell } from '@/components/category-shell';
+import { ModePickerWrapper } from '@/components/mode-picker-wrapper';
 import type { ModeOption } from '@/components/mode-picker';
 
 type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
@@ -113,26 +113,26 @@ export default async function MousePage({
           </div>
         </div>
 
-        <CategoryShell
-          initialMode={mode}
-          modes={MOUSE_MODES}
-          isSessionLocked={isSessionLocked}
-          gameComponent={(activeMode) => (
-            <MouseProtocols
-              initialCpsDuration={initialCpsDuration}
-              initialTraceMode={initialTraceMode}
-              isSignedIn={isSignedIn}
-              mode={activeMode as MouseMode}
-            />
-          )}
-          statistics={(activeMode) =>
-            !isSessionLocked ? (
-              <Suspense fallback={null}>
-                <GameStatistics testSlug={getStatsSlug(activeMode as MouseMode)} visible={true} />
-              </Suspense>
-            ) : null
-          }
+        <Suspense fallback={null}>
+          <ModePickerWrapper
+            modes={MOUSE_MODES}
+            activeMode={mode}
+            hidden={isSessionLocked}
+          />
+        </Suspense>
+
+        <MouseProtocols
+          initialCpsDuration={initialCpsDuration}
+          initialTraceMode={initialTraceMode}
+          isSignedIn={isSignedIn}
+          mode={mode}
         />
+
+        {!isSessionLocked ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

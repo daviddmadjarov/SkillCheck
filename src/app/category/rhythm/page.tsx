@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
-import { CategoryShell } from '@/components/category-shell';
+import { ModePickerWrapper } from '@/components/mode-picker-wrapper';
 import type { ModeOption } from '@/components/mode-picker';
 import { RhythmProtocols } from './rhythm-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -83,11 +83,7 @@ export default async function RhythmPage({
                 <div className="sm:hidden">
                   <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
                 </div>
-                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
-                  isDuelSession
-                    ? 'border-rose-300 bg-rose-50 text-rose-600'
-                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
-                }`}>
+                <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${isDuelSession ? 'border-rose-300 bg-rose-50 text-rose-600' : 'border-cyan-300 bg-cyan-50 text-cyan-700'}`}>
                   {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
                 </div>
               </div>
@@ -101,21 +97,21 @@ export default async function RhythmPage({
           </div>
         </div>
 
-        <CategoryShell
-          initialMode={mode}
-          modes={RHYTHM_MODES}
-          isSessionLocked={isSessionLocked}
-          gameComponent={(activeMode) => (
-            <RhythmProtocols isSignedIn={isSignedIn} mode={activeMode as RhythmMode} />
-          )}
-          statistics={(activeMode) =>
-            !isSessionLocked ? (
-              <Suspense fallback={null}>
-                <GameStatistics testSlug={activeMode === 'timer' ? 'stop-timer' : activeMode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
-              </Suspense>
-            ) : null
-          }
-        />
+        <Suspense fallback={null}>
+          <ModePickerWrapper
+            modes={RHYTHM_MODES}
+            activeMode={mode}
+            hidden={isSessionLocked}
+          />
+        </Suspense>
+
+        <RhythmProtocols isSignedIn={isSignedIn} mode={mode} />
+
+        {!isSessionLocked ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : mode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );

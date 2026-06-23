@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
-import { CategoryShell } from '@/components/category-shell';
+import { ModePickerWrapper } from '@/components/mode-picker-wrapper';
 import type { ModeOption } from '@/components/mode-picker';
 
 import { AimProtocols } from './aim-protocols';
@@ -107,21 +107,22 @@ export default async function AimPage({
           </div>
         </div>
 
-        <CategoryShell
-          initialMode={mode}
-          modes={AIM_MODES}
-          isSessionLocked={isSessionLocked}
-          gameComponent={(activeMode) => (
-            <AimProtocols mode={activeMode} isSignedIn={isSignedIn} />
-          )}
-          statistics={(activeMode) =>
-            !isSessionLocked ? (
-              <Suspense fallback={null}>
-                <GameStatistics testSlug={getStatsSlug(activeMode as AimMode)} visible={true} />
-              </Suspense>
-            ) : null
-          }
-        />
+        {/* Compact inline mode picker — client component handles URL updates instantly */}
+        <Suspense fallback={null}>
+          <ModePickerWrapper
+            modes={AIM_MODES}
+            activeMode={mode}
+            hidden={isSessionLocked}
+          />
+        </Suspense>
+
+        <AimProtocols mode={mode} isSignedIn={isSignedIn} />
+
+        {!isSessionLocked ? (
+          <Suspense fallback={null}>
+            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+          </Suspense>
+        ) : null}
       </div>
     </main>
   );
