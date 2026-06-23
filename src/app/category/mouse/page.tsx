@@ -90,60 +90,53 @@ export default async function MousePage({
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
       {isMultiplayerSession ? <MultiplayerSessionGuard /> : null}
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 sm:gap-5">
-        <div className="flex flex-wrap items-start justify-between gap-4 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:items-center sm:px-6">
-          <div className="w-full min-w-0 sm:w-auto">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="status-pill">Mouse Category</p>
-                <h1 className="mt-2 text-xl font-black tracking-tight text-slate-800 sm:text-2xl">
-                  Mouse Control
-                </h1>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
-                  Choose a mode: symbol tracing, tracking test, or CPS tester.
-                </p>
-              </div>
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:flex-nowrap sm:items-center sm:px-6">
+          <div className="min-w-0 shrink-0">
+            <p className="status-pill">Mouse Category</p>
+            <h1 className="mt-1 text-xl font-black tracking-tight text-slate-800 sm:text-2xl">
+              Mouse Control
+            </h1>
+          </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="hidden items-center gap-3 sm:flex">
-                  <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
-                  <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
-                    {displayName}
-                  </div>
-                </div>
-                {isMultiplayerSession ? (
-                  <div className="flex items-center gap-2">
-                    <div className="sm:hidden">
-                      <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
-                    </div>
-                    <div className={`rounded-2xl border-2 px-6 py-3 text-sm font-bold ${
-                      isDuelSession
-                        ? 'border-rose-300 bg-rose-50 text-rose-600'
-                        : 'border-cyan-300 bg-cyan-50 text-cyan-700'
-                    }`}>
-                      {isDuelSession ? 'In Duel — Cannot leave' : 'In Party Session'}
-                    </div>
-                  </div>
-                ) : isDailyGame ? (
-                  <Suspense fallback={null}><DailyGameBadge /></Suspense>
-                ) : (
-                  <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
-                    Return to Lab
-                  </Link>
-                )}
+          {isMultiplayerSession || isDailyGame ? null : (
+            <div className="flex-1 flex justify-center sm:justify-center">
+              <CategoryModeTabs
+                modes={[
+                  { id: 'symbol', label: 'Symbol Tracing', href: '/category/mouse?mode=symbol' },
+                  { id: 'tracking', label: 'Tracking Test', href: '/category/mouse?mode=tracking' },
+                  { id: 'cps', label: 'CPS Tester', href: '/category/mouse?mode=cps' },
+                ]}
+                activeMode={mode}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden items-center gap-2 sm:flex">
+              <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
+              <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-semibold text-slate-600">
+                {displayName}
               </div>
             </div>
-
-            {isMultiplayerSession || isDailyGame ? null : (
-              <div className="mt-3">
-                <CategoryModeTabs
-                  modes={[
-                    { id: 'symbol', label: 'Symbol Tracing', href: '/category/mouse?mode=symbol' },
-                    { id: 'tracking', label: 'Tracking Test', href: '/category/mouse?mode=tracking' },
-                    { id: 'cps', label: 'CPS Tester', href: '/category/mouse?mode=cps' },
-                  ]}
-                  activeMode={mode}
-                />
+            {isMultiplayerSession ? (
+              <div className="flex items-center gap-2">
+                <div className="sm:hidden">
+                  <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
+                </div>
+                <div className={`rounded-2xl border-2 px-5 py-2 text-sm font-bold whitespace-nowrap ${
+                  isDuelSession
+                    ? 'border-rose-300 bg-rose-50 text-rose-600'
+                    : 'border-cyan-300 bg-cyan-50 text-cyan-700'
+                }`}>
+                  {isDuelSession ? 'In Duel' : 'In Party'}
+                </div>
               </div>
+            ) : isDailyGame ? (
+              <Suspense fallback={null}><DailyGameBadge /></Suspense>
+            ) : (
+              <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-5 py-2 font-bold text-sm text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
+                Return to Lab
+              </Link>
             )}
           </div>
         </div>
