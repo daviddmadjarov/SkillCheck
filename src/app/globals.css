@@ -159,12 +159,12 @@
 
 @layer utilities {
   .mode-tab-inactive {
-    background-color: #ffffff !important;
+    background-color: #f8fafc !important;
     color: #64748b !important;
     border-color: #e2e8f0 !important;
   }
   .mode-tab-inactive:hover {
-    background-color: #f8fafc !important;
+    background-color: #f1f5f9 !important;
     color: #334155 !important;
   }
   .lab-card {
