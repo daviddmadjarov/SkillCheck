@@ -188,21 +188,23 @@ export function ProfilePanel({
           <label className={`block text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-600'}`} htmlFor="username">
             Public username
           </label>
-          <input
-            className="lab-input"
-            defaultValue={username}
-            id="username"
-            maxLength={24}
-            name="username"
-            placeholder="Choose your leaderboard name"
-            type="text"
-          />
+          <div className="flex items-start gap-2">
+            <input
+              className="lab-input flex-1 min-w-0"
+              defaultValue={username}
+              id="username"
+              maxLength={24}
+              name="username"
+              placeholder="Choose your leaderboard name"
+              type="text"
+            />
+            <button className="lab-button whitespace-nowrap shrink-0" type="submit">
+              Save
+            </button>
+          </div>
           <p className={`text-sm font-medium leading-6 ${isDarkMode ? 'text-slate-300' : 'text-slate-500'}`}>
             This name appears on the leaderboard and can use letters, numbers, spaces, dashes, and underscores.
           </p>
-          <button className="lab-button w-full" type="submit">
-            Save Username
-          </button>
         </form>
 
         <button

@@ -167,27 +167,27 @@ function RhythmShell({
 }) {
   return (
     <section className="lab-card p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Rhythm Category</p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
-          <p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
+          <p className={`mt-2 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
         </div>
         <div className="cursor-pointer rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
           {isSignedIn ? 'Leaderboard sync optional' : 'Guest mode'}
         </div>
       </div>
 
-      <p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>
+      <p className="mb-2 max-w-2xl text-sm font-medium leading-5 text-slate-500">{description}</p>
 
       {children}
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
+          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:p-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-800">{stat.value}</p>
-            <p className="mt-1 text-sm font-medium text-slate-500">{stat.detail}</p>
+            <p className="mt-1 text-xl sm:text-3xl font-black text-slate-800">{stat.value}</p>
+            <p className="mt-0 text-xs sm:text-sm font-medium text-slate-500">{stat.detail}</p>
           </div>
         ))}
       </div>
@@ -422,7 +422,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
+      <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-4 sm:min-h-[20rem]">
           <div className="absolute inset-x-4 top-4 h-4 overflow-hidden rounded-full border-2 border-slate-200 bg-white">
             <div className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 transition-[width] duration-100" style={{ width: `${progress}%` }} />
           </div>
@@ -728,7 +728,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[26rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
+      <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[18rem]">
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(217,70,239,0.18), transparent 34%), radial-gradient(circle at 78% 72%, rgba(79,70,229,0.16), transparent 36%)' }} />
 
           <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
@@ -861,7 +861,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
       </div>
 
       <div className="space-y-4">
-        <div className="relative min-h-[26rem] sm:min-h-[28rem]">
+      <div className="relative sm:min-h-[18rem]">
           {cd.active && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-[2rem]">
               <div className="text-center">

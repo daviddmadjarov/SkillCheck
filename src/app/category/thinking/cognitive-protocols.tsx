@@ -51,24 +51,24 @@ function CognitiveShell({
 }) {
   return (
     <section className="lab-card p-4 sm:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Cognitive Category</p>
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
-          <p className={`mt-3 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">{title}</h2>
+          <p className={`mt-2 inline-flex rounded-full border-2 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] ${accent}`}>{kicker}</p>
         </div>
         <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
           {isSignedIn ? 'Leaderboard sync optional' : 'Guest mode'}
         </div>
       </div>
-      <p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>
+      <p className="mb-2 max-w-2xl text-sm font-medium leading-5 text-slate-500">{description}</p>
       {children}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
+          <div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-3 sm:p-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p>
-            <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-800">{s.value}</p>
-            <p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p>
+            <p className="mt-1 text-xl sm:text-3xl font-black text-slate-800">{s.value}</p>
+            <p className="mt-0 text-xs sm:text-sm font-medium text-slate-500">{s.detail}</p>
           </div>
         ))}
       </div>
@@ -478,7 +478,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[26rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 sm:min-h-[30rem]">
+        <div className="relative min-h-[18rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 sm:min-h-[22rem]">
           {(phase === 'playing' || phase === 'reveal') && round && (
             <div className="flex h-full flex-col gap-5">
               <div className="flex flex-wrap items-center gap-4">
@@ -950,7 +950,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 sm:min-h-[28rem]">
+        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
           {(phase === 'estimating') && task && (
             <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-6">
               <EstVisual dotsHidden={dotsHidden} task={task} />
@@ -1244,7 +1244,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 sm:min-h-[28rem]">
+        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
           {phase !== 'idle' && (
             <div className="flex items-center justify-center h-full min-h-[20rem]">
               <div className="grid w-full h-full max-w-md max-h-md grid-cols-3 gap-3" style={{ aspectRatio: '1/1' }}>
