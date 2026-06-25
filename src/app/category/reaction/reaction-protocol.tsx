@@ -202,23 +202,23 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
         </button>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Last reaction</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{reactionMs ?? '--'}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Measured in milliseconds.</p>
         </div>
-        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Round average</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{roundAvg === null ? '--' : `${roundAvg} ms`}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Average across 4 signals per round.</p>
         </div>
-        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Best lab score</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{bestScore ?? '--'}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Higher is better on the leaderboard.</p>
         </div>
-        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Saved attempts</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{attempts}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Only stored for signed-in players.</p>

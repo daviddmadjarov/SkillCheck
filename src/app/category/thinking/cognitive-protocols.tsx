@@ -63,11 +63,11 @@ function CognitiveShell({
       </div>
       <p className="mb-4 max-w-2xl text-sm font-medium leading-6 text-slate-500">{description}</p>
       {children}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+          <div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p>
-            <p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-800">{s.value}</p>
             <p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p>
           </div>
         ))}

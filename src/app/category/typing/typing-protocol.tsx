@@ -442,32 +442,32 @@ export function TypingProtocol({
         </p>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Time left</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{remainingSeconds}s</p>
           <p className="mt-1 text-sm font-medium text-slate-500">{started && !finished ? 'Test is live.' : finished ? 'Run complete.' : 'Start typing to begin.'}</p>
         </div>
 
-        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">WPM</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{metrics.wpm}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Words per minute based on correct chars.</p>
         </div>
 
-        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Accuracy</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{formatPercent(metrics.accuracy)}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Correct vs total typed characters.</p>
         </div>
 
-        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Lab score</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{metrics.labScore}</p>
           <p className="mt-1 text-sm font-medium text-slate-500">Combined speed and accuracy score out of 1000.</p>
         </div>
 
-        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+        <div className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Status</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{finished ? 'Done' : started ? 'Live' : 'Ready'}</p>
       <p className="mt-1 text-sm font-medium text-slate-500">{finished ? 'Press Try Again for a new run.' : started ? 'Typing session running.' : isMultiplayerSession && typeCd.active ? 'Preparing...' : 'Start typing to begin the timer.'}</p>

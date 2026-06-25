@@ -182,11 +182,11 @@ function RhythmShell({
 
       {children}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+          <div key={stat.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
-            <p className="mt-2 text-3xl font-black text-slate-800">{stat.value}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-800">{stat.value}</p>
             <p className="mt-1 text-sm font-medium text-slate-500">{stat.detail}</p>
           </div>
         ))}
@@ -728,7 +728,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[24rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
+        <div className="relative min-h-[26rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[28rem]">
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(217,70,239,0.18), transparent 34%), radial-gradient(circle at 78% 72%, rgba(79,70,229,0.16), transparent 36%)' }} />
 
           <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
@@ -801,7 +801,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
 }
 
 function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
-  const { goToIntermission, isMultiplayerSession, meta: multiplayerMeta } = useMultiplayerRoundFlow('overclock');
+  const { goToIntermission, goToDailyResult, isMultiplayerSession, isDailyGame, meta: multiplayerMeta } = useMultiplayerRoundFlow('overclock');
   const cd = useDuelCountdown(isMultiplayerSession);
 
   const [finalScore, setFinalScore] = useState<number | null>(null);
@@ -818,7 +818,15 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
   const handleGameComplete = useCallback((score: number) => {
     setFinalScore(score);
     setBestScore((prev) => (prev === null ? score : Math.max(prev, score)));
-    if (isMultiplayerSession) {
+    if (isDailyGame) {
+      void fetch('/api/scores/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ testSlug: 'overclock', score, ...multiplayerMeta }),
+      }).then(() => {
+        goToDailyResult();
+      });
+    } else if (isMultiplayerSession) {
       goToIntermission();
     } else if (isSignedIn) {
       void fetch('/api/scores/submit', {
@@ -829,7 +837,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
         emitTelemetryAssessment('overclock', score);
       });
     }
-  }, [isSignedIn, isMultiplayerSession, multiplayerMeta, goToIntermission]);
+  }, [isSignedIn, isMultiplayerSession, isDailyGame, multiplayerMeta, goToIntermission, goToDailyResult]);
 
   const handleScoreUpdate = useCallback((_score: number) => {}, []);
 
@@ -853,7 +861,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
       </div>
 
       <div className="space-y-4">
-        <div className="relative min-h-[24rem] sm:min-h-[28rem]">
+        <div className="relative min-h-[26rem] sm:min-h-[28rem]">
           {cd.active && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-[2rem]">
               <div className="text-center">
@@ -876,16 +884,16 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: 'Time limit', value: '30s', detail: 'Race the clock — every millisecond counts.' },
           { label: 'Streak bonus', value: '+0.25x', detail: 'Speed increases by 0.25 rad/s per consecutive hit.' },
           { label: 'Last score', value: finalScore === null ? '--' : String(finalScore), detail: 'Points = total successful checks.' },
           { label: 'Best score', value: bestScore === null ? '--' : String(bestScore), detail: bestScore === null ? 'Complete a run to set a local best.' : `Personal best this session.` },
         ].map((s) => (
-          <div key={s.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]">
+          <div key={s.label} className="cursor-pointer rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p>
-            <p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p>
+            <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-800">{s.value}</p>
             <p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p>
           </div>
         ))}

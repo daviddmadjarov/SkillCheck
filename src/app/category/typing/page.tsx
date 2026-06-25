@@ -90,8 +90,8 @@ export default async function TypingPage({
               ) : isDailyGame ? (
                 <Suspense fallback={null}><DailyGameBadge /></Suspense>
               ) : (
-                <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-3 py-1.5 font-bold text-xs text-white shadow-[0_3px_0_rgba(15,23,42,1)] transition-all duration-150 active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
-                  Back
+                <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-5 py-2.5 font-bold text-xs text-white shadow-[0_3px_0_rgba(15,23,42,1)] transition-all duration-150 active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
+                  Return to Lab
                 </Link>
               )}
             </div>
