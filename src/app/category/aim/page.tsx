@@ -20,65 +20,52 @@ function getAimMode(value: string | undefined): AimMode {
   return 'trainer';
 }
 
-export default async function AimPage({
-  searchParams,
-}: {
-  searchParams?: Promise<SearchParams>;
-}) {
-  const resolvedSearchParams = (await searchParams) ?? {};
-  const mode = getAimMode(resolvedSearchParams.mode);
+export default async function AimPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const resolved = (await searchParams) ?? {};
+  const mode = getAimMode(resolved.mode);
   const isSignedIn = hasSupabaseEnv() ? (await (await createClient()).auth.getUser()).data.user !== null : false;
-  const isMultiplayerSession = Boolean(resolvedSearchParams.lobby);
-  const isDuelSession = resolvedSearchParams.mp_mode === 'duel';
-  const isDailyGame = resolvedSearchParams.daily === 'true' && !isMultiplayerSession;
+  const isMultiplayer = Boolean(resolved.lobby);
+  const isDuel = resolved.mp_mode === 'duel';
+  const isDaily = resolved.daily === 'true' && !isMultiplayer;
+
+  const nav = !isMultiplayer && !isDaily ? (
+    <div className="flex flex-wrap items-center justify-between gap-2 px-1 py-1.5">
+      <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-3 py-1.5 font-bold text-[11px] text-white shadow-[0_3px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)] no-underline" href="/">← Lab</Link>
+      <div className="flex-1 flex justify-center">
+        <CategoryModeTabs
+          modes={[
+            { id: 'trainer', label: 'Aim Trainer', href: '/category/aim?mode=trainer' },
+            { id: 'moving', label: 'Moving Targets', href: '/category/aim?mode=moving' },
+            { id: 'split', label: 'Perfect Split', href: '/category/aim?mode=split' },
+          ]}
+          activeMode={mode}
+        />
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isSignedIn ? 'Online' : 'Guest'}</span>
+    </div>
+  ) : (
+    <div className="flex flex-wrap items-center justify-end gap-2 px-1 py-1.5">
+      <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
+      {isMultiplayer ? (
+        <div className={`rounded-2xl border-2 px-3 py-1 text-xs font-bold ${isDuel ? 'border-rose-300 bg-rose-50 text-rose-600' : 'border-cyan-300 bg-cyan-50 text-cyan-700'}`}>
+          {isDuel ? 'Duel' : 'Party'}
+        </div>
+      ) : isDaily ? <DailyGameBadge /> : null}
+      <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-3 py-1.5 font-bold text-[11px] text-white shadow-[0_3px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)] no-underline" href="/">← Lab</Link>
+    </div>
+  );
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
-      {isMultiplayerSession ? <MultiplayerSessionGuard /> : null}
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 sm:gap-5">
-        {/* Inline mode tabs + nav, no separate header box */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-3 shadow-[0_4px_0_rgba(226,232,240,1)] sm:px-5">
-            <div className="flex items-center gap-3">
-              <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
-            </div>
-            <div className="flex-1 flex justify-center">
-              <CategoryModeTabs
-                modes={[
-                  { id: 'trainer', label: 'Aim Trainer', href: '/category/aim?mode=trainer' },
-                  { id: 'moving', label: 'Moving Targets', href: '/category/aim?mode=moving' },
-                  { id: 'split', label: 'Perfect Split', href: '/category/aim?mode=split' },
-                ]}
-                activeMode={mode}
-              />
-            </div>
-            <Link data-return-to-lab className="rounded-2xl border-2 border-slate-800 bg-slate-800 px-4 py-2 font-bold text-xs text-white shadow-[0_3px_0_rgba(15,23,42,1)] transition-all duration-150 active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]" href="/">
-              Return to Lab
-            </Link>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-end gap-2 rounded-[1.7rem] border-2 border-slate-200 bg-white px-4 py-3 shadow-[0_4px_0_rgba(226,232,240,1)] sm:px-5">
-            <Suspense fallback={null}><DuelRoundTimerWrapper /></Suspense>
-            {isMultiplayerSession ? (
-              <div className={`rounded-2xl border-2 px-4 py-2 text-sm font-bold ${
-                isDuelSession
-                  ? 'border-rose-300 bg-rose-50 text-rose-600'
-                  : 'border-cyan-300 bg-cyan-50 text-cyan-700'
-              }`}>
-                {isDuelSession ? 'In Duel' : 'In Party'}
-              </div>
-            ) : isDailyGame ? (
-              <Suspense fallback={null}><DailyGameBadge /></Suspense>
-            ) : null}
-          </div>
-        )}
-
-        <AimProtocols mode={mode} isSignedIn={isSignedIn} />
-
-        {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} />
-          </Suspense>
+      {isMultiplayer ? <MultiplayerSessionGuard /> : null}
+      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-4">
+        {/* Nav bar + game card merged in one container */}
+        <div className="divide-y divide-slate-200 rounded-[2rem] border-2 border-slate-200 bg-white shadow-[0_6px_0_rgba(226,232,240,1)]">
+          <div className="px-3 py-2">{nav}</div>
+          <AimProtocols mode={mode} isSignedIn={isSignedIn} />
+        </div>
+        {!isMultiplayer && !isDaily ? (
+          <Suspense fallback={null}><GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} /></Suspense>
         ) : null}
       </div>
     </main>
