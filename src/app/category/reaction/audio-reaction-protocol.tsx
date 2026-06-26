@@ -98,7 +98,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
   const roundAvg = roundTimes.length > 0 ? Math.round(roundTimes.reduce((a,b) => a+b, 0) / roundTimes.length) : null;
 
   return (
-    <section className="lab-card p-4 sm:p-6">
+    <section className="lab-card flex flex-col min-h-dvh p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reaction Category</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">Audio Reaction</h2></div>
         <div className="flex flex-wrap items-center gap-2">
@@ -106,7 +106,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
           <div className="rounded-full border-2 border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">{isSignedIn ? 'Leaderboard sync active' : 'Guest mode'}</div>
         </div>
       </div>
-      <div className="relative">
+      <div className="flex-1 flex flex-col justify-center"><div className="relative">
         {cd.active && <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]"><div className="text-center">{cd.phase === 'go' ? <p className="text-7xl font-black text-emerald-600">GO</p> : <p className="text-8xl font-black text-slate-800">{cd.value}</p>}</div></div>}
         <button className={`flex min-h-[18rem] w-full cursor-pointer flex-col items-center justify-center rounded-[2rem] border-2 px-4 py-7 text-center transition sm:min-h-[20rem] sm:px-6 sm:py-8 ${phase==='too-soon'?'border-rose-300 bg-rose-100 text-rose-900':phase==='clicked'?'border-cyan-300 bg-cyan-100 text-slate-900':'border-indigo-200 bg-indigo-50 text-slate-800'}`} onPointerDown={handleArenaClick} type="button">
           <span className="text-4xl font-black tracking-tight sm:text-6xl">{phase==='too-soon'?'Too soon':phase==='finished'?`${roundAvg??'--'} ms avg`:phase==='clicked'?`${reactionMs??'--'} ms`:phase==='waiting'||phase==='ready'?'Listen':cd.active?cd.phase==='go'?'GO':cd.value:'Start protocol'}</span>
