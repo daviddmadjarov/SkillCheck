@@ -113,6 +113,7 @@ export function AudioReactionProtocol({ initialAttempts, initialBestScore, isSig
           <span className="mt-4 max-w-md text-sm font-bold uppercase tracking-[0.18em] sm:text-base">{phase==='too-soon'?'Click to restart.':phase==='finished'?'Round complete.':phase==='clicked' && !isMultiplayerSession?`Round ${roundTimes.length} / 4 · CLICK TO CONTINUE`:phase==='clicked'?`Round ${roundTimes.length} / 4`:phase==='waiting'||phase==='ready'?'Wait for the beep and react as fast as possible.':cd.active?'Getting ready...':'Click the panel to begin.'}</span>
         </button>
       </div>
+      </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[{label:'Last reaction',value:reactionMs??'--',detail:'Measured in milliseconds.'},{label:'Round average',value:roundAvg===null?'--':`${roundAvg} ms`,detail:'Average across 4 signals.'},{label:'Best lab score',value:bestScore??'--',detail:'Higher is better.'},{label:'Saved attempts',value:attempts,detail:'Only stored for signed-in players.'}].map(s=><div key={s.label} className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4 sm:min-h-[166px]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{s.label}</p><p className="mt-2 text-3xl font-black text-slate-800">{s.value}</p><p className="mt-1 text-sm font-medium text-slate-500">{s.detail}</p></div>)}
       </div>
