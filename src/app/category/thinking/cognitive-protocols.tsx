@@ -478,7 +478,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5">
+        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 min-h-[12rem]">
           {(phase === 'playing' || phase === 'reveal') && round && (
             <div className="flex h-full flex-col gap-5">
               <div className="flex flex-wrap items-center gap-4">
@@ -950,7 +950,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5">
+        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 min-h-[12rem]">
           {(phase === 'estimating') && task && (
             <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-6">
               <EstVisual dotsHidden={dotsHidden} task={task} />
@@ -1244,7 +1244,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5">
+        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 min-h-[12rem]">
           {phase !== 'idle' && (
             <div className="flex items-center justify-center h-full min-h-[20rem]">
               <div className="grid w-full h-full max-w-md max-h-md grid-cols-3 gap-3" style={{ aspectRatio: '1/1' }}>

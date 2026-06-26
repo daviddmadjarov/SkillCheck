@@ -168,7 +168,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center"><div className="relative">
+      <div className="relative flex-1 flex flex-col">
         {/* Countdown overlay */}
         {cd.active && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
@@ -202,7 +202,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
         </button>
       </div>
 
-      </div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Last reaction</p>
           <p className="mt-2 text-3xl font-black text-slate-800">{reactionMs ?? '--'}</p>
