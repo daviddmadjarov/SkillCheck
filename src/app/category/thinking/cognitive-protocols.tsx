@@ -50,7 +50,7 @@ function CognitiveShell({
   isSignedIn: boolean; kicker: string; stats: Stat[]; title: string;
 }) {
   return (
-    <section className="lab-card flex flex-col min-h-dvh p-4 sm:p-5">
+    <section className="lab-card p-4 sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Cognitive Category</p>
@@ -478,7 +478,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 min-h-[12rem]">
+        <div className="relative min-h-[18rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 sm:min-h-[22rem]">
           {(phase === 'playing' || phase === 'reveal') && round && (
             <div className="flex h-full flex-col gap-5">
               <div className="flex flex-wrap items-center gap-4">
@@ -950,7 +950,7 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 min-h-[12rem]">
+        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
           {(phase === 'estimating') && task && (
             <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-6">
               <EstVisual dotsHidden={dotsHidden} task={task} />
@@ -1244,7 +1244,7 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col relative overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 min-h-[12rem]">
+        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
           {phase !== 'idle' && (
             <div className="flex items-center justify-center h-full min-h-[20rem]">
               <div className="grid w-full h-full max-w-md max-h-md grid-cols-3 gap-3" style={{ aspectRatio: '1/1' }}>

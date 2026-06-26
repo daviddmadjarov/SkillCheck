@@ -150,7 +150,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
     : isMultiplayerSession ? 'Starting...' : 'Start protocol';
 
   return (
-    <section className="lab-card flex flex-col min-h-dvh p-4 sm:p-6">
+    <section className="lab-card p-4 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reaction Category</p>
@@ -168,7 +168,7 @@ export function ReactionProtocol({ initialAttempts, isSignedIn }: ReactionProtoc
         </div>
       </div>
 
-      <div className="relative flex-1 flex flex-col">
+      <div className="relative">
         {/* Countdown overlay */}
         {cd.active && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm rounded-[2rem]">
