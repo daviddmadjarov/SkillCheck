@@ -157,6 +157,21 @@
   }
 }
 
+/* ── Pitched hover button fix: clicks on shadow still register ── */
+[data-pitched-hover] {
+  position: relative;
+  cursor: pointer;
+}
+[data-pitched-hover]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+[data-pitched-hover]:hover::after {
+  translate: 0 4px;
+}
+
 @layer utilities {
   .mode-tab-inactive {
     background-color: #f8fafc !important;
