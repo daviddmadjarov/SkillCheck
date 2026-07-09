@@ -144,9 +144,7 @@
     }
 
     .lab-button,
-    .lab-button-secondary,
-    .lab-button-refined,
-    .lab-button-refined-secondary {
+    .lab-button-secondary {
       width: 100%;
       justify-content: center;
     }
@@ -199,40 +197,6 @@
   .lab-button-secondary {
     @apply bg-white text-slate-700 font-bold py-3 px-6 rounded-2xl border-2 border-slate-200 hover:bg-slate-100 transition-all;
   }
-  /* ── Professional refined design system ── */
-  .lab-card-refined {
-    @apply bg-white border border-slate-200 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md;
-  }
-  .lab-button-refined {
-    @apply bg-slate-800 text-white font-bold py-3 px-6 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:bg-slate-700 active:shadow-sm active:scale-95;
-  }
-  .lab-button-refined-secondary {
-    @apply bg-slate-100 text-slate-800 font-bold py-3 px-6 rounded-xl transition-all duration-200 border border-slate-300 hover:bg-slate-200 active:scale-95;
-  }
-  .lab-stat-card {
-    @apply rounded-2xl border border-slate-200 bg-white px-5 py-5 transition-all duration-200 hover:shadow-md;
-  }
-  .lab-mode-item {
-    @apply flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 transition-all duration-200 sm:flex-nowrap hover:shadow-md hover:border-slate-300;
-  }
-  .lab-progress-bar {
-    @apply h-2 w-full overflow-hidden rounded-full border border-slate-300 bg-slate-50;
-  }
-  .lab-progress-fill {
-    @apply h-full rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600;
-  }
-  .lab-stat-label {
-    @apply text-xs font-bold uppercase tracking-widest text-slate-500;
-  }
-  .lab-stat-value {
-    @apply mt-2 text-3xl font-black text-slate-900;
-  }
-  .lab-stat-secondary {
-    @apply mt-1 text-sm font-medium text-slate-600;
-  }
-  .lab-accent-icon {
-    @apply h-5 w-5 text-indigo-600;
-  }
   .lab-input {
     @apply w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-800 outline-none transition focus:border-cyan-400;
   }
@@ -251,48 +215,10 @@
     }
 
     .lab-button-secondary,
-    .lab-button-refined-secondary,
     .lab-input {
       background-color: #0f172a;
       border-color: #334155;
       color: #e2e8f0;
-    }
-
-    .lab-button-refined {
-      background-color: #1e293b !important;
-      color: #e2e8f0 !important;
-    }
-
-    .lab-button-refined:hover {
-      background-color: #334155 !important;
-    }
-
-    .lab-card-refined,
-    .lab-stat-card,
-    .lab-mode-item {
-      background-color: #0f172a !important;
-      border-color: #334155 !important;
-    }
-
-    .lab-stat-label {
-      color: #94a3b8 !important;
-    }
-
-    .lab-stat-value {
-      color: #f8fafc !important;
-    }
-
-    .lab-stat-secondary {
-      color: #cbd5e1 !important;
-    }
-
-    .lab-progress-bar {
-      background-color: #1e293b !important;
-      border-color: #475569 !important;
-    }
-
-    .lab-progress-fill {
-      background: linear-gradient(to right, #6366f1, #7c3aed) !important;
     }
 
     .lab-input::placeholder {
