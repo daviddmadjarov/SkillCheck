@@ -146,6 +146,35 @@ export default async function AimPage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-[0_4px_0_rgba(191,219,254,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Aim Assessment tests your hand-eye coordination and precision under different
+                conditions. These drills are inspired by aim trainers used by competitive gamers
+                and marksmanship training.
+              </p>
+              <p>
+                <strong className="text-slate-800">Aim Trainer</strong> — Static targets appear
+                one at a time. Click each target as quickly and accurately as possible. Your score
+                is based on speed and accuracy combined.
+              </p>
+              <p>
+                <strong className="text-slate-800">Moving Targets</strong> — Targets move across
+                the screen. You must track and click them while they are in motion. This tests
+                your ability to track moving objects — a key skill in many sports and games.
+              </p>
+              <p>
+                <strong className="text-slate-800">Perfect Split</strong> — Click the exact centre
+                of each target. The closer to the centre, the higher your score. This mode
+                measures your precision and fine motor control.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <AimProtocols mode={mode} isSignedIn={isSignedIn} />
 
         {!isMultiplayerSession && !isDailyGame ? (

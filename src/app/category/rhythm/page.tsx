@@ -145,11 +145,41 @@ export default async function RhythmPage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-white to-violet-50 p-5 shadow-[0_4px_0_rgba(233,213,255,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Rhythm Sync tests measure your internal clock accuracy and ability to match
+                a steady beat. Timing precision is a fundamental cognitive skill linked to
+                musical ability, athletic performance, and reaction coordination.
+              </p>
+              <p>
+                <strong className="text-slate-800">Perfect Sync</strong> — Tap in time with a
+                visual metronome. The test measures how closely your taps align with the beat.
+                Smaller deviation means better timing.
+              </p>
+              <p>
+                <strong className="text-slate-800">Stop the Timer</strong> — A timer counts up
+                from zero. Your goal is to stop it as close to a target time (e.g. exactly 10
+                seconds) as possible. This measures your time estimation ability without visual
+                cues.
+              </p>
+              <p>
+                <strong className="text-slate-800">Overclock</strong> — Tap as fast as you can
+                within multiple short windows. This measures your maximum repetition speed, which
+                relates to motor neuron firing rate and muscle fatigue.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <RhythmProtocols isSignedIn={isSignedIn} mode={mode} />
 
         {!isMultiplayerSession && !isDailyGame ? (
           <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : mode === 'overclock' ? 'overclock' : 'perfect-sync'} visible={true} />
+            <GameStatistics testSlug={mode === 'timer' ? 'stop-timer' : mode === 'overclock' ? 'perfect-sync' : 'perfect-sync'} visible={true} />
           </Suspense>
         ) : null}
       </div>

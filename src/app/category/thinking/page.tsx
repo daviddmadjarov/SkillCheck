@@ -126,6 +126,35 @@ export default async function ThinkingPage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-[0_4px_0_rgba(165,243,252,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Cognitive Review category tests higher-level brain functions including spatial
+                reasoning, working memory, and numerical estimation. These are core components of
+                intelligence testing and cognitive research.
+              </p>
+              <p>
+                <strong className="text-slate-800">Mental Rotation</strong> — You are shown a
+                shape and must determine which of several rotated versions matches the original.
+                This measures spatial visualisation ability, a key component of fluid intelligence.
+              </p>
+              <p>
+                <strong className="text-slate-800">Estimation Challenge</strong> — Quickly estimate
+                the quantity of objects on screen without counting. This tests your approximate
+                number sense, which is linked to mathematical intuition.
+              </p>
+              <p>
+                <strong className="text-slate-800">Sequence Memory</strong> — Watch a pattern of
+                highlighted tiles and reproduce it from memory. The sequence gets longer each
+                round. This measures short-term and working memory capacity.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <CognitiveProtocols isSignedIn={isSignedIn} mode={mode} />
 
         {!isMultiplayerSession && !isDailyGame ? (

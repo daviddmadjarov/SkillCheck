@@ -156,6 +156,36 @@ export default async function MousePage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-[0_4px_0_rgba(167,243,208,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Mouse Control category evaluates your precision, speed, and control when
+                using a mouse or trackpad. These metrics are relevant for graphic design, gaming,
+                and any work that requires accurate cursor movements.
+              </p>
+              <p>
+                <strong className="text-slate-800">Symbol Tracing</strong> — Trace a path along
+                symbols as accurately as possible. In assist mode, the target symbol is visible.
+                In memory mode, the symbol disappears and you must recall the pattern. This
+                measures fine motor control and spatial memory.
+              </p>
+              <p>
+                <strong className="text-slate-800">Tracking Test</strong> — Follow a moving
+                target with your cursor. Measures your ability to track objects smoothly and
+                maintain precision during continuous motion.
+              </p>
+              <p>
+                <strong className="text-slate-800">CPS Tester</strong> — How many times can you
+                click in 5, 10, or 15 seconds? This measures raw click speed, often used as a
+                benchmark in gaming communities.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <MouseProtocols
           initialCpsDuration={initialCpsDuration}
           initialTraceMode={initialTraceMode}

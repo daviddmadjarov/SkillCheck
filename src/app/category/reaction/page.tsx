@@ -215,6 +215,35 @@ export default async function ReactionPage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_4px_0_rgba(254,202,202,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Reaction Protocol measures how quickly you respond to visual and auditory stimuli.
+                It is one of the most fundamental metrics in cognitive science, used in sports
+                training, neurological assessment, and competitive gaming.
+              </p>
+              <p>
+                <strong className="text-slate-800">Reaction Time</strong> — Click or tap as soon as
+                the screen changes colour. Lower scores (in milliseconds) are better. The average
+                human visual reaction time is around 200–250 ms.
+              </p>
+              <p>
+                <strong className="text-slate-800">Audio Reaction</strong> — Same concept, but the
+                stimulus is a sound instead of a visual cue. Audio reactions are typically faster
+                than visual ones by about 30–50 ms.
+              </p>
+              <p>
+                <strong className="text-slate-800">Multi-Reaction</strong> — Tests your ability to
+                process multiple stimuli simultaneously. Five targets appear; you must click them
+                all as fast as possible. This measures divided attention and processing speed.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         {mode === 'audio' ? (
           <AudioReactionProtocol initialAttempts={audioAttempts} initialBestScore={audioBestScore} isSignedIn={isSignedIn} />
         ) : mode === 'multi' ? (

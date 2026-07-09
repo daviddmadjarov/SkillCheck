@@ -18,17 +18,23 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Link className={footerLinkClassName} href="/about">
+            About
+          </Link>
+          <Link className={footerLinkClassName} href="/faq">
+            FAQ
+          </Link>
           <Link className={footerLinkClassName} href="/imprint">
             Imprint
           </Link>
           <Link className={footerLinkClassName} href="/privacy-policy">
-            Privacy Policy
+            Privacy
           </Link>
           <Link className={footerLinkClassName} href="/tos">
             TOS
           </Link>
           <Link className={footerLinkClassName} href="/contact-us">
-            Contact Us
+            Contact
           </Link>
           <CookieSettingsButton className={footerLinkClassName} />
         </div>

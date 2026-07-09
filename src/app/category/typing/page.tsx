@@ -124,6 +124,36 @@ export default async function TypingPage({
           </div>
         </div>
 
+        {/* ── Informational content for SEO and user context ── */}
+        {!isMultiplayerSession && !isDailyGame ? (
+          <section className="rounded-[1.7rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_4px_0_rgba(253,230,138,1)]">
+            <p className="status-pill w-fit mb-2">About This Test</p>
+            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
+              <p>
+                The Keystroke Test measures your typing speed in words per minute (WPM) and your
+                accuracy. It is a standard benchmark used by employers, transcription services,
+                and anyone who wants to improve their keyboard fluency.
+              </p>
+              <p>
+                <strong className="text-slate-800">How it works</strong> — You are shown a block
+                of text. Type it as accurately and quickly as possible within the time limit.
+                The test supports English, German, and Spanish.
+              </p>
+              <p>
+                <strong className="text-slate-800">Scoring</strong> — Gross WPM measures raw
+                typing speed including errors. Net WPM deducts a penalty for each mistake. The
+                final score reflects both speed and accuracy.
+              </p>
+              <p>
+                <strong className="text-slate-800">What is a good score?</strong> — Average
+                typing speed is around 40 WPM. 60–70 WPM is considered good, 80–95 WPM is
+                excellent, and 100+ WPM is professional level. Accuracy should be 95% or higher
+                for reliable results.
+              </p>
+            </div>
+          </section>
+        ) : null}
+
         <TypingProtocol
           initialDuration={initialDuration}
           initialLanguage={initialLanguage}
