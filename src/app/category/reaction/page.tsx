@@ -8,6 +8,7 @@ import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { CategoryModeTabs } from '@/components/category-mode-tabs';
 import { GameStatistics } from '@/components/game-statistics';
+import { GameInfoPanel } from '@/components/game-info-panel';
 import { hasSupabaseEnv } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -215,34 +216,6 @@ export default async function ReactionPage({
           </div>
         </div>
 
-        {/* ── Informational content for SEO and user context ── */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <section className="rounded-[1.7rem] border-2 border-rose-200 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_4px_0_rgba(254,202,202,1)]">
-            <p className="status-pill w-fit mb-2">About This Test</p>
-            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
-              <p>
-                The Reaction Protocol measures how quickly you respond to visual and auditory stimuli.
-                It is one of the most fundamental metrics in cognitive science, used in sports
-                training, neurological assessment, and competitive gaming.
-              </p>
-              <p>
-                <strong className="text-slate-800">Reaction Time</strong> — Click or tap as soon as
-                the screen changes colour. Lower scores (in milliseconds) are better. The average
-                human visual reaction time is around 200–250 ms.
-              </p>
-              <p>
-                <strong className="text-slate-800">Audio Reaction</strong> — Same concept, but the
-                stimulus is a sound instead of a visual cue. Audio reactions are typically faster
-                than visual ones by about 30–50 ms.
-              </p>
-              <p>
-                <strong className="text-slate-800">Multi-Reaction</strong> — Tests your ability to
-                process multiple stimuli simultaneously. Five targets appear; you must click them
-                all as fast as possible. This measures divided attention and processing speed.
-              </p>
-            </div>
-          </section>
-        ) : null}
 
         {mode === 'audio' ? (
           <AudioReactionProtocol initialAttempts={audioAttempts} initialBestScore={audioBestScore} isSignedIn={isSignedIn} />
@@ -261,9 +234,67 @@ export default async function ReactionPage({
         )}
 
         {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
-          </Suspense>
+          <>
+            <Suspense fallback={null}>
+              <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <GameInfoPanel
+                title={mode === 'audio' ? 'Audio Reaction' : mode === 'multi' ? 'Multi-Reaction' : 'Reaction Time'}
+                description={
+                  mode === 'audio'
+                    ? 'The Audio Reaction protocol measures how quickly you respond to an auditory stimulus. Instead of watching for a visual cue, you react the instant you hear a tone — testing a different neural pathway than visual reaction time.'
+                    : mode === 'multi'
+                      ? 'The Multi-Reaction protocol pushes your response system to its limit by presenting multiple targets simultaneously. You must react as quickly as possible to each new visual stimulus while maintaining accuracy — a true test of divided attention.'
+                      : 'The classic Reaction Time protocol measures the delay between a visual stimulus appearing on screen and your physical response. This simple but fundamental metric is one of the most widely used indicators of cognitive processing speed in sports science and neurological research.'
+                }
+                skillDescription={
+                  mode === 'audio'
+                    ? 'Your auditory processing speed — how fast your brain interprets sound signals and translates them into motor action. This is a different pathway from visual reaction, engaging the auditory cortex and reflexive motor circuits.'
+                    : mode === 'multi'
+                      ? 'Divided attention and rapid decision-making under increasing cognitive load. Your brain must process multiple stimuli, prioritise them, and execute accurate responses without hesitation.'
+                      : 'Visual processing speed and the efficiency of your oculomotor reflex arc — the time it takes for your eyes to register a change, your brain to recognise it, and your hand to respond.'
+                }
+                howScoringWorks={
+                  mode === 'audio'
+                    ? 'Your score is your average reaction time in milliseconds (ms) across five rounds. Lower is better. The fastest measurable human audio reaction is around 100–120 ms, with most people falling between 150–250 ms. Scores below 100 ms may be flagged as anticipatory (pressing before the tone).'
+                    : mode === 'multi'
+                      ? 'Scoring is based on your average reaction time across all targets presented. Each new target resets the clock, so you are measured on every individual response. The total number of targets scales with your performance — faster reactions mean more targets appear within the time window.'
+                      : 'Your score is the average of your reaction times across multiple trials, measured in milliseconds. Lower scores mean faster reactions. A score of 200–250 ms is considered average, 150–200 ms is above average, and below 150 ms is exceptional.'
+                }
+                tips={
+                  mode === 'audio'
+                    ? [
+                        'Eliminate visual distractions and close your eyes if it helps — this test is purely auditory, so vision can be a distraction.',
+                        'Focus on anticipating the tone without predicting it. Stay relaxed; tension slows reaction time.',
+                        'Use headphones for the most consistent audio delivery and to eliminate ambient noise.',
+                        'Practise regularly — audio reaction improves with training as your brain strengthens the auditory-motor pathway.',
+                      ]
+                    : mode === 'multi'
+                      ? [
+                          'Keep your hand centred and ready. Avoid hovering too close to any one area — the next target may appear anywhere.',
+                          'Scan broadly rather than focusing on a single spot. Peripheral awareness is key for multi-target tests.',
+                          'Do not try to react to every target individually — let your peripheral vision guide your hand naturally.',
+                          'Start slow and accurate, then let speed come with practice. Accuracy feeds into effective reaction training.',
+                        ]
+                      : [
+                          'Stay relaxed. Muscle tension in your arm or shoulder adds milliseconds to your reaction time.',
+                          'Focus your eyes on the centre of the target area, not on the edges.',
+                          'Avoid blinking or looking away right before the stimulus appears.',
+                          'Use a mouse with a short click travel distance for faster registration.',
+                          'Practise at the same time each day — reaction time follows circadian rhythms.',
+                        ]
+                }
+                whyUseful={
+                  mode === 'audio'
+                    ? 'Audio reaction time is critical in music performance, competitive gaming (especially FPS games where sound cues matter), driving (brake response to horns or sirens), and many professional fields requiring split-second auditory decisions.'
+                    : mode === 'multi'
+                      ? 'Multi-stimulus reaction is directly applicable to real-world scenarios where you must track multiple objects or threats simultaneously — competitive gaming, air traffic control, team sports, and emergency response situations.'
+                      : 'Reaction time is a foundational measure of cognitive health. It correlates with alertness, fatigue levels, and even age-related cognitive decline. Tracking your visual reaction time over weeks can reveal patterns in your mental sharpness.'
+                }
+              />
+            </Suspense>
+          </>
         ) : null}
       </div>
     </main>

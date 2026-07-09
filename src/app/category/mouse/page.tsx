@@ -10,6 +10,7 @@ import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { CategoryModeTabs } from '@/components/category-mode-tabs';
 import { GameStatistics } from '@/components/game-statistics';
+import { GameInfoPanel } from '@/components/game-info-panel';
 
 type SearchParams = { duration?: string; mode?: string; traceMode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
@@ -156,36 +157,6 @@ export default async function MousePage({
           </div>
         </div>
 
-        {/* ── Informational content for SEO and user context ── */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <section className="rounded-[1.7rem] border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-[0_4px_0_rgba(167,243,208,1)]">
-            <p className="status-pill w-fit mb-2">About This Test</p>
-            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
-              <p>
-                The Mouse Control category evaluates your precision, speed, and control when
-                using a mouse or trackpad. These metrics are relevant for graphic design, gaming,
-                and any work that requires accurate cursor movements.
-              </p>
-              <p>
-                <strong className="text-slate-800">Symbol Tracing</strong> — Trace a path along
-                symbols as accurately as possible. In assist mode, the target symbol is visible.
-                In memory mode, the symbol disappears and you must recall the pattern. This
-                measures fine motor control and spatial memory.
-              </p>
-              <p>
-                <strong className="text-slate-800">Tracking Test</strong> — Follow a moving
-                target with your cursor. Measures your ability to track objects smoothly and
-                maintain precision during continuous motion.
-              </p>
-              <p>
-                <strong className="text-slate-800">CPS Tester</strong> — How many times can you
-                click in 5, 10, or 15 seconds? This measures raw click speed, often used as a
-                benchmark in gaming communities.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
         <MouseProtocols
           initialCpsDuration={initialCpsDuration}
           initialTraceMode={initialTraceMode}
@@ -194,9 +165,66 @@ export default async function MousePage({
         />
 
         {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
-          </Suspense>
+          <>
+            <Suspense fallback={null}>
+              <GameStatistics testSlug={getStatsSlug(mode)} visible={true} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <GameInfoPanel
+                title={mode === 'cps' ? 'CPS Tester' : mode === 'tracking' ? 'Tracking Test' : 'Symbol Tracing'}
+                description={
+                  mode === 'cps'
+                    ? 'CPS (Clicks Per Second) Tester measures how many times you can click your mouse button within a set time window. This is a pure test of finger speed and endurance — no precision required, just raw click rate.'
+                    : mode === 'tracking'
+                      ? 'The Tracking Test evaluates your ability to follow a moving target smoothly and accurately with your cursor. Unlike the Aim Assessment which focuses on discrete clicks, this test measures continuous cursor control — how steadily you can stay on target over time.'
+                      : 'Symbol Tracing tests your ability to trace along predefined paths with your cursor, measuring how precisely you can follow a given trajectory. This combines fine motor control with visual guidance, similar to tracing a line on paper but with your mouse.'
+                }
+                skillDescription={
+                  mode === 'cps'
+                    ? 'Your click speed and finger endurance — measured in clicks per second. This tests the maximum firing rate of your motor neurons and the fatigue resistance of your finger muscles.'
+                    : mode === 'tracking'
+                      ? 'Your smooth pursuit ability — how steadily and accurately you can keep your cursor aligned with a moving target. This tests different neural circuits than discrete aiming, relying on continuous visual feedback and fine motor adjustments.'
+                      : 'Your trajectory precision — the accuracy with which you can follow a predetermined path. This tests your hand-eye coordination in a continuous, guided format rather than point-to-point movement.'
+                }
+                howScoringWorks={
+                  mode === 'cps'
+                    ? 'Your score is the average number of clicks per second over the test duration. You can choose between 5, 10, or 15-second tests. A score of 8–10 CPS is average, 10–12 is above average, and 12+ is exceptional with normal clicking techniques.'
+                    : mode === 'tracking'
+                      ? 'Your score is based on how well your cursor stays within the target zone over the tracking duration. The system measures deviation from the target centre over time — lower deviation means a higher score. Accuracy percentage and total time-on-target are displayed.'
+                      : 'Your score is based on how closely your traced path matches the reference path. The system measures deviation at multiple points along the trace. Higher precision and fewer overshoots yield a better score. Speed is less important than accuracy.'
+                }
+                tips={
+                  mode === 'cps'
+                    ? [
+                        'Use a consistent clicking technique — whether you prefer index finger, middle finger, or a jitter-click style, stick with what works.',
+                        'Relax your wrist and forearm. Tension reduces blood flow and accelerates fatigue.',
+                        'Practise short bursts (5 seconds) to build peak speed, then longer sessions (15 seconds) for endurance.',
+                        'Take breaks between attempts. Click speed drops significantly with finger fatigue.',
+                      ]
+                    : mode === 'tracking'
+                      ? [
+                          'Keep your eyes ahead of the target, not on it. Smooth pursuit is more effective when your vision leads the motion.',
+                          'Use a lower sensitivity for tracking — it allows finer adjustments and reduces overshoot.',
+                          'Maintain a light grip on your mouse. Death-gripping causes micro-tremors that show up in your tracking data.',
+                          'Practise with both horizontal and vertical tracking patterns to build balanced control.',
+                        ]
+                      : [
+                          'Move slowly and deliberately. Tracing is about precision, not speed.',
+                          'Use your arm for the general path and your wrist for fine adjustments around curves.',
+                          'Rest your wrist on the desk for stability. Floating your arm reduces control.',
+                          'Practise the same symbols multiple times — your muscle memory will improve path accuracy over repetitions.',
+                        ]
+                }
+                whyUseful={
+                  mode === 'cps'
+                    ? 'Click speed is relevant in competitive gaming (especially PvP combat, building in Minecraft, and rapid-fire scenarios) and can indicate general hand dexterity and fine motor control.'
+                    : mode === 'tracking'
+                      ? 'Smooth tracking is critical in any scenario requiring continuous target following — competitive gaming (tracking enemies in FPS games), video editing (precise timeline scrubbing), and any task requiring steady cursor control over time.'
+                      : 'Symbol tracing ability translates to any task requiring precise, continuous mouse guidance — graphic design, CAD work, photo editing with precise selections, and digital art.'
+                }
+              />
+            </Suspense>
+          </>
         ) : null}
       </div>
     </main>

@@ -10,6 +10,7 @@ import { CategoryModeTabs } from '@/components/category-mode-tabs';
 import { AimProtocols } from './aim-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 import { GameStatistics } from '@/components/game-statistics';
+import { GameInfoPanel } from '@/components/game-info-panel';
 
 type SearchParams = { mode?: string; lobby?: string; game?: string; player?: string; round?: string; mp_mode?: string; daily?: string };
 
@@ -146,41 +147,70 @@ export default async function AimPage({
           </div>
         </div>
 
-        {/* ── Informational content for SEO and user context ── */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <section className="rounded-[1.7rem] border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-[0_4px_0_rgba(191,219,254,1)]">
-            <p className="status-pill w-fit mb-2">About This Test</p>
-            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
-              <p>
-                The Aim Assessment tests your hand-eye coordination and precision under different
-                conditions. These drills are inspired by aim trainers used by competitive gamers
-                and marksmanship training.
-              </p>
-              <p>
-                <strong className="text-slate-800">Aim Trainer</strong> — Static targets appear
-                one at a time. Click each target as quickly and accurately as possible. Your score
-                is based on speed and accuracy combined.
-              </p>
-              <p>
-                <strong className="text-slate-800">Moving Targets</strong> — Targets move across
-                the screen. You must track and click them while they are in motion. This tests
-                your ability to track moving objects — a key skill in many sports and games.
-              </p>
-              <p>
-                <strong className="text-slate-800">Perfect Split</strong> — Click the exact centre
-                of each target. The closer to the centre, the higher your score. This mode
-                measures your precision and fine motor control.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
         <AimProtocols mode={mode} isSignedIn={isSignedIn} />
 
         {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} />
-          </Suspense>
+          <>
+            <Suspense fallback={null}>
+              <GameStatistics testSlug={mode === 'moving' ? 'aim-moving-targets' : mode === 'split' ? 'aim-perfect-split' : 'aim-trainer'} visible={true} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <GameInfoPanel
+                title={mode === 'moving' ? 'Moving Targets' : mode === 'split' ? 'Perfect Split' : 'Aim Trainer'}
+                description={
+                  mode === 'moving'
+                    ? 'Moving Targets tests your ability to track and hit dynamically moving targets. Unlike static aim training, this mode forces you to predict movement trajectories and adjust your aim in real time — a skill essential for competitive gaming and any fast-paced visual tracking task.'
+                    : mode === 'split'
+                      ? 'Perfect Split challenges your precision by requiring you to land shots on small, precisely positioned targets. This mode emphasises accuracy over speed, training your fine motor control and the consistency of your aim under controlled conditions.'
+                      : 'The Aim Trainer presents static targets one after another, measuring how quickly and accurately you can acquire each one. This is the foundational test of hand-eye coordination — the ability to move your cursor to a precise location and click with minimal delay.'
+                }
+                skillDescription={
+                  mode === 'moving'
+                    ? 'Dynamic hand-eye coordination and target tracking — your ability to predict motion, adjust aim mid-trajectory, and time your click to intersect with a moving target.'
+                    : mode === 'split'
+                      ? 'Fine motor control and pixel-perfect precision. This test isolates your ability to make small, accurate cursor adjustments without overshooting — a skill that separates good aim from great aim.'
+                      : 'Static hand-eye coordination — the speed and accuracy with which you can move your cursor from one point to another and click. This is the most basic and most trained aiming skill in first-person gaming.'
+                }
+                howScoringWorks={
+                  mode === 'moving'
+                    ? 'Your score is based on your accuracy percentage (hits vs misses) and your average time-to-target in milliseconds. Both factors are combined into a single score — higher accuracy and faster acquisition yield a higher total score.'
+                    : mode === 'split'
+                      ? 'Scoring is based on your accuracy percentage across multiple precision targets. Each target is small and requires a deliberate, controlled click. The closer you get to 100% accuracy, the better your score. Speed is secondary to precision here.'
+                      : 'Your score combines accuracy (percentage of targets hit) with your average target acquisition time. The formula rewards both speed and precision — rushing will lower accuracy, while being too slow will lower your time score.'
+                }
+                tips={
+                  mode === 'moving'
+                    ? [
+                        'Predict the trajectory rather than chasing the target. Your eyes should lead the cursor, not follow it.',
+                        'Use a low mouse sensitivity for smoother tracking — high sensitivity makes fine adjustments harder.',
+                        'Practise tracking in both horizontal and vertical patterns. Most players are stronger in one axis.',
+                        'Keep your arm relaxed. Tension causes micro-adjustments that throw off tracking.',
+                      ]
+                    : mode === 'split'
+                      ? [
+                          'Take your time on each shot. Precision mode rewards accuracy over speed, so do not rush.',
+                          'Use a mouse with high DPI and a consistent sensor for the most reliable cursor control.',
+                          'Focus on your grip — a consistent claw or palm grip produces more repeatable aim.',
+                          'Take breaks between attempts. Fine motor control degrades with fatigue.',
+                        ]
+                      : [
+                          'Keep your crosshair at head/centre height (on screen) between targets to minimise travel distance.',
+                          'Use your arm for large movements and your wrist for fine adjustments.',
+                          'Find a sensitivity that lets you do a full 180-degree turn with one comfortable swipe.',
+                          'Warm up with 5–10 minutes of aim training before competitive gaming sessions.',
+                          'Stay consistent with your mouse, pad, and sensitivity. Muscle memory builds through repetition.',
+                        ]
+                }
+                whyUseful={
+                  mode === 'moving'
+                    ? 'Moving target aim is the most transferable aiming skill for real-time applications — competitive FPS games, drone piloting, wildlife photography, and any field requiring tracking of moving objects through space.'
+                    : mode === 'split'
+                      ? 'Perfect Split precision translates directly to scenarios where accuracy matters more than speed — surgery simulations, graphic design work, micro-soldering, and any profession requiring steady hands and precise tool control.'
+                      : 'Aim training is the most direct way to improve hand-eye coordination. Gamers who practise aim training see measurable improvements in their in-game performance, and the skill transfers to many real-world activities requiring precise visual-motor coordination.'
+                }
+              />
+            </Suspense>
+          </>
         ) : null}
       </div>
     </main>

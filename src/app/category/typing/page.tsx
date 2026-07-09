@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { GameStatistics } from '@/components/game-statistics';
+import { GameInfoPanel } from '@/components/game-info-panel';
 
 import { TypingProtocol } from './typing-protocol';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
@@ -124,36 +125,6 @@ export default async function TypingPage({
           </div>
         </div>
 
-        {/* ── Informational content for SEO and user context ── */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <section className="rounded-[1.7rem] border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_4px_0_rgba(253,230,138,1)]">
-            <p className="status-pill w-fit mb-2">About This Test</p>
-            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
-              <p>
-                The Keystroke Test measures your typing speed in words per minute (WPM) and your
-                accuracy. It is a standard benchmark used by employers, transcription services,
-                and anyone who wants to improve their keyboard fluency.
-              </p>
-              <p>
-                <strong className="text-slate-800">How it works</strong> — You are shown a block
-                of text. Type it as accurately and quickly as possible within the time limit.
-                The test supports English, German, and Spanish.
-              </p>
-              <p>
-                <strong className="text-slate-800">Scoring</strong> — Gross WPM measures raw
-                typing speed including errors. Net WPM deducts a penalty for each mistake. The
-                final score reflects both speed and accuracy.
-              </p>
-              <p>
-                <strong className="text-slate-800">What is a good score?</strong> — Average
-                typing speed is around 40 WPM. 60–70 WPM is considered good, 80–95 WPM is
-                excellent, and 100+ WPM is professional level. Accuracy should be 95% or higher
-                for reliable results.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
         <TypingProtocol
           initialDuration={initialDuration}
           initialLanguage={initialLanguage}
@@ -162,9 +133,27 @@ export default async function TypingPage({
         />
 
         {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug="typing-speed" visible={true} />
-          </Suspense>
+          <>
+            <Suspense fallback={null}>
+              <GameStatistics testSlug="typing-speed" visible={true} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <GameInfoPanel
+                title="Typing Speed Test"
+                description="The Keystroke Test measures your typing speed and accuracy across timed sessions. You are presented with a text passage and must type it as quickly and accurately as possible. The test supports English, German, and Spanish, and offers 30-second and 60-second durations."
+                skillDescription="Your typing fluency — the speed (words per minute) and accuracy (error rate) with which you can transcribe written text. This measures both your keyboard familiarity and your language processing speed."
+                howScoringWorks="Your gross WPM is calculated as total characters typed divided by five (the standard word length) divided by time in minutes. Your net WPM subtracts a penalty for each incorrect word. Accuracy is reported as the percentage of correctly typed characters. The test records both your raw speed and your effective speed after errors."
+                tips={[
+                  'Focus on accuracy first. Speed naturally follows as your muscle memory develops — rushing causes errors that slow your effective WPM.',
+                  'Use all ten fingers and maintain proper home-row position. Hunting for keys is the single biggest speed limiter.',
+                  'Practise with the language you use most, but challenge yourself with others — switching languages forces your brain to engage differently.',
+                  'Take the 60-second test for endurance measurement and the 30-second test for sprint speed. They measure different aspects of typing ability.',
+                  'Warm up with a few practice sentences before attempting your best score.',
+                ]}
+                whyUseful="Typing speed is one of the most directly applicable skills measured on SkillCheck. Faster typing saves hours every week for knowledge workers, programmers, writers, and students. It is also a reliable indicator of overall computer literacy."
+              />
+            </Suspense>
+          </>
         ) : null}
       </div>
     </main>

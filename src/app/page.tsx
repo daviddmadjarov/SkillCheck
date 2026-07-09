@@ -665,6 +665,49 @@ export default async function Home({
           </div>
         </header>
 
+        {/* ── Hero / Value Proposition ── */}
+        <section className="lab-card overflow-hidden p-5 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-2xl space-y-3">
+              <p className="status-pill w-fit">Research Lab</p>
+              <h2 className="text-3xl font-black tracking-tight text-slate-800 sm:text-4xl">
+                Measure. Track. Improve.
+              </h2>
+              <p className="text-base font-medium leading-7 text-slate-600">
+                SkillCheck is a free human performance laboratory where you can test your reaction
+                time, aim, typing speed, mouse precision, rhythm, and cognitive abilities. Compete
+                on global leaderboards, challenge friends in private lobbies, duel opponents with
+                Elo-based matchmaking, and tackle daily challenges — all in one place.
+              </p>
+              <div className="flex flex-wrap gap-3 pt-1">
+                <div className="rounded-full border-2 border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-cyan-700">
+                  6 Test Categories
+                </div>
+                <div className="rounded-full border-2 border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-amber-700">
+                  Global Leaderboards
+                </div>
+                <div className="rounded-full border-2 border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-rose-700">
+                  Real-Time Multiplayer
+                </div>
+                <div className="rounded-full border-2 border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">
+                  Daily Challenges
+                </div>
+              </div>
+            </div>
+            <div className="hidden sm:flex shrink-0 items-center justify-center rounded-[1.6rem] border-2 border-slate-200 bg-slate-50 px-6 py-5 text-center">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Built for
+                </p>
+                <p className="mt-2 text-lg font-black text-slate-800">Gamers · Typists · Curious Minds</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Sign up to save scores and compete
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="grid items-stretch gap-6 xl:grid-cols-[1.35fr_0.95fr]">
           <div className="flex flex-col gap-6">
             <section className="lab-card p-5 sm:p-6 lg:p-7">

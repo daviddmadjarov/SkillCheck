@@ -8,6 +8,7 @@ import { DuelRoundTimerWrapper } from '@/components/duel-round-timer-wrapper';
 import { DailyGameBadge } from '@/components/daily-game-banner';
 import { CategoryModeTabs } from '@/components/category-mode-tabs';
 import { GameStatistics } from '@/components/game-statistics';
+import { GameInfoPanel } from '@/components/game-info-panel';
 import { CognitiveProtocols } from './cognitive-protocols';
 import { MultiplayerSessionGuard } from '@/components/multiplayer-session-guard';
 
@@ -126,41 +127,69 @@ export default async function ThinkingPage({
           </div>
         </div>
 
-        {/* ── Informational content for SEO and user context ── */}
-        {!isMultiplayerSession && !isDailyGame ? (
-          <section className="rounded-[1.7rem] border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-white to-sky-50 p-5 shadow-[0_4px_0_rgba(165,243,252,1)]">
-            <p className="status-pill w-fit mb-2">About This Test</p>
-            <div className="space-y-3 text-sm font-medium leading-6 text-slate-600">
-              <p>
-                The Cognitive Review category tests higher-level brain functions including spatial
-                reasoning, working memory, and numerical estimation. These are core components of
-                intelligence testing and cognitive research.
-              </p>
-              <p>
-                <strong className="text-slate-800">Mental Rotation</strong> — You are shown a
-                shape and must determine which of several rotated versions matches the original.
-                This measures spatial visualisation ability, a key component of fluid intelligence.
-              </p>
-              <p>
-                <strong className="text-slate-800">Estimation Challenge</strong> — Quickly estimate
-                the quantity of objects on screen without counting. This tests your approximate
-                number sense, which is linked to mathematical intuition.
-              </p>
-              <p>
-                <strong className="text-slate-800">Sequence Memory</strong> — Watch a pattern of
-                highlighted tiles and reproduce it from memory. The sequence gets longer each
-                round. This measures short-term and working memory capacity.
-              </p>
-            </div>
-          </section>
-        ) : null}
-
         <CognitiveProtocols isSignedIn={isSignedIn} mode={mode} />
 
         {!isMultiplayerSession && !isDailyGame ? (
-          <Suspense fallback={null}>
-            <GameStatistics testSlug={mode === 'estimation' ? 'estimation-challenge' : mode === 'sequence' ? 'sequence-memory' : 'mental-rotation'} visible={true} />
-          </Suspense>
+          <>
+            <Suspense fallback={null}>
+              <GameStatistics testSlug={mode === 'estimation' ? 'estimation-challenge' : mode === 'sequence' ? 'sequence-memory' : 'mental-rotation'} visible={true} />
+            </Suspense>
+            <Suspense fallback={null}>
+              <GameInfoPanel
+                title={mode === 'estimation' ? 'Estimation Challenge' : mode === 'sequence' ? 'Sequence Memory' : 'Mental Rotation'}
+                description={
+                  mode === 'estimation'
+                    ? 'The Estimation Challenge tests your ability to quickly and accurately estimate numerical quantities. You are shown a set of objects and must estimate the count as precisely as possible — a test of your intuitive numerical processing.'
+                    : mode === 'sequence'
+                      ? 'Sequence Memory challenges your short-term memory by presenting a sequence of visual cues that you must reproduce from memory. The sequence grows longer with each successful recall, pushing your working memory to its limit.'
+                      : 'Mental Rotation measures your spatial reasoning ability by presenting 3D shapes and asking you to determine whether one is a rotated version of another. This classic cognitive test is one of the most well-studied measures of spatial intelligence.'
+                }
+                skillDescription={
+                  mode === 'estimation'
+                    ? 'Your intuitive numerical estimation ability — how accurately your brain can approximate quantities without counting. This engages the parietal lobe\'s number sense and is linked to broader mathematical intuition.'
+                    : mode === 'sequence'
+                      ? 'Your visual working memory capacity — the number of items you can hold in short-term memory and recall in order. This is a core component of fluid intelligence and is strongly correlated with general cognitive ability.'
+                      : 'Your spatial visualisation ability — the capacity to mentally rotate and compare 3D objects in your mind\'s eye. Spatial reasoning is a key component of intelligence that predicts success in STEM fields, architecture, and design.'
+                }
+                howScoringWorks={
+                  mode === 'estimation'
+                    ? 'Your score is based on the accuracy of your estimates across multiple trials. The system measures the percentage deviation from the true count. Consistent estimates within 10–20% of the true value indicate strong intuitive number sense.'
+                    : mode === 'sequence'
+                      ? 'Your score is the length of the longest sequence you can correctly recall. The sequence starts short and increases by one item after each successful recall. Your final score is the maximum sequence length achieved before your first mistake.'
+                    : 'Your score is based on your accuracy percentage and average response time across multiple mental rotation trials. Faster and more accurate responses indicate stronger spatial reasoning. The difficulty adjusts based on rotation angles — larger angles require more mental computation.'
+                }
+                tips={
+                  mode === 'estimation'
+                    ? [
+                        'Use grouping strategies — mentally divide the objects into small clusters (groups of 5 or 10) and multiply.',
+                        'Do not try to count every individual item. Estimation is about approximate, not exact, quantity.',
+                        'Practise with real-world objects — estimating crowd sizes, items in a jar, or leaves on a branch.',
+                        'Pay attention to patterns. Regular arrangements are easier to estimate than random scattering.',
+                      ]
+                    : mode === 'sequence'
+                      ? [
+                          'Use chunking — group items into meaningful pairs or triples rather than remembering each one individually.',
+                          'Create a mental story or visual map linking the items. Narrative association is more durable than raw memorisation.',
+                          'Repeat the sequence silently to yourself after it is shown. Verbal rehearsal reinforces visual memory.',
+                          'Stay calm. Anxiety impairs working memory performance more than almost any other factor.',
+                        ]
+                      : [
+                          'Try to mentally rotate the object along one axis at a time rather than all three simultaneously.',
+                          'Look for distinguishing features — a unique protrusion or marking can help you track orientation.',
+                          'Use your hands to physically rotate if it helps. The gesture can reinforce mental rotation.',
+                          'Practise with real 3D objects — physically rotating objects builds the same neural pathways.',
+                        ]
+                }
+                whyUseful={
+                  mode === 'estimation'
+                    ? 'Numerical estimation is used constantly in everyday life — budgeting, cooking, shopping, and time management. Strong estimation skills also correlate with better overall mathematical ability and faster decision-making under uncertainty.'
+                    : mode === 'sequence'
+                      ? 'Working memory capacity is one of the strongest predictors of academic and professional success. It affects reading comprehension, following instructions, mental arithmetic, and your ability to hold and manipulate information in real time.'
+                    : 'Spatial reasoning is a cornerstone of human intelligence. It predicts success in science, technology, engineering, and mathematics more strongly than verbal or mathematical ability alone. It is also trainable — regular practice improves your spatial IQ.'
+                }
+              />
+            </Suspense>
+          </>
         ) : null}
       </div>
     </main>
