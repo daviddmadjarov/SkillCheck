@@ -170,22 +170,21 @@ function calculateAverageScore(modeResults: ModeResult[]): number {
   return Math.round(totalScore / modeResults.length);
 }
 
-const returnToLabClassName =
-  'rounded-2xl border-2 border-slate-800 bg-slate-800 px-6 py-3 font-bold text-white shadow-[0_4px_0_rgba(15,23,42,1)] transition-all duration-150 hover:-translate-y-1 hover:bg-slate-700 hover:shadow-[0_8px_0_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0_0px_0_rgba(15,23,42,1)]';
+const returnToLabClassName = 'lab-button-refined';
 
 export default async function LabResultsPage() {
   if (!hasSupabaseEnv()) {
     return (
       <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
-          <section className="lab-card p-6">
+          <section className="lab-card-refined p-6 sm:p-8">
             <div className="flex justify-end">
               <Link data-return-to-lab className={returnToLabClassName} href="/">
                 Return to Lab
               </Link>
             </div>
-            <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-800">Lab Results</h1>
-            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">Lab Results</h1>
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
               Supabase is not configured yet, so personal performance history is unavailable.
             </p>
           </section>
@@ -203,18 +202,18 @@ export default async function LabResultsPage() {
     return (
       <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
-          <section className="lab-card p-6">
+          <section className="lab-card-refined p-6 sm:p-8">
             <div className="flex justify-end">
-            <Link data-return-to-lab className={returnToLabClassName} href="/">
-              Return to Lab
-            </Link>
+              <Link data-return-to-lab className={returnToLabClassName} href="/">
+                Return to Lab
+              </Link>
             </div>
-            <h1 className="mt-4 text-2xl font-black tracking-tight text-slate-800">Lab Results</h1>
-            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+            <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">Lab Results</h1>
+            <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
               Sign in to view your personal best-to-worst results across your game modes.
             </p>
-            <a className="lab-button mt-5 inline-flex" href="/auth/login?provider=google">
-              Sign In
+            <a className="lab-button-refined mt-6 inline-flex" href="/auth/login?provider=google">
+              Sign In with Google
             </a>
           </section>
         </div>
@@ -244,11 +243,11 @@ export default async function LabResultsPage() {
 
   return (
     <main className="min-h-screen px-3 py-4 sm:px-4 sm:py-6">
-      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
-        <section className="lab-card p-6 sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-6">
+        <section className="lab-card-refined p-6 sm:p-8">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-800 sm:text-3xl">Lab Results</h1>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">Lab Results</h1>
               <p className="mt-2 text-sm font-medium leading-6 text-slate-600">
                 Your best performance in each mode, ordered from strongest to weakest.
               </p>
@@ -259,90 +258,93 @@ export default async function LabResultsPage() {
           </div>
 
           {error ? (
-            <div className="mt-5 rounded-2xl border-2 border-rose-200 bg-rose-50 p-4">
+            <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-4">
               <p className="text-sm font-medium text-rose-700">
                 Could not load your results: {error.message}
               </p>
             </div>
           ) : modeResults.length === 0 ? (
-            <div className="mt-5 rounded-2xl border-2 border-slate-200 bg-slate-50 p-4">
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm font-medium text-slate-600">
                 No recorded scores yet. Complete a protocol and your ranking will appear here.
               </p>
             </div>
           ) : (
             <>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Overall Average</p>
-                  <p className="mt-1 text-3xl font-black text-slate-800">{formatNumber(calculateAverageScore(modeResults))}</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">out of {MAX_MODE_SCORE}</p>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className="h-4 w-full overflow-hidden rounded-full border-2 border-cyan-200 bg-white">
+              <div className="mt-8 grid gap-5 sm:grid-cols-2">
+                <div className="lab-stat-card">
+                  <p className="lab-stat-label">Overall Average</p>
+                  <p className="lab-stat-value">{formatNumber(calculateAverageScore(modeResults))}</p>
+                  <p className="lab-stat-secondary">out of {MAX_MODE_SCORE}</p>
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="lab-progress-bar">
                       <div
                         aria-label="Overall average progress"
-                        className="h-full rounded-full bg-gradient-to-r from-purple-500 to-cyan-500"
+                        className="lab-progress-fill"
                         style={{ width: `${getProgressPercent(calculateAverageScore(modeResults))}%` }}
                       />
                     </div>
-                    <p className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
+                    <p className="shrink-0 text-xs font-bold uppercase tracking-widest text-indigo-600">
                       {getProgressPercent(calculateAverageScore(modeResults))}%
                     </p>
                   </div>
                 </div>
-                <div className="rounded-[1.4rem] border-2 border-amber-200 bg-amber-50 px-4 py-4">
+                <div className="lab-stat-card">
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-amber-500" />
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Daily Challenges</p>
+                    <CalendarDays className="lab-accent-icon" />
+                    <p className="lab-stat-label">Daily Challenges</p>
                   </div>
-                  <p className="mt-1 text-3xl font-black text-amber-800">{formatNumber(dailyChallengeCount)}</p>
-                  <p className="mt-1 text-xs font-medium text-amber-700">{dailyChallengeCount === 1 ? 'challenge completed all time' : 'challenges completed all time'}</p>
+                  <p className="lab-stat-value">{formatNumber(dailyChallengeCount)}</p>
+                  <p className="lab-stat-secondary">{dailyChallengeCount === 1 ? 'challenge completed all time' : 'challenges completed all time'}</p>
                 </div>
               </div>
-              <ol className="mt-5 space-y-3">
-              {modeResults.map((entry, index) => {
-                const progressPercent = getProgressPercent(entry.score);
+              <div className="mt-8">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-500">Your Rankings</h2>
+                <ol className="space-y-3">
+                  {modeResults.map((entry, index) => {
+                    const progressPercent = getProgressPercent(entry.score);
 
-                return (
-                <li
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border-2 border-slate-200 bg-slate-50 px-4 py-3 sm:flex-nowrap"
-                  key={entry.slug}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_3px_0_rgba(226,232,240,1)]">
-                      {index < 3 ? <Trophy className="h-5 w-5 text-amber-500" /> : <Medal className="h-5 w-5 text-cyan-500" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-black text-slate-800">{entry.label}</p>
-                      <p className="text-sm font-medium text-slate-500">
-                        {entry.attempts} attempts • updated {formatDate(entry.updatedAt)}
-                      </p>
-                      <div className="mt-2 flex items-center gap-3">
-                        <div className="h-3 w-full overflow-hidden rounded-full border-2 border-cyan-200 bg-white">
-                          <div
-                            aria-label={`${entry.label} progress`}
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                            style={{ width: `${progressPercent}%` }}
-                          />
+                    return (
+                      <li
+                        className="lab-mode-item"
+                        key={entry.slug}
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+                            {index < 3 ? <Trophy className="h-5 w-5 text-amber-500" /> : <Medal className="h-5 w-5 text-indigo-600" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-bold text-slate-900">{entry.label}</p>
+                            <p className="text-xs font-medium text-slate-500">
+                              {entry.attempts} {entry.attempts === 1 ? 'attempt' : 'attempts'} • updated {formatDate(entry.updatedAt)}
+                            </p>
+                            <div className="mt-2 flex items-center gap-3">
+                              <div className="lab-progress-bar">
+                                <div
+                                  aria-label={`${entry.label} progress`}
+                                  className="lab-progress-fill"
+                                  style={{ width: `${progressPercent}%` }}
+                                />
+                              </div>
+                              <p className="shrink-0 text-xs font-bold uppercase tracking-widest text-indigo-600">
+                                {progressPercent}%
+                              </p>
+                            </div>
+                            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+                              {formatNumber(Math.max(0, Math.min(MAX_MODE_SCORE, entry.score)))}/{MAX_MODE_SCORE}
+                            </p>
+                          </div>
                         </div>
-                        <p className="shrink-0 text-xs font-bold uppercase tracking-[0.16em] text-cyan-700">
-                          {progressPercent}%
-                        </p>
-                      </div>
-                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-                        {formatNumber(Math.max(0, Math.min(MAX_MODE_SCORE, entry.score)))}/{MAX_MODE_SCORE}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="text-right">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">#{index + 1}</p>
-                    <p className="text-2xl font-black text-slate-800">{formatNumber(entry.score)}</p>
-                  </div>
-                </li>
-                );
-              })}
-            </ol>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Rank</p>
+                          <p className="text-2xl font-black text-indigo-600">#{index + 1}</p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
             </>
           )}
         </section>
