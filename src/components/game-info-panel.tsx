@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  BrainCircuit,
-  Target,
-  Lightbulb,
-  BarChart3,
-  Sparkles,
-} from 'lucide-react';
+import { BrainCircuit, Zap, Swords, Star } from 'lucide-react';
 
 type GameInfoPanelProps = {
   title: string;
@@ -17,6 +11,36 @@ type GameInfoPanelProps = {
   whyUseful: string;
 };
 
+type BadgeColor = 'amber' | 'blue' | 'emerald' | 'purple';
+
+const chipMap: Record<BadgeColor, { chip: string; text: string }> = {
+  amber: { chip: 'bg-amber-400 text-amber-900', text: 'text-amber-600' },
+  blue: { chip: 'bg-blue-400 text-blue-900', text: 'text-blue-600' },
+  emerald: { chip: 'bg-emerald-400 text-emerald-900', text: 'text-emerald-600' },
+  purple: { chip: 'bg-purple-400 text-purple-900', text: 'text-purple-600' },
+};
+
+function ComicChip({ label, color }: { label: string; color: BadgeColor }) {
+  const c = chipMap[color];
+  return (
+    <span className={`${c.chip} inline-block -rotate-1 rounded-lg border-2 border-black px-2.5 py-0.5 text-[10px] font-black uppercase leading-none tracking-wider shadow-[2px_2px_0_rgba(0,0,0,0.4)]`}>
+      {label}
+    </span>
+  );
+}
+
+function ComicBox({ children, color = 'amber', className = '' }: { children: React.ReactNode; color: BadgeColor; className?: string }) {
+  const c = chipMap[color];
+  return (
+    <div className={`${c.chip.replace('text-', 'bg-')} ${className} relative rounded-xl border-[3px] border-black p-3 shadow-[4px_4px_0_rgba(0,0,0,0.35)]`}>
+      <div className="absolute -top-2.5 -right-2.5 flex h-6 w-6 items-center justify-center rounded-full border-[3px] border-black bg-white text-xs font-black shadow-[2px_2px_0_rgba(0,0,0,0.3)]">
+        <Zap className="h-3.5 w-3.5 text-amber-500" fill="currentColor" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function GameInfoPanel({
   title,
   description,
@@ -26,119 +50,112 @@ export function GameInfoPanel({
   whyUseful,
 }: GameInfoPanelProps) {
   return (
-    <section className="lab-card overflow-hidden p-0">
-      {/* ── Lab notebook header strip ── */}
-      <div className="flex items-center gap-3 border-b-2 border-dashed border-slate-200 bg-gradient-to-r from-cyan-50 to-blue-50 px-5 py-4 sm:px-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500 text-white shadow-[0_3px_0_rgba(14,116,144,1)]">
-          <BrainCircuit className="h-5 w-5" />
+    <section className="lab-card overflow-hidden border-2 border-black p-0 shadow-[0_6px_0_rgba(0,0,0,0.25)]">
+      {/* ── Comic hero header ── */}
+      <div className="relative flex items-center gap-3 border-b-[3px] border-black bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 px-5 py-4 sm:px-6">
+        {/* Speed lines */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-2 left-[30%] h-1 w-16 bg-white/40 -rotate-6 rounded-full" />
+          <div className="absolute bottom-3 right-[20%] h-1.5 w-24 bg-white/30 rotate-3 rounded-full" />
+          <div className="absolute top-1/2 left-[60%] h-1 w-12 bg-white/30 -rotate-12 rounded-full" />
         </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-600">
-            Lab Report &middot; Cognitive Profile
-          </p>
-          <h2 className="text-lg font-black tracking-tight text-slate-800">{title}</h2>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border-[3px] border-black bg-amber-400 shadow-[3px_3px_0_rgba(0,0,0,0.35)]">
+          <BrainCircuit className="h-5.5 w-5.5 text-black" />
+        </div>
+        <div className="relative z-10">
+          <ComicChip label="LAB REPORT" color="purple" />
+          <h2 className="mt-1 text-xl font-black tracking-tight text-black drop-shadow-[1px_1px_0_rgba(255,255,255,0.5)]">
+            {title}
+          </h2>
+        </div>
+        {/* Exaggerated exclamation */}
+        <div className="ml-auto hidden sm:block">
+          <span className="inline-block -rotate-6 rounded-xl border-[3px] border-black bg-rose-400 px-4 py-1.5 text-sm font-black uppercase tracking-wider text-black shadow-[3px_3px_0_rgba(0,0,0,0.3)]">
+            ⚡ TRY IT!
+          </span>
         </div>
       </div>
 
-      {/* ── Description with quote style ── */}
-      <div className="relative border-b-2 border-dashed border-slate-100 px-5 py-4 sm:px-6">
-        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-r-full" />
-        <p className="pl-4 text-sm font-medium leading-6 text-slate-600 italic">
-          &ldquo;{description}&rdquo;
+      {/* ── Snappy one-liner ── */}
+      <div className="relative border-b-[3px] border-black bg-yellow-200 px-5 py-[10px] sm:px-6">
+        <p className="text-sm font-black leading-5 text-black">
+          <span className="mr-1 inline-block -rotate-3 rounded border-2 border-black bg-white px-1.5 text-[10px] leading-5">💡</span>
+          {description.length > 120 ? description.slice(0, 120) + '…' : description}
         </p>
       </div>
 
       {/* ── Two-column grid: skill + scoring ── */}
       <div className="grid gap-0 sm:grid-cols-2">
-        <div className="border-b-2 border-r-0 border-dashed border-slate-100 p-5 sm:border-b-0 sm:border-r-2 sm:p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-              <Target className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">
-              What It Tests
+        <div className="border-b-[3px] border-r-0 border-black bg-slate-100 p-4 sm:border-b-0 sm:border-r-[3px] sm:p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <ComicChip label="🎯 What It Tests" color="amber" />
+          </div>
+          <ComicBox color="amber">
+            <p className="text-sm font-bold leading-5 text-black">
+              {skillDescription.length > 100 ? skillDescription.slice(0, 100) + '…' : skillDescription}
             </p>
-          </div>
-          <div className="relative rounded-xl border-2 border-amber-100 bg-amber-50/50 p-4">
-            <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-amber-200 text-[10px] font-black text-amber-800">
-              !
-            </div>
-            <p className="text-sm font-medium leading-6 text-slate-600">{skillDescription}</p>
-          </div>
+          </ComicBox>
         </div>
 
-        <div className="border-b-2 border-dashed border-slate-100 p-5 sm:p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-              <BarChart3 className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
-              Scoring Formula
+        <div className="border-b-[3px] border-black bg-slate-100 p-4 sm:p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <ComicChip label="📊 Scoring" color="blue" />
+          </div>
+          <ComicBox color="blue">
+            <p className="text-sm font-bold leading-5 text-black">
+              {howScoringWorks.length > 100 ? howScoringWorks.slice(0, 100) + '…' : howScoringWorks}
             </p>
-          </div>
-          <div className="relative rounded-xl border-2 border-blue-100 bg-blue-50/50 p-4">
-            <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-200 text-[10px] font-black text-blue-800">
-              ƒ
-            </div>
-            <p className="text-sm font-medium leading-6 text-slate-600">{howScoringWorks}</p>
-          </div>
+          </ComicBox>
         </div>
       </div>
 
       {/* ── Second row: tips + why useful ── */}
       <div className="grid gap-0 sm:grid-cols-2">
-        <div className="border-b-2 border-r-0 border-dashed border-slate-100 p-5 sm:border-b-0 sm:border-r-2 sm:p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-              <Lightbulb className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-              Training Notes
-            </p>
+        <div className="border-b-[3px] border-r-0 border-black bg-slate-100 p-4 sm:border-b-0 sm:border-r-[3px] sm:p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <ComicChip label="🔥 Tips" color="emerald" />
           </div>
           <div className="space-y-2">
-            {tips.map((tip, index) => (
+            {tips.slice(0, 3).map((tip, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 rounded-xl border-2 border-emerald-100 bg-emerald-50/50 p-3 transition hover:border-emerald-200 hover:bg-emerald-50"
+                className="flex items-start gap-2 rounded-xl border-[3px] border-black bg-emerald-300 p-2.5 shadow-[3px_3px_0_rgba(0,0,0,0.3)]"
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 border-emerald-200 bg-white text-[11px] font-black text-emerald-600">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-[3px] border-black bg-white text-xs font-black text-black shadow-[2px_2px_0_rgba(0,0,0,0.25)]">
                   {index + 1}
                 </span>
-                <p className="text-sm font-medium leading-5 text-slate-600">{tip}</p>
+                <p className="text-xs font-bold leading-4 text-black">{tip}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="p-5 sm:p-6">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-700">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-700">
-              Real-World Value
+        <div className="bg-slate-100 p-4 sm:p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <ComicChip label="⭐ Why It Matters" color="purple" />
+          </div>
+          <ComicBox color="purple" className="!bg-purple-300">
+            <p className="text-sm font-bold leading-5 text-black">
+              {whyUseful.length > 100 ? whyUseful.slice(0, 100) + '…' : whyUseful}
             </p>
-          </div>
-          <div className="relative rounded-xl border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-            <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-purple-200 text-[10px] font-black text-purple-800">
-              &#9733;
-            </div>
-            <p className="text-sm font-medium leading-6 text-slate-600">{whyUseful}</p>
-          </div>
+          </ComicBox>
 
-          {/* ── Skill meter ── */}
-          <div className="mt-4 rounded-xl border-2 border-slate-200 bg-slate-50 p-3">
+          {/* ── Comic power meter ── */}
+          <div className="mt-3 rounded-xl border-[3px] border-black bg-white p-3 shadow-[3px_3px_0_rgba(0,0,0,0.25)]">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
-                Trainability
-              </p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600">
-                Improves with practice
-              </p>
+              <span className="inline-block rounded border-2 border-black bg-rose-300 px-2 py-0.5 text-[9px] font-black uppercase text-black">
+                Power Level
+              </span>
+              <span className="text-[9px] font-black uppercase text-emerald-600">
+                Gains possible 💪
+              </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full w-4/5 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" />
+            <div className="mt-2 flex h-3 gap-0.5 overflow-hidden rounded-full border-[3px] border-black bg-slate-200 p-0.5">
+              <div className="h-full w-1/5 rounded-full bg-red-400 border-r-2 border-black" />
+              <div className="h-full w-1/5 rounded-full bg-orange-400 border-r-2 border-black" />
+              <div className="h-full w-1/5 rounded-full bg-amber-400 border-r-2 border-black" />
+              <div className="h-full w-1/5 rounded-full bg-lime-400 border-r-2 border-black" />
+              <div className="h-full w-1/5 rounded-full bg-green-400" />
             </div>
           </div>
         </div>

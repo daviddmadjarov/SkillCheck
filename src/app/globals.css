@@ -157,19 +157,15 @@
   }
 }
 
-/* ── Pitched hover button fix: clicks on shadow still register ── */
+/* ── Pitched hover: never moves the clickable area, only grows the shadow ── */
 [data-pitched-hover] {
-  position: relative;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
-[data-pitched-hover]::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-}
-[data-pitched-hover]:hover::after {
-  translate: 0 4px;
+[data-pitched-hover]:hover {
+  translate: 0 -2px;
+  /* Compensate the upward movement so the bottom hitbox stays in place */
+  margin-bottom: -2px;
 }
 
 @layer utilities {
