@@ -21,6 +21,7 @@ import { LeaderboardScroll } from '@/components/leaderboard-scroll';
 import type { Database } from '@/lib/supabase/types';
 import { ProfilePanel } from '@/components/profile-panel';
 import { GameModeCard } from '@/components/game-mode-card';
+import { RefreshLink } from '@/components/refresh-link';
 import { MonitoringRoom } from '@/components/monitoring-room';
 const categories = [
   { id: 'reaction', title: 'Reaction Protocol', icon: Activity, desc: 'Signal response analysis', color: 'text-rose-500', bg: 'bg-rose-100' },
@@ -542,9 +543,8 @@ export default async function Home({
       <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-6">
         <header className="flex min-h-[104px] flex-wrap items-center justify-between gap-4 rounded-[2rem] border-2 border-slate-200 bg-white px-4 py-4 shadow-[0_6px_0_rgba(226,232,240,1)] sm:px-6 sm:py-5">
           {/* ── Logo / Brand — refreshes page on click ── */}
-          <a
+          <RefreshLink
             href="/"
-            onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
             className="flex shrink-0 items-center gap-4 cursor-pointer transition-transform hover:scale-105"
           >
             <div className="flex h-14 w-14 items-center justify-center rounded-[1.4rem] bg-cyan-500 text-white shadow-[0_4px_0_rgba(14,116,144,1)]">
@@ -555,7 +555,7 @@ export default async function Home({
                 SkillCheck
               </h1>
             </div>
-          </a>
+          </RefreshLink>
 
           <div className="flex w-full shrink-0 items-center justify-between gap-3 sm:w-auto sm:justify-start">
             <Link
