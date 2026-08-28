@@ -396,7 +396,7 @@ export function TypingProtocol({
             }
           }}
         />
-        <div ref={wordsContainerRef} className="mb-4 max-h-96 overflow-auto rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
+        <div ref={wordsContainerRef} className="mb-4 max-h-[var(--typing-panel-max-h)] overflow-auto rounded-[1.4rem] border-2 border-slate-200 bg-white/90 p-4 text-lg leading-8 text-slate-400 sm:text-xl sm:leading-9">
           <div className={finished ? 'pointer-events-none blur-[2.5px]' : ''}>
           {visibleWords.map((word, wordIndex) => {
             const beforeWord = visibleWords.slice(0, wordIndex).join(' ');

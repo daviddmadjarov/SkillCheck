@@ -170,7 +170,7 @@ export function ReactionProtocolGame({
       </div>
 
       <button
-        className={`flex min-h-[22rem] w-full flex-col items-center justify-center rounded-[2rem] border-2 border-b-[8px] px-6 py-10 text-center shadow-[0_6px_0_rgba(226,232,240,1)] transition ${arenaClasses}`}
+        className={`flex min-h-[var(--panel-h-xl)] w-full flex-col items-center justify-center rounded-[2rem] border-2 border-b-[8px] px-6 py-10 text-center shadow-[0_6px_0_rgba(226,232,240,1)] transition ${arenaClasses}`}
         onClick={handleArenaClick}
         type="button"
       >

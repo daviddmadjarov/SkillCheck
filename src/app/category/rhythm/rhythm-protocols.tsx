@@ -422,7 +422,7 @@ function SyncTest({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-      <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-4 sm:min-h-[20rem]">
+      <div className="relative min-h-[var(--panel-h-sm)] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-4 sm:min-h-[var(--panel-h-lg)]">
           <div className="absolute inset-x-4 top-4 h-4 overflow-hidden rounded-full border-2 border-slate-200 bg-white">
             <div className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 transition-[width] duration-100" style={{ width: `${progress}%` }} />
           </div>
@@ -728,7 +728,7 @@ function StopTimer({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-      <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[18rem]">
+      <div className="relative min-h-[var(--panel-h-sm)] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-fuchsia-50 via-white to-slate-50 p-4 sm:min-h-[var(--panel-h-md)]">
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(217,70,239,0.18), transparent 34%), radial-gradient(circle at 78% 72%, rgba(79,70,229,0.16), transparent 36%)' }} />
 
           <div className="relative z-10 flex h-full min-h-[20rem] flex-col items-center justify-center gap-6 text-center">
@@ -861,7 +861,7 @@ function OverclockGame({ isSignedIn }: { isSignedIn: boolean }) {
       </div>
 
       <div className="space-y-4">
-      <div className="relative sm:min-h-[18rem]">
+      <div className="relative sm:min-h-[var(--panel-h-md)]">
           {cd.active && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm rounded-[2rem]">
               <div className="text-center">

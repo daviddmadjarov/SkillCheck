@@ -478,7 +478,7 @@ function MentalRotation({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[18rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 sm:min-h-[22rem]">
+        <div className="relative min-h-[var(--panel-h-md)] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-cyan-50 via-white to-slate-50 p-5 sm:min-h-[var(--panel-h-xl)]">
           {(phase === 'playing' || phase === 'reveal') && round && (
             <div className="flex h-full flex-col gap-5">
               <div className="flex flex-wrap items-center gap-4">
@@ -950,9 +950,9 @@ function EstimationChallenge({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
+        <div className="relative min-h-[var(--panel-h-sm)] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 sm:min-h-[var(--panel-h-lg)]">
           {(phase === 'estimating') && task && (
-            <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-6">
+            <div className="flex h-full min-h-[var(--panel-h-lg)] flex-col items-center justify-center gap-6">
               <EstVisual dotsHidden={dotsHidden} task={task} />
               <div className="w-full max-w-sm space-y-3">
                 <div className="flex items-center justify-between">
@@ -1244,9 +1244,9 @@ function SequenceMemory({ isSignedIn }: { isSignedIn: boolean }) {
           </div>
         </div>
 
-        <div className="relative min-h-[16rem] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 sm:min-h-[20rem]">
+        <div className="relative min-h-[var(--panel-h-sm)] overflow-hidden rounded-[2rem] border-2 border-slate-200 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-5 sm:min-h-[var(--panel-h-lg)]">
           {phase !== 'idle' && (
-            <div className="flex items-center justify-center h-full min-h-[20rem]">
+            <div className="flex items-center justify-center h-full min-h-[var(--panel-h-lg)]">
               <div className="grid w-full h-full max-w-md max-h-md grid-cols-3 gap-3" style={{ aspectRatio: '1/1' }}>
                 {Array.from({ length: 9 }).map((_, idx) => (
                   <button

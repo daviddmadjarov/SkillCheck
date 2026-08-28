@@ -138,6 +138,13 @@ export default function RhythmLockGame({
     osc.stop(now + 0.15);
   }, [getAudioCtx]);
 
+  const getBoardMax = useCallback(() => {
+    if (typeof window === 'undefined') return 600;
+    const raw = getComputedStyle(document.documentElement).getPropertyValue('--panel-board-max').trim();
+    const rem = parseFloat(raw);
+    return Number.isFinite(rem) && rem > 0 ? rem * 16 : 600;
+  }, []);
+
   const isDark = theme === 'dark';
   const bgColor = isDark ? '#0f172a' : '#f8fafc';
   const ringColor = isDark ? '#ffffff' : '#1e293b';
@@ -469,7 +476,7 @@ export default function RhythmLockGame({
       const parent = canvas.parentElement;
       if (!parent) return;
       const rect = parent.getBoundingClientRect();
-      const size = Math.min(rect.width, 600);
+      const size = Math.min(rect.width, getBoardMax());
       canvas.width = size;
       canvas.height = size;
       if (phaseRef.current === 'idle') {
@@ -481,23 +488,23 @@ export default function RhythmLockGame({
     resize();
     window.addEventListener('resize', resize);
     return () => window.removeEventListener('resize', resize);
-  }, [draw]);
+  }, [draw, getBoardMax]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const size = Math.min(canvas.width || 400, 600);
+    const size = Math.min(canvas.width || 400, getBoardMax());
     draw(ctx, size, size);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme]);
+  }, [theme, getBoardMax]);
 
   const borderCls = isDark ? 'border-slate-700' : 'border-slate-200';
   const comboTextCls = isDark ? 'text-rose-400' : 'text-rose-600';
 
   return (
-    <div className="relative mx-auto w-full max-w-[600px]">
+    <div className="relative mx-auto w-full max-w-[var(--panel-board-max)]">
       <canvas
         ref={canvasRef}
         className={`block w-full select-none rounded-[2rem] border-2 ${borderCls}`}

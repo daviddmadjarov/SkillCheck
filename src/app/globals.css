@@ -7,6 +7,27 @@
 @layer base {
   :root {
     color-scheme: light;
+
+    /* ════════════════════════════════════════════════════════════════
+       GAME PANEL SIZING — edit these to resize all game arenas at once.
+       Tiers map to panel heights used by every protocol page:
+         xs / xs-md  → Multi-Reaction buttons
+         sm          → standard arena on mobile
+         md          → standard arena on sm+ / reaction arena on mobile
+         lg          → tall arenas (reaction, sync, estimation) on sm+
+         xl          → Mental Rotation & full Reaction on sm+
+       board-max    → max-width of the square boards (Perfect Split,
+                      Symbol Tracing)
+       typing-max-h → max-height of the Typing words panel
+       ════════════════════════════════════════════════════════════════ */
+    --panel-h-xs: 10rem;
+    --panel-h-xs-md: 12rem;
+    --panel-h-sm: 16rem;
+    --panel-h-md: 18rem;
+    --panel-h-lg: 20rem;
+    --panel-h-xl: 22rem;
+    --panel-board-max: 38rem;
+    --typing-panel-max-h: 24rem;
   }
 
   *,
@@ -461,10 +482,13 @@ button, [role="button"] {
     padding: 0.75rem !important;
   }
 
-  /* Let game arenas fill the screen on mobile */
-  .relative.min-h-\[24rem\],
-  .relative.min-h-\[18rem\] {
-    min-height: 14rem !important;
+  /* Game arena sizing on mobile — driven by the same --panel-h-* vars.
+     To let the arenas fill the screen on phones, adjust these values. */
+  :root {
+    --panel-h-sm: 14rem;
+    --panel-h-md: 14rem;
+    --panel-h-lg: 16rem;
+    --panel-h-xl: 16rem;
   }
 
   /* Reduce target sizes slightly on small screens to fit */
@@ -485,12 +509,11 @@ button, [role="button"] {
 
 /* Landscape phone optimization */
 @media (max-width: 850px) and (orientation: landscape) {
-  .relative.min-h-\[24rem\] {
-    min-height: 70vh !important;
-  }
-
-  .relative.min-h-\[18rem\] {
-    min-height: 60vh !important;
+  :root {
+    --panel-h-sm: 60vh;
+    --panel-h-md: 70vh;
+    --panel-h-lg: 70vh;
+    --panel-h-xl: 70vh;
   }
 }
 
